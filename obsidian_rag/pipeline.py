@@ -61,6 +61,7 @@ def ingest_path(path: Path, config: RagConfig, recreate: bool = False) -> tuple[
     store = make_store(config)
     store.ensure_collection(recreate=recreate)
     store.upsert(chunks, vectors)
+    _write_keyword_index(config, chunks)
     debug_breakpoint("ingest.after_upsert", collection=config.collection_name, chunk_count=len(chunks))
     return len(documents), len(chunks)
 
@@ -99,3 +100,11 @@ def answer(question: str, config: RagConfig, top_k: int = 5) -> tuple[str, list[
 
 def _has_enough_relevance(results: list[SearchResult], min_score: float) -> bool:
     return bool(results) and results[0].score >= min_score
+
+
+def _write_keyword_index(config: RagConfig, chunks) -> None:
+    from obsidian_rag.v1.retrieval.keyword import KeywordIndex, keyword_index_path
+
+    index = KeywordIndex(keyword_index_path(config.db_path))
+    index.build(chunks)
+    index.save()

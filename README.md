@@ -102,6 +102,54 @@ docker start rag-qdrant
 问题 -> embedding -> Qdrant 检索 -> 拼 RAG prompt -> LLM 回答 -> 输出 sources
 ```
 
+## V1 FastAPI
+
+V1 增加了 FastAPI JSON 接口和 Swagger 调试页面，代码放在 `obsidian_rag/v1/`。
+
+启动 API：
+
+```bash
+.venv/bin/uvicorn obsidian_rag.v1.app:app --reload
+```
+
+打开 Swagger：
+
+```text
+http://127.0.0.1:8000/docs
+```
+
+当前接口：
+
+- `GET /health`
+- `POST /ingest`
+- `POST /search`
+- `POST /compare-search`
+- `POST /ask`
+
+`/search` 支持 `dense`、`keyword`、`hybrid` 三种模式：
+
+```json
+{
+  "query": "生鸡肉要不要洗",
+  "top_k": 5,
+  "mode": "hybrid"
+}
+```
+
+`/compare-search` 会同时返回 dense、keyword、hybrid 三组结果，适合在 Swagger 里观察混合检索是否改善了召回。
+
+`/ask` 当前只返回 JSON，不使用 SSE：
+
+```json
+{
+  "question": "生鸡肉还需要清洗下锅吗",
+  "top_k": 5,
+  "mode": "hybrid"
+}
+```
+
+注意：`keyword` 和 `hybrid` 依赖 `.rag/keyword_index.json`。运行 `obsidian-rag ingest --recreate` 或调用 `POST /ingest` 后会自动生成。
+
 ## Offline Smoke Test
 
 如果你只想验证本地索引和检索链路，不调用真实 embedding API，可以临时用 hash embedding：
