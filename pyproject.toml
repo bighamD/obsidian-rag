@@ -1,0 +1,30 @@
+[project]
+name = "obsidian-rag"
+version = "0.1.0"
+description = "Local v0 RAG pipeline for Obsidian Markdown and PDF notes."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "httpx>=0.28.0",
+    "openai>=1.90.0",
+    "pypdf>=5.0.0",
+    "python-dotenv>=1.0.1",
+    "pyyaml>=6.0.2",
+    "qdrant-client>=1.14.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "debugpy>=1.8.0",
+    "pytest>=8.0.0",
+]
+
+[project.scripts]
+obsidian-rag = "obsidian_rag.cli:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
