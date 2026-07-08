@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720" role="img" aria-labelledby="title desc">
+  <title id="title">V3 Agent Trace Structure</title>
+  <desc id="desc">V3 返回 JSON trace，展示 decision、search、evidence、answer 四类步骤。</desc>
+  <style>
+    .title { font: 700 32px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #111827; }
+    .subtitle { font: 500 18px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #4b5563; }
+    .step-title { font: 700 20px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #111827; }
+    .body { font: 500 15px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #374151; }
+    .code { font: 600 15px ui-monospace, SFMono-Regular, Menlo, monospace; fill: #1f2937; }
+    .card { fill: #f8fafc; stroke: #cbd5e1; stroke-width: 2; rx: 16; }
+    .decision { fill: #fff7ed; stroke: #fb923c; stroke-width: 2; rx: 16; }
+    .search { fill: #ecfdf5; stroke: #22c55e; stroke-width: 2; rx: 16; }
+    .evidence { fill: #eff6ff; stroke: #60a5fa; stroke-width: 2; rx: 16; }
+    .answer { fill: #f5f3ff; stroke: #8b5cf6; stroke-width: 2; rx: 16; }
+  </style>
+  <rect width="1280" height="720" fill="#ffffff" />
+  <text x="64" y="64" class="title">V3 Trace：看懂 Agent 做了什么</text>
+  <text x="64" y="96" class="subtitle">Agentic RAG 最大的学习价值，是把工具调用过程显式暴露出来。</text>
+
+  <rect x="72" y="150" width="260" height="132" class="decision" />
+  <text x="104" y="190" class="step-title">1. decision</text>
+  <text x="104" y="222" class="body">是否需要本地知识库</text>
+  <text x="104" y="250" class="code">decision: search</text>
+
+  <rect x="372" y="150" width="260" height="132" class="search" />
+  <text x="404" y="190" class="step-title">2. search</text>
+  <text x="404" y="222" class="body">调用 search_notes 工具</text>
+  <text x="404" y="250" class="code">query + results</text>
+
+  <rect x="672" y="150" width="260" height="132" class="evidence" />
+  <text x="704" y="190" class="step-title">3. evidence</text>
+  <text x="704" y="222" class="body">判断证据是否足够</text>
+  <text x="704" y="250" class="code">result_count</text>
+
+  <rect x="972" y="150" width="236" height="132" class="answer" />
+  <text x="1004" y="190" class="step-title">4. answer</text>
+  <text x="1004" y="222" class="body">基于证据生成答案</text>
+  <text x="1004" y="250" class="code">sources</text>
+
+  <rect x="92" y="356" width="1096" height="260" class="card" />
+  <text x="124" y="394" class="step-title">JSON 片段示意</text>
+  <text x="124" y="436" class="code">"trace": [</text>
+  <text x="154" y="466" class="code">{ "step_type": "decision", "decision": "search", "reason": "问题需要本地知识库证据" },</text>
+  <text x="154" y="496" class="code">{ "step_type": "search", "tool_name": "search_notes", "query": "生鸡肉要清洗吗？", "result_count": 5 },</text>
+  <text x="154" y="526" class="code">{ "step_type": "evidence", "reason": "找到可用于回答的本地资料", "result_count": 5 },</text>
+  <text x="154" y="556" class="code">{ "step_type": "answer", "reason": "基于检索证据生成最终答案" }</text>
+  <text x="124" y="586" class="code">]</text>
+</svg>

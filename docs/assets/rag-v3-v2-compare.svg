@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720" role="img" aria-labelledby="title desc">
+  <title id="title">RAG v2 到 v3：从评估检索到 Agentic RAG</title>
+  <desc id="desc">v2 衡量检索质量，v3 让 agent 决定是否检索、检索几次以及如何回答。</desc>
+  <defs>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto">
+      <path d="M2,2 L10,6 L2,10 Z" fill="#2563eb" />
+    </marker>
+    <style>
+      .title { font: 700 32px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #111827; }
+      .subtitle { font: 500 18px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #4b5563; }
+      .section { font: 700 24px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #111827; }
+      .box-title { font: 700 20px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #111827; }
+      .box-body { font: 500 15px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #475569; }
+      .line { stroke: #2563eb; stroke-width: 4; fill: none; marker-end: url(#arrow); }
+      .v2 { fill: #f5f3ff; stroke: #8b5cf6; stroke-width: 2; rx: 16; }
+      .v3 { fill: #ecfdf5; stroke: #22c55e; stroke-width: 2; rx: 16; }
+      .note { fill: #f8fafc; stroke: #cbd5e1; stroke-width: 2; rx: 16; }
+    </style>
+  </defs>
+  <rect width="1280" height="720" fill="#ffffff" />
+  <text x="64" y="64" class="title">v2 到 v3：从“测检索”到“会用检索工具”</text>
+  <text x="64" y="96" class="subtitle">v3 的重点不是更复杂的模型，而是把检索器包装成 agent 可调用的工具，并暴露 trace。</text>
+
+  <text x="110" y="158" class="section">v2 Evaluation</text>
+  <rect x="86" y="190" width="260" height="90" class="v2" />
+  <text x="140" y="226" class="box-title">Eval Set</text>
+  <text x="120" y="254" class="box-body">固定问题 + 标准来源</text>
+  <rect x="86" y="310" width="260" height="90" class="v2" />
+  <text x="128" y="346" class="box-title">Run Retrieval</text>
+  <text x="120" y="374" class="box-body">dense / keyword / hybrid</text>
+  <rect x="86" y="430" width="260" height="90" class="v2" />
+  <text x="128" y="466" class="box-title">Metrics</text>
+  <text x="120" y="494" class="box-body">Hit rate、MRR、Recall</text>
+
+  <path d="M346 356 H470" class="line" />
+
+  <text x="536" y="158" class="section">v3 Lightweight Agent</text>
+  <rect x="488" y="190" width="284" height="90" class="v3" />
+  <text x="550" y="226" class="box-title">Decide</text>
+  <text x="526" y="254" class="box-body">是否需要查询本地知识库</text>
+  <rect x="488" y="310" width="284" height="90" class="v3" />
+  <text x="538" y="346" class="box-title">Call Tool</text>
+  <text x="524" y="374" class="box-body">search_notes(query, top_k)</text>
+  <rect x="488" y="430" width="284" height="90" class="v3" />
+  <text x="546" y="466" class="box-title">Inspect</text>
+  <text x="524" y="494" class="box-body">证据够不够，是否再查</text>
+
+  <path d="M772 356 H896" class="line" />
+
+  <rect x="914" y="250" width="282" height="90" class="v3" />
+  <text x="976" y="286" class="box-title">Answer</text>
+  <text x="952" y="314" class="box-body">基于证据生成答案</text>
+  <rect x="914" y="370" width="282" height="90" class="v3" />
+  <text x="990" y="406" class="box-title">Trace</text>
+  <text x="950" y="434" class="box-body">输出 decision/search/answer</text>
+
+  <rect x="88" y="602" width="1108" height="62" class="note" />
+  <text x="120" y="640" class="box-body">理解方式：v1 是检索器，v2 是检索考试，v3 是一个会决定何时调用检索器的轻量 agent。</text>
+</svg>

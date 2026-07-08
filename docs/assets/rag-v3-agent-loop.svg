@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="760" viewBox="0 0 1280 760" role="img" aria-labelledby="title desc">
+  <title id="title">V3 Lightweight Agent Loop</title>
+  <desc id="desc">轻量 agent 判断是否搜索，执行 search_notes，检查证据，必要时第二次搜索，然后回答。</desc>
+  <defs>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto">
+      <path d="M2,2 L10,6 L2,10 Z" fill="#0f766e" />
+    </marker>
+    <style>
+      .title { font: 700 32px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #111827; }
+      .subtitle { font: 500 18px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #4b5563; }
+      .box-title { font: 700 20px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #111827; }
+      .box-body { font: 500 15px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #475569; }
+      .line { stroke: #0f766e; stroke-width: 4; fill: none; marker-end: url(#arrow); }
+      .box { fill: #ecfeff; stroke: #06b6d4; stroke-width: 2; rx: 18; }
+      .decision { fill: #fff7ed; stroke: #fb923c; stroke-width: 2; rx: 18; }
+      .tool { fill: #ecfdf5; stroke: #22c55e; stroke-width: 2; rx: 18; }
+      .answer { fill: #f5f3ff; stroke: #8b5cf6; stroke-width: 2; rx: 18; }
+      .trace { fill: #f8fafc; stroke: #cbd5e1; stroke-width: 2; rx: 18; }
+    </style>
+  </defs>
+  <rect width="1280" height="760" fill="#ffffff" />
+  <text x="64" y="64" class="title">V3 轻量 Agent Loop</text>
+  <text x="64" y="96" class="subtitle">不使用 LangGraph，先用最小 loop 帮你理解 Agentic RAG。</text>
+
+  <rect x="80" y="190" width="220" height="90" class="box" />
+  <text x="130" y="226" class="box-title">User Question</text>
+  <text x="122" y="254" class="box-body">自然语言问题</text>
+  <path d="M300 235 H404" class="line" />
+
+  <rect x="404" y="180" width="250" height="110" class="decision" />
+  <text x="456" y="220" class="box-title">Decision</text>
+  <text x="438" y="250" class="box-body">需要查知识库吗？</text>
+  <text x="438" y="274" class="box-body">寒暄则 no_search</text>
+
+  <path d="M654 218 H790" class="line" />
+  <rect x="790" y="156" width="250" height="90" class="tool" />
+  <text x="850" y="192" class="box-title">search_notes</text>
+  <text x="828" y="220" class="box-body">调用 V1 RetrievalService</text>
+
+  <path d="M654 260 C724 330 794 350 866 350" class="line" />
+  <rect x="790" y="306" width="250" height="90" class="answer" />
+  <text x="858" y="342" class="box-title">Direct Reply</text>
+  <text x="824" y="370" class="box-body">不查库，直接说明能力边界</text>
+
+  <path d="M915 246 V430" class="line" />
+  <rect x="790" y="430" width="250" height="90" class="decision" />
+  <text x="854" y="466" class="box-title">Evidence</text>
+  <text x="824" y="494" class="box-body">有资料则答，不足则说明不足</text>
+
+  <path d="M790 475 C700 520 630 450 706 368 C740 330 790 305 890 246" class="line" />
+  <text x="602" y="536" class="box-body">multi-hop 时最多第二次搜索</text>
+
+  <path d="M1040 475 H1120 V610 H640" class="line" />
+  <rect x="424" y="576" width="216" height="90" class="answer" />
+  <text x="486" y="612" class="box-title">Answer</text>
+  <text x="456" y="640" class="box-body">基于 evidence 生成回答</text>
+
+  <rect x="80" y="576" width="250" height="90" class="trace" />
+  <text x="152" y="612" class="box-title">Trace</text>
+  <text x="112" y="640" class="box-body">记录 decision/search/evidence/answer</text>
+  <path d="M424 620 H330" class="line" />
+</svg>
