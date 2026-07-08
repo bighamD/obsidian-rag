@@ -12,6 +12,10 @@ V2 评估集、检索指标、答案指标和每个 V2 文件职责见：[docs/v
 
 V3 轻量 Agentic RAG、trace、Swagger 和每个 V3 文件职责见：[docs/v3-agentic-rag-guide.md](docs/v3-agentic-rag-guide.md)。
 
+V3.1 LLM Router、结构化 JSON 路由、Swagger 和每个 V3.1 文件职责见：[docs/v3-1-llm-router-guide.md](docs/v3-1-llm-router-guide.md)。
+
+V3.2 Tool Calling、`search_notes/no_search/clarify` 工具选择、Swagger 和每个 V3.2 文件职责见：[docs/v3-2-tool-calling-guide.md](docs/v3-2-tool-calling-guide.md)。
+
 VSCode/Cursor 调试 RAG 流程见：[docs/debugging-rag-flow.md](docs/debugging-rag-flow.md)。
 
 配套学习图片见：[docs/assets](docs/assets)。
@@ -200,6 +204,58 @@ CLI 示例：
 
 ```bash
 .venv/bin/obsidian-rag agent ask "生鸡肉要不要洗，处理完后厨房怎么清洁？" --top-k 5 --mode hybrid --max-steps 2
+```
+
+## V3.1 LLM Router
+
+V3.1 把 V3 的规则判断升级成 LLM Router：模型先输出结构化 JSON，代码再根据 `search`、`no_search`、`clarify` 决定下一步。详细说明见：[docs/v3-1-llm-router-guide.md](docs/v3-1-llm-router-guide.md)。
+
+启动 V3.1 Swagger：
+
+```bash
+.venv/bin/uvicorn obsidian_rag.v3_1.app:app --reload --port 8003
+```
+
+打开：
+
+```text
+http://127.0.0.1:8003/docs
+```
+
+Swagger 示例：
+
+```json
+{
+  "question": "今天深圳天气怎么样",
+  "top_k": 5,
+  "mode": "hybrid",
+  "filters": null,
+  "max_steps": 1
+}
+```
+
+观察 `router.action`、`router.intent`、`used_retrieval` 和 `trace[0]`，可以判断 LLM Router 有没有正确识别用户意图。
+
+## V3.2 Tool Calling
+
+V3.2 把 V3.1 的 Router JSON 升级成模型原生 Tool Calling：模型直接选择 `search_notes`、`no_search` 或 `clarify`，代码执行工具并把 tool result 回传给模型。详细说明见：[docs/v3-2-tool-calling-guide.md](docs/v3-2-tool-calling-guide.md)。
+
+启动 V3.2 Swagger：
+
+```bash
+.venv/bin/uvicorn obsidian_rag.v3_2.app:app --reload --port 8004
+```
+
+打开：
+
+```text
+http://127.0.0.1:8004/docs
+```
+
+CLI 示例：
+
+```bash
+.venv/bin/obsidian-rag agent-v3-2 ask "生鸡肉还需要清洗下锅吗？" --top-k 5 --mode hybrid --max-steps 1
 ```
 
 ## Offline Smoke Test

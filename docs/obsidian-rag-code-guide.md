@@ -8,6 +8,10 @@ V2 已增加 evaluation loop。评估集格式、检索指标、答案指标、C
 
 V3 已增加轻量 Agentic RAG。Agent loop、trace、Swagger/CLI 用法和 `obsidian_rag/v3/` 文件职责见：[V3 Agentic RAG Guide](v3-agentic-rag-guide.md)。
 
+V3.1 已增加 LLM Router。结构化 JSON 路由、Swagger 用法和 `obsidian_rag/v3_1/` 文件职责见：[V3.1 LLM Router Guide](v3-1-llm-router-guide.md)。
+
+V3.2 已增加 Tool Calling。工具定义、tool_calls 消息闭环、Swagger/CLI 用法和 `obsidian_rag/v3_2/` 文件职责见：[V3.2 Tool Calling Guide](v3-2-tool-calling-guide.md)。
+
 ## Mental Model
 
 当前 v0 项目的核心不是 Agent，而是一个固定 RAG pipeline：

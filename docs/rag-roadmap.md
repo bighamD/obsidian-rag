@@ -234,6 +234,54 @@ Current v3 status:
 - Multi-hop teaching behavior exists for common combined questions such as chicken washing plus kitchen cleaning.
 - V3 learning guide and diagrams live in `docs/v3-agentic-rag-guide.md`.
 
+### v3.1: LLM Router
+
+Goal:
+
+Replace the V3 rule-based search decision with an LLM router that emits structured JSON.
+
+What this version teaches:
+
+- Intent routing before retrieval.
+- Why external realtime questions should not trigger local KB search.
+- How to make model decisions machine-readable with JSON.
+- How to degrade safely when router JSON is invalid.
+
+Current v3.1 status:
+
+- `obsidian_rag/v3_1/` exists as a separate LLM-router package.
+- `POST /agent/ask` is available from `obsidian_rag.v3_1.app`.
+- `RouterService` asks the LLM to output `search`, `no_search`, or `clarify`.
+- `AgentService` executes the structured `RouterDecision` and returns `router` plus `trace`.
+- V3.1 learning guide and diagrams live in `docs/v3-1-llm-router-guide.md`.
+
+### v3.2: Tool Calling
+
+Goal:
+
+Let the model choose tools directly instead of only returning a router JSON object.
+
+Possible tools:
+
+- `search_notes`
+- `no_search`
+- `clarify`
+
+Current v3.2 status:
+
+- `obsidian_rag/v3_2/` exists as a separate tool-calling package.
+- `POST /agent/ask` is available from `obsidian_rag.v3_2.app`.
+- `obsidian-rag agent-v3-2 ask "..."` runs the same tool-calling loop from CLI.
+- `OpenAIChatClient.complete_with_tools()` parses OpenAI/Ollama-compatible `tool_calls`.
+- The agent executes `search_notes`, `no_search`, or `clarify` based on `tool_calls[].function.name`.
+- V3.2 learning guide and diagrams live in `docs/v3-2-tool-calling-guide.md`.
+
+### v3.3: LangGraph
+
+Goal:
+
+Move the agent workflow into graph nodes such as router, search, evidence check, answer, and clarify.
+
 ### v4: Personal Knowledge Assistant
 
 Goal:
