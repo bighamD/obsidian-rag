@@ -1,0 +1,115 @@
+{
+	"version": "0.2.0",
+	"configurations": [
+		{
+			"name": "V3.2 agent ask: tool calling loop",
+			"type": "debugpy",
+			"request": "launch",
+			"module": "obsidian_rag.cli",
+			"console": "integratedTerminal",
+			"cwd": "${workspaceFolder}",
+			"python": "${workspaceFolder}/.venv/bin/python",
+			"envFile": "${workspaceFolder}/.env",
+			"env": {
+				"RAG_DEBUG_BREAKPOINTS": "search.after_query_embedding,qdrant.after_search,search.after_retrieval,prompting.messages_built"
+			},
+			"args": ["agent-v3-2", "ask", "生鸡肉还需要清洗下锅吗？", "--top-k", "5", "--mode", "hybrid", "--max-steps", "1"],
+			"justMyCode": true
+		},
+		{
+			"name": "V3.1 agent ask: LLM router loop",
+			"type": "debugpy",
+			"request": "launch",
+			"module": "obsidian_rag.cli",
+			"console": "integratedTerminal",
+			"cwd": "${workspaceFolder}",
+			"python": "${workspaceFolder}/.venv/bin/python",
+			"envFile": "${workspaceFolder}/.env",
+			"env": {
+				"RAG_DEBUG_BREAKPOINTS": "search.after_query_embedding,qdrant.after_search,search.after_retrieval,prompting.messages_built"
+			},
+			"args": [
+				"agent-v3-1",
+				"ask",
+				"生鸡肉需要清洗吗",
+				"--top-k",
+				"5",
+				"--mode",
+				"hybrid",
+				"--max-steps",
+				"1"
+			],
+			"justMyCode": true
+		},
+		{
+			"name": "V3 agent ask: lightweight agent loop",
+			"type": "debugpy",
+			"request": "launch",
+			"module": "obsidian_rag.cli",
+			"console": "integratedTerminal",
+			"cwd": "${workspaceFolder}",
+			"python": "${workspaceFolder}/.venv/bin/python",
+			"envFile": "${workspaceFolder}/.env",
+			"env": {
+				"RAG_DEBUG_BREAKPOINTS": "search.after_query_embedding,qdrant.after_search,search.after_retrieval,prompting.messages_built"
+			},
+			"args": [
+				"agent",
+				"ask",
+				"生鸡肉还需要清洗下锅吗？处理完后厨房怎么清洁？",
+				"--top-k",
+				"5",
+				"--mode",
+				"hybrid",
+				"--max-steps",
+				"2"
+			],
+			"justMyCode": true
+		},
+		{
+			"name": "RAG ask: harness architecture",
+			"type": "debugpy",
+			"request": "launch",
+			"module": "obsidian_rag.cli",
+			"console": "integratedTerminal",
+			"cwd": "${workspaceFolder}",
+			"python": "${workspaceFolder}/.venv/bin/python",
+			"envFile": "${workspaceFolder}/.env",
+			"env": {
+				"RAG_DEBUG_BREAKPOINTS": "ask.after_retrieval,prompting.messages_built,ask.before_llm,ask.after_llm"
+			},
+			"args": ["ask", "剩菜需要加热到100°再吃吗？", "--top-k", "5"],
+			"justMyCode": true
+		},
+		{
+			"name": "RAG search: harness architecture",
+			"type": "debugpy",
+			"request": "launch",
+			"module": "obsidian_rag.cli",
+			"console": "integratedTerminal",
+			"cwd": "${workspaceFolder}",
+			"python": "${workspaceFolder}/.venv/bin/python",
+			"envFile": "${workspaceFolder}/.env",
+			"env": {
+				"RAG_DEBUG_BREAKPOINTS": "search.after_query_embedding,qdrant.after_search,search.after_retrieval"
+			},
+			"args": ["search", "今天深圳天气怎么样", "--top-k", "5"],
+			"justMyCode": true
+		},
+		{
+			"name": "RAG ingest current vault",
+			"type": "debugpy",
+			"request": "launch",
+			"module": "obsidian_rag.cli",
+			"console": "integratedTerminal",
+			"cwd": "${workspaceFolder}",
+			"python": "${workspaceFolder}/.venv/bin/python",
+			"envFile": "${workspaceFolder}/.env",
+			"env": {
+				"RAG_DEBUG_BREAKPOINTS": "ingest.after_load,ingest.after_chunks,ingest.after_embeddings,qdrant.before_upsert,ingest.after_upsert"
+			},
+			"args": ["ingest", "--recreate"],
+			"justMyCode": true
+		}
+	]
+}
