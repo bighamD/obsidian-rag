@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720" role="img" aria-labelledby="title desc">
+  <title id="title">V2 Retrieval Metrics</title>
+  <desc id="desc">Hit Rate、MRR 和 Source Recall 三个检索指标的含义。</desc>
+  <style>
+    .title { font: 700 32px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #111827; }
+    .subtitle { font: 500 18px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #4b5563; }
+    .card-title { font: 700 24px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #111827; }
+    .body { font: 500 17px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #374151; }
+    .formula { font: 700 20px ui-monospace, SFMono-Regular, Menlo, monospace; fill: #1d4ed8; }
+    .card1 { fill: #eff6ff; stroke: #60a5fa; stroke-width: 2; rx: 18; }
+    .card2 { fill: #ecfdf5; stroke: #34d399; stroke-width: 2; rx: 18; }
+    .card3 { fill: #fff7ed; stroke: #fb923c; stroke-width: 2; rx: 18; }
+    .row { fill: #f8fafc; stroke: #cbd5e1; stroke-width: 1.5; rx: 10; }
+  </style>
+  <rect width="1280" height="720" fill="#ffffff" />
+  <text x="64" y="64" class="title">V2 三个检索指标怎么读</text>
+  <text x="64" y="96" class="subtitle">它们分别回答：有没有命中、命中排多靠前、预期来源覆盖了多少。</text>
+
+  <rect x="70" y="150" width="350" height="210" class="card1" />
+  <text x="110" y="200" class="card-title">Hit Rate@K</text>
+  <text x="110" y="242" class="body">Top-K 结果里是否至少有一个</text>
+  <text x="110" y="270" class="body">预期 source file。</text>
+  <text x="110" y="318" class="formula">hits / examples</text>
+
+  <rect x="465" y="150" width="350" height="210" class="card2" />
+  <text x="505" y="200" class="card-title">MRR</text>
+  <text x="505" y="242" class="body">第一个正确来源排得越靠前，</text>
+  <text x="505" y="270" class="body">分数越高。</text>
+  <text x="505" y="318" class="formula">mean(1 / first_rank)</text>
+
+  <rect x="860" y="150" width="350" height="210" class="card3" />
+  <text x="900" y="200" class="card-title">Source Recall</text>
+  <text x="900" y="242" class="body">如果一个问题需要多个来源，</text>
+  <text x="900" y="270" class="body">看实际覆盖了多少。</text>
+  <text x="900" y="318" class="formula">matched / expected</text>
+
+  <rect x="94" y="442" width="1092" height="52" class="row" />
+  <text x="124" y="475" class="body">例子 A：expected = [food.md]，retrieved = [food.md, other.md]，Hit = 1，MRR = 1，Recall = 1</text>
+  <rect x="94" y="512" width="1092" height="52" class="row" />
+  <text x="124" y="545" class="body">例子 B：expected = [food.md, temp.md]，retrieved = [other.md, temp.md]，Hit = 1，MRR = 0.5，Recall = 0.5</text>
+  <rect x="94" y="582" width="1092" height="52" class="row" />
+  <text x="124" y="615" class="body">例子 C：expected = [rice.md]，retrieved = [other.md]，Hit = 0，MRR = 0，Recall = 0</text>
+</svg>

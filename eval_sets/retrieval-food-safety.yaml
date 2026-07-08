@@ -1,0 +1,80 @@
+examples:
+  - id: chicken-wash
+    question: 生鸡肉要不要用水冲洗？
+    expected_source_files:
+      - rag_test_food_safety_kb_expanded.md
+    expected_answer_points:
+      - 不建议清洗生鸡肉
+      - 交叉污染
+
+  - id: chicken-temperature
+    question: 鸡肉中心温度到多少才安全？
+    expected_source_files:
+      - rag_test_food_safety_kb_expanded.md
+    expected_answer_points:
+      - 74°C
+      - 165°F
+
+  - id: leftovers-days
+    question: 剩菜放冰箱一般能放几天？
+    expected_source_files:
+      - rag_test_food_safety_kb_expanded.md
+    expected_answer_points:
+      - 冷藏
+      - 剩菜
+
+  - id: thaw-counter
+    question: 冻肉能不能放在厨房台面上解冻？
+    expected_source_files:
+      - rag_test_food_safety_kb_expanded.md
+    expected_answer_points:
+      - 不建议室温解冻
+      - 危险温度区
+
+  - id: cutting-board
+    question: 生肉和水果可以共用同一块砧板吗？
+    expected_source_files:
+      - rag_test_food_safety_kb_expanded.md
+    expected_answer_points:
+      - 生熟分开
+      - 交叉污染
+
+  - id: wash-hands
+    question: 做饭时什么时候需要洗手？
+    expected_source_files:
+      - rag_test_food_safety_kb_expanded.md
+    expected_answer_points:
+      - 处理生肉后
+      - 洗手
+
+  - id: rice-leftover
+    question: 熟米饭为什么要尽快冷藏？
+    expected_source_files:
+      - rag_test_food_safety_kb_expanded.md
+    expected_answer_points:
+      - 米饭
+      - 冷藏
+
+  - id: fruit-rinse
+    question: 西瓜切开前需要清洗外皮吗？
+    expected_source_files:
+      - rag_test_food_safety_kb_expanded.md
+    expected_answer_points:
+      - 切前清洗
+      - 污染
+
+  - id: pregnant-deli-meat
+    question: 孕妇能直接吃冷火腿片吗？
+    expected_source_files:
+      - rag_test_food_safety_kb_expanded.md
+    expected_answer_points:
+      - 孕妇
+      - 加热
+
+  - id: fridge-temperature
+    question: 冰箱冷藏室应该保持在多少度？
+    expected_source_files:
+      - rag_test_food_safety_kb_expanded.md
+    expected_answer_points:
+      - 冷藏
+      - 温度

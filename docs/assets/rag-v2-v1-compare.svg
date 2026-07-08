@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720" role="img" aria-labelledby="title desc">
+  <title id="title">RAG v1 到 v2：从调试检索到量化评估</title>
+  <desc id="desc">v1 让检索更强，v2 增加评估集和指标，判断改动是否真的变好。</desc>
+  <defs>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto">
+      <path d="M2,2 L10,6 L2,10 Z" fill="#2563eb" />
+    </marker>
+    <style>
+      .title { font: 700 32px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #111827; }
+      .subtitle { font: 500 18px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #4b5563; }
+      .section { font: 700 24px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #111827; }
+      .box-title { font: 700 20px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #111827; }
+      .box-body { font: 500 15px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #475569; }
+      .line { stroke: #2563eb; stroke-width: 4; fill: none; marker-end: url(#arrow); }
+      .v1 { fill: #ecfdf5; stroke: #34d399; stroke-width: 2; rx: 16; }
+      .v2 { fill: #eef2ff; stroke: #818cf8; stroke-width: 2; rx: 16; }
+      .metric { fill: #fff7ed; stroke: #fb923c; stroke-width: 2; rx: 16; }
+      .note { fill: #f8fafc; stroke: #cbd5e1; stroke-width: 2; rx: 16; }
+    </style>
+  </defs>
+  <rect width="1280" height="720" fill="#ffffff" />
+  <text x="64" y="64" class="title">v1 到 v2：不再只靠感觉判断 RAG 好坏</text>
+  <text x="64" y="96" class="subtitle">v1 解决“怎么找”，v2 解决“怎么知道找得更好”。</text>
+
+  <text x="92" y="158" class="section">v1 Hybrid Search</text>
+  <rect x="80" y="188" width="250" height="94" class="v1" />
+  <text x="126" y="226" class="box-title">Dense Search</text>
+  <text x="118" y="254" class="box-body">语义相似召回</text>
+  <rect x="80" y="312" width="250" height="94" class="v1" />
+  <text x="118" y="350" class="box-title">Keyword Search</text>
+  <text x="116" y="378" class="box-body">精确词和编号召回</text>
+  <rect x="80" y="436" width="250" height="94" class="v1" />
+  <text x="150" y="474" class="box-title">RRF Fusion</text>
+  <text x="110" y="502" class="box-body">融合两路排名</text>
+
+  <path d="M330 358 H462" class="line" />
+  <rect x="462" y="294" width="300" height="128" class="v2" />
+  <text x="532" y="334" class="box-title">Eval Dataset</text>
+  <text x="504" y="366" class="box-body">question</text>
+  <text x="504" y="392" class="box-body">expected_source_files</text>
+
+  <path d="M762 358 H890" class="line" />
+  <rect x="890" y="188" width="300" height="94" class="metric" />
+  <text x="956" y="226" class="box-title">Hit Rate@K</text>
+  <text x="928" y="254" class="box-body">Top-K 是否命中任一预期来源</text>
+  <rect x="890" y="312" width="300" height="94" class="metric" />
+  <text x="994" y="350" class="box-title">MRR</text>
+  <text x="928" y="378" class="box-body">第一个正确来源排得多靠前</text>
+  <rect x="890" y="436" width="300" height="94" class="metric" />
+  <text x="958" y="474" class="box-title">Source Recall</text>
+  <text x="928" y="502" class="box-body">预期来源覆盖了多少</text>
+
+  <rect x="80" y="612" width="1110" height="60" class="note" />
+  <text x="112" y="649" class="box-body">V2 让每次改 chunk size、embedding model、hybrid 策略后，都能用同一套问题集重复对比，而不是只凭一次问答观感。</text>
+</svg>
