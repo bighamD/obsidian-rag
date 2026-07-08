@@ -18,6 +18,8 @@ from obsidian_rag.v3_1.router.service import RouterService
 from obsidian_rag.v3_1.schemas import AgentAskRequest as Agent31AskRequest
 from obsidian_rag.v3_2.agent.service import AgentService as Agent32Service
 from obsidian_rag.v3_2.schemas import AgentAskRequest as Agent32AskRequest
+from obsidian_rag.v3_3.agent.service import AgentService as Agent33Service
+from obsidian_rag.v3_3.schemas import AgentAskRequest as Agent33AskRequest
 from obsidian_rag.llm import OpenAIChatClient
 
 
@@ -75,6 +77,14 @@ def main() -> None:
     agent32_ask_parser.add_argument("--mode", choices=["dense", "keyword", "hybrid"], default="hybrid")
     agent32_ask_parser.add_argument("--max-steps", type=int, default=1)
 
+    agent33_parser = subparsers.add_parser("agent-v3-3", help="Run V3.3 LangGraph agentic RAG")
+    agent33_subparsers = agent33_parser.add_subparsers(dest="agent33_command", required=True)
+    agent33_ask_parser = agent33_subparsers.add_parser("ask", help="Run the LangGraph node workflow")
+    agent33_ask_parser.add_argument("question")
+    agent33_ask_parser.add_argument("--top-k", type=int, default=5)
+    agent33_ask_parser.add_argument("--mode", choices=["dense", "keyword", "hybrid"], default="hybrid")
+    agent33_ask_parser.add_argument("--max-steps", type=int, default=1)
+
     args = parser.parse_args()
     config = load_config()
 
@@ -128,6 +138,16 @@ def main() -> None:
 
     if args.command == "agent-v3-2" and args.agent32_command == "ask":
         run_agent32_ask(
+            question=args.question,
+            config=config,
+            top_k=args.top_k,
+            mode=args.mode,
+            max_steps=args.max_steps,
+        )
+        return
+
+    if args.command == "agent-v3-3" and args.agent33_command == "ask":
+        run_agent33_ask(
             question=args.question,
             config=config,
             top_k=args.top_k,
@@ -272,6 +292,47 @@ def run_agent32_ask(
     print("\nTrace:")
     for index, step in enumerate(response.trace, start=1):
         parts = [f"{index}. {step.step_type}"]
+        if step.tool_name:
+            parts.append(f"tool={step.tool_name}")
+        if step.query:
+            parts.append(f"query={step.query}")
+        if step.result_count is not None:
+            parts.append(f"results={step.result_count}")
+        if step.reason:
+            parts.append(f"reason={step.reason}")
+        print(" | ".join(parts))
+
+
+def run_agent33_ask(
+    question: str,
+    config: RagConfig,
+    top_k: int = 5,
+    mode: SearchMode = "hybrid",
+    max_steps: int = 1,
+    retrieval_service=None,
+    chat_client=None,
+) -> None:
+    service = retrieval_service or RetrievalService(config)
+    agent = Agent33Service(
+        retrieval_service=service,
+        chat_client=chat_client,
+        chat_client_factory=lambda: OpenAIChatClient(api_key=config.api_key, base_url=config.base_url, model=config.chat_model),
+    )
+    response = agent.ask(Agent33AskRequest(question=question, top_k=top_k, mode=mode, max_steps=max_steps))
+    print(response.answer.strip())
+    if response.sources:
+        _print_sources(response.sources)
+    print("\nTool calls:")
+    if response.tool_calls:
+        for index, tool_call in enumerate(response.tool_calls, start=1):
+            print(f"{index}. {tool_call.name} arguments={tool_call.arguments}")
+    else:
+        print("- none")
+    print("\nGraph path:")
+    print(" -> ".join(response.graph_path) if response.graph_path else "- none")
+    print("\nTrace:")
+    for index, step in enumerate(response.trace, start=1):
+        parts = [f"{index}. {step.node_name}:{step.step_type}"]
         if step.tool_name:
             parts.append(f"tool={step.tool_name}")
         if step.query:

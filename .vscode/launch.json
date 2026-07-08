@@ -2,6 +2,31 @@
 	"version": "0.2.0",
 	"configurations": [
 		{
+			"name": "V3.3 agent ask: LangGraph loop",
+			"type": "debugpy",
+			"request": "launch",
+			"module": "obsidian_rag.cli",
+			"console": "integratedTerminal",
+			"cwd": "${workspaceFolder}",
+			"python": "${workspaceFolder}/.venv/bin/python",
+			"envFile": "${workspaceFolder}/.env",
+			"env": {
+				"RAG_DEBUG_BREAKPOINTS": "search.after_query_embedding,qdrant.after_search,search.after_retrieval,prompting.messages_built"
+			},
+			"args": [
+				"agent-v3-3",
+				"ask",
+				"然后呢？",
+				"--top-k",
+				"5",
+				"--mode",
+				"hybrid",
+				"--max-steps",
+				"1"
+			],
+			"justMyCode": true
+		},
+		{
 			"name": "V3.2 agent ask: tool calling loop",
 			"type": "debugpy",
 			"request": "launch",
@@ -13,7 +38,17 @@
 			"env": {
 				"RAG_DEBUG_BREAKPOINTS": "search.after_query_embedding,qdrant.after_search,search.after_retrieval,prompting.messages_built"
 			},
-			"args": ["agent-v3-2", "ask", "生鸡肉还需要清洗下锅吗？", "--top-k", "5", "--mode", "hybrid", "--max-steps", "1"],
+			"args": [
+				"agent-v3-2",
+				"ask",
+				"who are you",
+				"--top-k",
+				"5",
+				"--mode",
+				"hybrid",
+				"--max-steps",
+				"1"
+			],
 			"justMyCode": true
 		},
 		{
