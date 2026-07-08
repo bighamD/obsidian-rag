@@ -13,6 +13,11 @@ from obsidian_rag.v2.evaluation.dataset import load_eval_dataset
 from obsidian_rag.v2.evaluation.retrieval import RetrievalEvaluator, default_retrieval_eval_output_path
 from obsidian_rag.v3.agent.service import AgentService
 from obsidian_rag.v3.schemas import AgentAskRequest
+from obsidian_rag.v3_1.agent.service import AgentService as Agent31Service
+from obsidian_rag.v3_1.router.service import RouterService
+from obsidian_rag.v3_1.schemas import AgentAskRequest as Agent31AskRequest
+from obsidian_rag.v3_2.agent.service import AgentService as Agent32Service
+from obsidian_rag.v3_2.schemas import AgentAskRequest as Agent32AskRequest
 from obsidian_rag.llm import OpenAIChatClient
 
 
@@ -54,6 +59,22 @@ def main() -> None:
     agent_ask_parser.add_argument("--mode", choices=["dense", "keyword", "hybrid"], default="hybrid")
     agent_ask_parser.add_argument("--max-steps", type=int, default=2)
 
+    agent31_parser = subparsers.add_parser("agent-v3-1", help="Run V3.1 LLM-router agentic RAG")
+    agent31_subparsers = agent31_parser.add_subparsers(dest="agent31_command", required=True)
+    agent31_ask_parser = agent31_subparsers.add_parser("ask", help="Route with LLM JSON before deciding whether to search")
+    agent31_ask_parser.add_argument("question")
+    agent31_ask_parser.add_argument("--top-k", type=int, default=5)
+    agent31_ask_parser.add_argument("--mode", choices=["dense", "keyword", "hybrid"], default="hybrid")
+    agent31_ask_parser.add_argument("--max-steps", type=int, default=1)
+
+    agent32_parser = subparsers.add_parser("agent-v3-2", help="Run V3.2 tool-calling agentic RAG")
+    agent32_subparsers = agent32_parser.add_subparsers(dest="agent32_command", required=True)
+    agent32_ask_parser = agent32_subparsers.add_parser("ask", help="Let the model choose search_notes, no_search, or clarify")
+    agent32_ask_parser.add_argument("question")
+    agent32_ask_parser.add_argument("--top-k", type=int, default=5)
+    agent32_ask_parser.add_argument("--mode", choices=["dense", "keyword", "hybrid"], default="hybrid")
+    agent32_ask_parser.add_argument("--max-steps", type=int, default=1)
+
     args = parser.parse_args()
     config = load_config()
 
@@ -87,6 +108,26 @@ def main() -> None:
 
     if args.command == "agent" and args.agent_command == "ask":
         run_agent_ask(
+            question=args.question,
+            config=config,
+            top_k=args.top_k,
+            mode=args.mode,
+            max_steps=args.max_steps,
+        )
+        return
+
+    if args.command == "agent-v3-1" and args.agent31_command == "ask":
+        run_agent31_ask(
+            question=args.question,
+            config=config,
+            top_k=args.top_k,
+            mode=args.mode,
+            max_steps=args.max_steps,
+        )
+        return
+
+    if args.command == "agent-v3-2" and args.agent32_command == "ask":
+        run_agent32_ask(
             question=args.question,
             config=config,
             top_k=args.top_k,
@@ -142,6 +183,95 @@ def run_agent_ask(
         parts = [f"{index}. {step.step_type}"]
         if step.decision:
             parts.append(f"decision={step.decision}")
+        if step.tool_name:
+            parts.append(f"tool={step.tool_name}")
+        if step.query:
+            parts.append(f"query={step.query}")
+        if step.result_count is not None:
+            parts.append(f"results={step.result_count}")
+        if step.reason:
+            parts.append(f"reason={step.reason}")
+        print(" | ".join(parts))
+
+
+def run_agent31_ask(
+    question: str,
+    config: RagConfig,
+    top_k: int = 5,
+    mode: SearchMode = "hybrid",
+    max_steps: int = 1,
+    retrieval_service=None,
+    router_chat_client=None,
+    chat_client=None,
+) -> None:
+    service = retrieval_service or RetrievalService(config)
+    agent = Agent31Service(
+        router_service=RouterService(
+            chat_client=router_chat_client,
+            chat_client_factory=lambda: OpenAIChatClient(api_key=config.api_key, base_url=config.base_url, model=config.chat_model),
+        ),
+        retrieval_service=service,
+        chat_client=chat_client,
+        chat_client_factory=lambda: OpenAIChatClient(api_key=config.api_key, base_url=config.base_url, model=config.chat_model),
+    )
+    response = agent.ask(Agent31AskRequest(question=question, top_k=top_k, mode=mode, max_steps=max_steps))
+    print(response.answer.strip())
+    if response.sources:
+        _print_sources(response.sources)
+    print("\nRouter:")
+    router_parts = [
+        f"action={response.router.action}",
+        f"intent={response.router.intent}",
+    ]
+    if response.router.search_query:
+        router_parts.append(f"query={response.router.search_query}")
+    if response.router.reason:
+        router_parts.append(f"reason={response.router.reason}")
+    print(" | ".join(router_parts))
+    print("\nTrace:")
+    for index, step in enumerate(response.trace, start=1):
+        parts = [f"{index}. {step.step_type}"]
+        if step.decision:
+            parts.append(f"decision={step.decision}")
+        if step.tool_name:
+            parts.append(f"tool={step.tool_name}")
+        if step.query:
+            parts.append(f"query={step.query}")
+        if step.result_count is not None:
+            parts.append(f"results={step.result_count}")
+        if step.reason:
+            parts.append(f"reason={step.reason}")
+        print(" | ".join(parts))
+
+
+def run_agent32_ask(
+    question: str,
+    config: RagConfig,
+    top_k: int = 5,
+    mode: SearchMode = "hybrid",
+    max_steps: int = 1,
+    retrieval_service=None,
+    chat_client=None,
+) -> None:
+    service = retrieval_service or RetrievalService(config)
+    agent = Agent32Service(
+        retrieval_service=service,
+        chat_client=chat_client,
+        chat_client_factory=lambda: OpenAIChatClient(api_key=config.api_key, base_url=config.base_url, model=config.chat_model),
+    )
+    response = agent.ask(Agent32AskRequest(question=question, top_k=top_k, mode=mode, max_steps=max_steps))
+    print(response.answer.strip())
+    if response.sources:
+        _print_sources(response.sources)
+    print("\nTool calls:")
+    if response.tool_calls:
+        for index, tool_call in enumerate(response.tool_calls, start=1):
+            print(f"{index}. {tool_call.name} arguments={tool_call.arguments}")
+    else:
+        print("- none")
+    print("\nTrace:")
+    for index, step in enumerate(response.trace, start=1):
+        parts = [f"{index}. {step.step_type}"]
         if step.tool_name:
             parts.append(f"tool={step.tool_name}")
         if step.query:
