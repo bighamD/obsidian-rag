@@ -5,7 +5,7 @@ from obsidian_rag.debugging import debug_breakpoint
 
 SYSTEM_PROMPT = """你是一个基于本地知识库回答问题的 RAG 助手。
 请只基于给定资料回答；如果资料不足，明确说明资料不足。
-回答要尽量具体，并在关键结论后标注来源编号，例如 [S1]。
+回答要尽量具体，并在关键结论后标注来源编号
 回答末尾必须列出：
 
 **使用到的来源：**

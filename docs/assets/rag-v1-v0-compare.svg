@@ -1,0 +1,86 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720" role="img" aria-labelledby="title desc">
+  <title id="title">Obsidian RAG v0 与 v1 检索链路对比</title>
+  <desc id="desc">v0 只有向量检索，v1 增加关键词检索和 RRF 融合。</desc>
+  <defs>
+    <marker id="arrow-blue" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto">
+      <path d="M2,2 L10,6 L2,10 Z" fill="#2563eb" />
+    </marker>
+    <marker id="arrow-green" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto">
+      <path d="M2,2 L10,6 L2,10 Z" fill="#16a34a" />
+    </marker>
+    <style>
+      .title { font: 700 32px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #111827; }
+      .subtitle { font: 500 18px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #4b5563; }
+      .section { font: 700 26px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #111827; }
+      .box-title { font: 700 20px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #111827; }
+      .box-body { font: 500 15px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #4b5563; }
+      .note { font: 600 16px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #065f46; }
+      .small { font: 500 14px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #6b7280; }
+      .blue-line { stroke: #2563eb; stroke-width: 4; fill: none; marker-end: url(#arrow-blue); }
+      .green-line { stroke: #16a34a; stroke-width: 4; fill: none; marker-end: url(#arrow-green); }
+      .blue-box { fill: #eff6ff; stroke: #93c5fd; stroke-width: 2; rx: 14; }
+      .green-box { fill: #ecfdf5; stroke: #86efac; stroke-width: 2; rx: 14; }
+      .yellow-box { fill: #fffbeb; stroke: #fbbf24; stroke-width: 2; rx: 14; }
+      .gray-box { fill: #f9fafb; stroke: #d1d5db; stroke-width: 2; rx: 14; }
+    </style>
+  </defs>
+
+  <rect width="1280" height="720" fill="#ffffff" />
+  <text x="64" y="64" class="title">v0 到 v1：从“只看语义”到“双路召回”</text>
+  <text x="64" y="96" class="subtitle">v1 的核心改进是让检索同时照顾语义相似和精确关键词，再用 RRF 合并排名。</text>
+
+  <text x="72" y="156" class="section">v0 Dense Only</text>
+  <rect x="64" y="184" width="180" height="92" class="blue-box" />
+  <text x="94" y="220" class="box-title">用户问题</text>
+  <text x="88" y="250" class="box-body">自然语言 query</text>
+  <path d="M244 230 H312" class="blue-line" />
+
+  <rect x="312" y="184" width="180" height="92" class="blue-box" />
+  <text x="348" y="220" class="box-title">Embedding</text>
+  <text x="337" y="250" class="box-body">问题转向量</text>
+  <path d="M492 230 H560" class="blue-line" />
+
+  <rect x="560" y="184" width="200" height="92" class="blue-box" />
+  <text x="592" y="220" class="box-title">Qdrant 检索</text>
+  <text x="596" y="250" class="box-body">向量相似度 Top-K</text>
+  <path d="M760 230 H828" class="blue-line" />
+
+  <rect x="828" y="184" width="180" height="92" class="blue-box" />
+  <text x="876" y="220" class="box-title">Prompt</text>
+  <text x="852" y="250" class="box-body">拼上下文和来源</text>
+  <path d="M1008 230 H1076" class="blue-line" />
+
+  <rect x="1076" y="184" width="150" height="92" class="blue-box" />
+  <text x="1118" y="220" class="box-title">回答</text>
+  <text x="1102" y="250" class="box-body">LLM JSON 外层</text>
+
+  <text x="72" y="362" class="section">v1 Hybrid Search</text>
+  <rect x="64" y="390" width="180" height="92" class="green-box" />
+  <text x="94" y="426" class="box-title">用户问题</text>
+  <text x="88" y="456" class="box-body">同一个 query</text>
+
+  <path d="M244 420 C300 420 304 354 360 354 H430" class="green-line" />
+  <rect x="430" y="308" width="190" height="92" class="green-box" />
+  <text x="470" y="344" class="box-title">Dense 路</text>
+  <text x="458" y="374" class="box-body">语义相近也能找</text>
+
+  <path d="M244 452 C300 452 304 522 360 522 H430" class="green-line" />
+  <rect x="430" y="476" width="190" height="92" class="yellow-box" />
+  <text x="462" y="512" class="box-title">Keyword 路</text>
+  <text x="454" y="542" class="box-body">编号、命令、专名</text>
+
+  <path d="M620 354 C690 354 688 428 760 428" class="green-line" />
+  <path d="M620 522 C690 522 688 460 760 460" class="green-line" />
+  <rect x="760" y="390" width="190" height="92" class="green-box" />
+  <text x="810" y="426" class="box-title">RRF 融合</text>
+  <text x="784" y="456" class="box-body">按排名合并结果</text>
+  <path d="M950 436 H1018" class="green-line" />
+
+  <rect x="1018" y="390" width="208" height="92" class="green-box" />
+  <text x="1060" y="426" class="box-title">Hybrid Top-K</text>
+  <text x="1042" y="456" class="box-body">交给 ask 或直接返回</text>
+
+  <rect x="64" y="616" width="1162" height="56" class="gray-box" />
+  <text x="90" y="650" class="note">学习重点：</text>
+  <text x="174" y="650" class="small">v0 容易漏掉精确词；v1 用 keyword 补精确召回，用 dense 保留语义召回，用 hybrid 取两者长处。</text>
+</svg>

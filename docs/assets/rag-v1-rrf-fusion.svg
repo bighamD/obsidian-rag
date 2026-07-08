@@ -1,0 +1,69 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720" role="img" aria-labelledby="title desc">
+  <title id="title">RRF 融合排名示意图</title>
+  <desc id="desc">同一个 chunk 如果同时出现在 dense 和 keyword 的靠前位置，会在 hybrid 排名中被提升。</desc>
+  <defs>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto">
+      <path d="M2,2 L10,6 L2,10 Z" fill="#7c3aed" />
+    </marker>
+    <style>
+      .title { font: 700 32px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #111827; }
+      .subtitle { font: 500 18px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #4b5563; }
+      .col-title { font: 700 24px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #111827; }
+      .rank { font: 700 18px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #111827; }
+      .body { font: 500 16px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #374151; }
+      .formula { font: 700 20px ui-monospace, SFMono-Regular, Menlo, monospace; fill: #4c1d95; }
+      .line { stroke: #7c3aed; stroke-width: 3; fill: none; marker-end: url(#arrow); opacity: 0.75; }
+      .dense { fill: #eff6ff; stroke: #60a5fa; stroke-width: 2; rx: 12; }
+      .keyword { fill: #fffbeb; stroke: #f59e0b; stroke-width: 2; rx: 12; }
+      .hybrid { fill: #f5f3ff; stroke: #a78bfa; stroke-width: 2; rx: 12; }
+      .note { fill: #ecfdf5; stroke: #34d399; stroke-width: 2; rx: 12; }
+    </style>
+  </defs>
+
+  <rect width="1280" height="720" fill="#ffffff" />
+  <text x="64" y="64" class="title">RRF：让“共同命中”的证据排上来</text>
+  <text x="64" y="96" class="subtitle">RRF 不直接比较 dense score 和 keyword score，而是把每条路径里的 rank 转成可相加的分数。</text>
+
+  <text x="96" y="166" class="col-title">Dense 排名</text>
+  <text x="500" y="166" class="col-title">Keyword 排名</text>
+  <text x="914" y="166" class="col-title">Hybrid 排名</text>
+
+  <rect x="80" y="196" width="260" height="64" class="dense" />
+  <text x="104" y="234" class="rank">#1 KB-044</text>
+  <text x="204" y="234" class="body">禽肉安全温度</text>
+  <rect x="80" y="278" width="260" height="64" class="dense" />
+  <text x="104" y="316" class="rank">#2 KB-072</text>
+  <text x="204" y="316" class="body">不建议清洗生鸡肉</text>
+  <rect x="80" y="360" width="260" height="64" class="dense" />
+  <text x="104" y="398" class="rank">#3 KB-005</text>
+  <text x="204" y="398" class="body">生熟分开</text>
+
+  <rect x="486" y="196" width="290" height="64" class="keyword" />
+  <text x="510" y="234" class="rank">#1 KB-072</text>
+  <text x="610" y="234" class="body">清洗 生鸡肉</text>
+  <rect x="486" y="278" width="290" height="64" class="keyword" />
+  <text x="510" y="316" class="rank">#2 KB-071</text>
+  <text x="610" y="316" class="body">交叉污染路径</text>
+  <rect x="486" y="360" width="290" height="64" class="keyword" />
+  <text x="510" y="398" class="rank">#3 KB-073</text>
+  <text x="610" y="398" class="body">厨房清洁</text>
+
+  <rect x="902" y="196" width="294" height="64" class="hybrid" />
+  <text x="926" y="234" class="rank">#1 KB-072</text>
+  <text x="1026" y="234" class="body">两路都命中</text>
+  <rect x="902" y="278" width="294" height="64" class="hybrid" />
+  <text x="926" y="316" class="rank">#2 KB-044</text>
+  <text x="1026" y="316" class="body">dense 靠前</text>
+  <rect x="902" y="360" width="294" height="64" class="hybrid" />
+  <text x="926" y="398" class="rank">#3 KB-071</text>
+  <text x="1026" y="398" class="body">keyword 靠前</text>
+
+  <path d="M340 310 C530 480 760 260 902 228" class="line" />
+  <path d="M776 228 C826 228 858 228 902 228" class="line" />
+  <path d="M340 228 C560 146 738 268 902 310" class="line" />
+  <path d="M776 310 C832 310 858 310 902 392" class="line" />
+
+  <rect x="112" y="536" width="1056" height="98" class="note" />
+  <text x="146" y="576" class="formula">rrf_score = 1 / (k + dense_rank) + 1 / (k + keyword_rank)</text>
+  <text x="146" y="610" class="body">如果某个 chunk 同时被语义检索和关键词检索排到前面，它会拿到两份排名分数，所以 hybrid 排名会更稳。</text>
+</svg>
