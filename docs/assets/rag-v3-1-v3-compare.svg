@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="360" viewBox="0 0 960 360" role="img" aria-labelledby="title desc">
+  <title id="title">V3 to V3.1 comparison</title>
+  <desc id="desc">V3 uses rule based decision logic while V3.1 uses an LLM router that returns structured JSON.</desc>
+  <rect width="960" height="360" fill="#f7f8fb"/>
+  <text x="480" y="40" text-anchor="middle" font-family="Arial, sans-serif" font-size="24" font-weight="700" fill="#1f2937">V3 到 V3.1 的核心变化</text>
+
+  <rect x="70" y="84" width="360" height="220" rx="8" fill="#ffffff" stroke="#cbd5e1" stroke-width="2"/>
+  <text x="250" y="122" text-anchor="middle" font-family="Arial, sans-serif" font-size="20" font-weight="700" fill="#334155">V3 规则版 Agent</text>
+  <rect x="112" y="152" width="276" height="40" rx="6" fill="#e2e8f0"/>
+  <text x="250" y="178" text-anchor="middle" font-family="Arial, sans-serif" font-size="15" fill="#0f172a">硬编码规则判断 search / no_search</text>
+  <path d="M250 198 L250 224" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)"/>
+  <rect x="112" y="226" width="276" height="40" rx="6" fill="#e0f2fe"/>
+  <text x="250" y="252" text-anchor="middle" font-family="Arial, sans-serif" font-size="15" fill="#075985">调用 search_notes 或直接回复</text>
+
+  <rect x="530" y="84" width="360" height="220" rx="8" fill="#ffffff" stroke="#86efac" stroke-width="2"/>
+  <text x="710" y="122" text-anchor="middle" font-family="Arial, sans-serif" font-size="20" font-weight="700" fill="#166534">V3.1 LLM Router</text>
+  <rect x="572" y="152" width="276" height="40" rx="6" fill="#dcfce7"/>
+  <text x="710" y="178" text-anchor="middle" font-family="Arial, sans-serif" font-size="15" fill="#14532d">LLM 分析意图并输出 JSON</text>
+  <path d="M710 198 L710 224" stroke="#22c55e" stroke-width="2" marker-end="url(#arrow)"/>
+  <rect x="572" y="226" width="276" height="40" rx="6" fill="#fef9c3"/>
+  <text x="710" y="252" text-anchor="middle" font-family="Arial, sans-serif" font-size="15" fill="#713f12">search / no_search / clarify</text>
+
+  <path d="M450 194 L510 194" stroke="#0f766e" stroke-width="3" marker-end="url(#arrow)"/>
+  <text x="480" y="178" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#0f766e">升级</text>
+
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L9,3 z" fill="#475569"/>
+    </marker>
+  </defs>
+</svg>

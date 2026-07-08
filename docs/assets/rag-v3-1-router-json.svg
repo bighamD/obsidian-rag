@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="410" viewBox="0 0 1000 410" role="img" aria-labelledby="title desc">
+  <title id="title">Router JSON fields</title>
+  <desc id="desc">The V3.1 router returns action, intent, search query, reason, clarifying question, and direct answer.</desc>
+  <rect width="1000" height="410" fill="#f8fafc"/>
+  <text x="500" y="40" text-anchor="middle" font-family="Arial, sans-serif" font-size="24" font-weight="700" fill="#111827">Router JSON 字段含义</text>
+
+  <rect x="70" y="76" width="860" height="270" rx="8" fill="#ffffff" stroke="#cbd5e1" stroke-width="2"/>
+  <text x="110" y="118" font-family="Menlo, Consolas, monospace" font-size="16" fill="#0f172a">{</text>
+  <text x="140" y="150" font-family="Menlo, Consolas, monospace" font-size="16" fill="#2563eb">"action"</text>
+  <text x="230" y="150" font-family="Menlo, Consolas, monospace" font-size="16" fill="#0f172a">: "search | no_search | clarify",</text>
+  <text x="140" y="182" font-family="Menlo, Consolas, monospace" font-size="16" fill="#2563eb">"intent"</text>
+  <text x="230" y="182" font-family="Menlo, Consolas, monospace" font-size="16" fill="#0f172a">: "kb_question | external_realtime | chitchat | ambiguous",</text>
+  <text x="140" y="214" font-family="Menlo, Consolas, monospace" font-size="16" fill="#2563eb">"search_query"</text>
+  <text x="286" y="214" font-family="Menlo, Consolas, monospace" font-size="16" fill="#0f172a">: "给检索器使用的 query 或 null",</text>
+  <text x="140" y="246" font-family="Menlo, Consolas, monospace" font-size="16" fill="#2563eb">"reason"</text>
+  <text x="230" y="246" font-family="Menlo, Consolas, monospace" font-size="16" fill="#0f172a">: "一句话说明为什么这样路由",</text>
+  <text x="140" y="278" font-family="Menlo, Consolas, monospace" font-size="16" fill="#2563eb">"clarifying_question"</text>
+  <text x="374" y="278" font-family="Menlo, Consolas, monospace" font-size="16" fill="#0f172a">: "需要追问时填写，否则 null",</text>
+  <text x="140" y="310" font-family="Menlo, Consolas, monospace" font-size="16" fill="#2563eb">"direct_answer"</text>
+  <text x="302" y="310" font-family="Menlo, Consolas, monospace" font-size="16" fill="#0f172a">: "不检索时可直接回复，否则 null"</text>
+  <text x="110" y="334" font-family="Menlo, Consolas, monospace" font-size="16" fill="#0f172a">}</text>
+
+  <rect x="120" y="362" width="760" height="28" rx="6" fill="#ecfeff" stroke="#67e8f9"/>
+  <text x="500" y="381" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#155e75">代码只信任结构化字段，不再靠硬编码关键词判断用户意图</text>
+</svg>
