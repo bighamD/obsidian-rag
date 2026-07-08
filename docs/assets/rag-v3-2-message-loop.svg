@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1040" height="430" viewBox="0 0 1040 430" role="img" aria-labelledby="title desc">
+  <title id="title">Tool result message loop</title>
+  <desc id="desc">After search_notes runs, tool result is sent back to the model before the final answer.</desc>
+  <rect width="1040" height="430" fill="#f8fafc"/>
+  <text x="520" y="42" text-anchor="middle" font-family="Arial, sans-serif" font-size="24" font-weight="700" fill="#111827">search_notes 的消息闭环</text>
+
+  <rect x="80" y="94" width="210" height="62" rx="8" fill="#dbeafe" stroke="#60a5fa" stroke-width="2"/>
+  <text x="185" y="120" text-anchor="middle" font-family="Arial, sans-serif" font-size="15" font-weight="700" fill="#1e3a8a">1. user message</text>
+  <text x="185" y="142" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" fill="#1e40af">用户问题</text>
+
+  <path d="M290 125 L370 125" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)"/>
+  <rect x="370" y="94" width="250" height="62" rx="8" fill="#dcfce7" stroke="#22c55e" stroke-width="2"/>
+  <text x="495" y="120" text-anchor="middle" font-family="Arial, sans-serif" font-size="15" font-weight="700" fill="#14532d">2. assistant tool_call</text>
+  <text x="495" y="142" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" fill="#166534">name=search_notes args=query</text>
+
+  <path d="M620 125 L700 125" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)"/>
+  <rect x="700" y="94" width="250" height="62" rx="8" fill="#e0f2fe" stroke="#38bdf8" stroke-width="2"/>
+  <text x="825" y="120" text-anchor="middle" font-family="Arial, sans-serif" font-size="15" font-weight="700" fill="#075985">3. tool message</text>
+  <text x="825" y="142" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" fill="#0369a1">检索结果 JSON</text>
+
+  <path d="M825 156 C825 230 520 224 520 278" stroke="#64748b" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+  <rect x="390" y="278" width="260" height="68" rx="8" fill="#fef9c3" stroke="#eab308" stroke-width="2"/>
+  <text x="520" y="306" text-anchor="middle" font-family="Arial, sans-serif" font-size="15" font-weight="700" fill="#713f12">4. final assistant answer</text>
+  <text x="520" y="330" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" fill="#713f12">模型基于 tool result 生成答案</text>
+
+  <text x="520" y="386" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#475569">V3.2 的关键：工具结果不是代码直接拼答案，而是作为 tool message 交回模型</text>
+
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L9,3 z" fill="#64748b"/>
+    </marker>
+  </defs>
+</svg>
