@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="470" viewBox="0 0 1080 470" role="img" aria-labelledby="title desc">
+  <title id="title">V3.3 LangGraph node flow</title>
+  <desc id="desc">The LangGraph flow starts at select_tool and branches to search_notes, no_search, or clarify. Search goes through evidence_check then answer.</desc>
+  <rect width="1080" height="470" fill="#fbfcfe"/>
+  <text x="540" y="42" text-anchor="middle" font-family="Arial, sans-serif" font-size="24" font-weight="700" fill="#111827">V3.3 LangGraph 节点流程</text>
+
+  <rect x="440" y="82" width="200" height="58" rx="8" fill="#ede9fe" stroke="#8b5cf6" stroke-width="2"/>
+  <text x="540" y="116" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="700" fill="#4c1d95">select_tool</text>
+
+  <path d="M540 140 L310 214" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)"/>
+  <path d="M540 140 L540 214" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)"/>
+  <path d="M540 140 L770 214" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <rect x="190" y="216" width="210" height="58" rx="8" fill="#e0f2fe" stroke="#38bdf8" stroke-width="2"/>
+  <text x="295" y="240" text-anchor="middle" font-family="Arial, sans-serif" font-size="15" font-weight="700" fill="#075985">search_notes</text>
+  <text x="295" y="262" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" fill="#0369a1">调用检索工具</text>
+
+  <rect x="435" y="216" width="210" height="58" rx="8" fill="#fee2e2" stroke="#f87171" stroke-width="2"/>
+  <text x="540" y="240" text-anchor="middle" font-family="Arial, sans-serif" font-size="15" font-weight="700" fill="#7f1d1d">no_search</text>
+  <text x="540" y="262" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" fill="#991b1b">直接结束</text>
+
+  <rect x="680" y="216" width="210" height="58" rx="8" fill="#fef9c3" stroke="#eab308" stroke-width="2"/>
+  <text x="785" y="240" text-anchor="middle" font-family="Arial, sans-serif" font-size="15" font-weight="700" fill="#713f12">clarify</text>
+  <text x="785" y="262" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" fill="#713f12">追问后结束</text>
+
+  <path d="M295 274 L295 326" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)"/>
+  <rect x="190" y="328" width="210" height="58" rx="8" fill="#dcfce7" stroke="#22c55e" stroke-width="2"/>
+  <text x="295" y="352" text-anchor="middle" font-family="Arial, sans-serif" font-size="15" font-weight="700" fill="#14532d">evidence_check</text>
+  <text x="295" y="374" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" fill="#166534">判断证据是否足够</text>
+
+  <path d="M400 357 L470 357" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)"/>
+  <rect x="470" y="328" width="210" height="58" rx="8" fill="#dbeafe" stroke="#60a5fa" stroke-width="2"/>
+  <text x="575" y="352" text-anchor="middle" font-family="Arial, sans-serif" font-size="15" font-weight="700" fill="#1e3a8a">answer</text>
+  <text x="575" y="374" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" fill="#1d4ed8">生成最终答案</text>
+
+  <text x="540" y="430" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#475569">graph_path 会记录实际经过的节点，例如 select_tool -> search_notes -> evidence_check -> answer</text>
+
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L9,3 z" fill="#64748b"/>
+    </marker>
+  </defs>
+</svg>

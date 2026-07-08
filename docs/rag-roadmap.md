@@ -2,6 +2,8 @@
 
 This document preserves the project plan so future sessions can recover context quickly after compaction.
 
+For the post-V3.3 harness architecture learning plan, see [Harness Engineering Learning Roadmap](harness-learning-roadmap.md).
+
 ## Project Intent
 
 Build a local RAG learning project around the user's Obsidian knowledge base. The focus is RAG itself, not a complex agent framework at the start.
@@ -281,6 +283,15 @@ Current v3.2 status:
 Goal:
 
 Move the agent workflow into graph nodes such as router, search, evidence check, answer, and clarify.
+
+Current v3.3 status:
+
+- `obsidian_rag/v3_3/` exists as a separate LangGraph package.
+- `POST /agent/ask` is available from `obsidian_rag.v3_3.app`.
+- `obsidian-rag agent-v3-3 ask "..."` runs the same graph workflow from CLI.
+- The graph uses nodes: `select_tool`, `search_notes`, `evidence_check`, `answer`, `no_search`, and `clarify`.
+- Responses include `graph_path` and trace entries with `node_name`.
+- V3.3 learning guide and diagrams live in `docs/v3-3-langgraph-guide.md`.
 
 ### v4: Personal Knowledge Assistant
 

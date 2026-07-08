@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="430" viewBox="0 0 1000 430" role="img" aria-labelledby="title desc">
+  <title id="title">LangGraph state fields</title>
+  <desc id="desc">The V3.3 graph passes AgentState across nodes with request, messages, tool call, results, answer, graph path, and trace.</desc>
+  <rect width="1000" height="430" fill="#f8fafc"/>
+  <text x="500" y="42" text-anchor="middle" font-family="Arial, sans-serif" font-size="24" font-weight="700" fill="#111827">AgentState 在节点之间流动</text>
+
+  <rect x="80" y="78" width="840" height="286" rx="8" fill="#ffffff" stroke="#cbd5e1" stroke-width="2"/>
+  <text x="120" y="118" font-family="Menlo, Consolas, monospace" font-size="16" fill="#0f172a">AgentState = {</text>
+  <text x="154" y="150" font-family="Menlo, Consolas, monospace" font-size="16" fill="#2563eb">request</text>
+  <text x="250" y="150" font-family="Menlo, Consolas, monospace" font-size="16" fill="#0f172a">: AgentAskRequest,</text>
+  <text x="154" y="182" font-family="Menlo, Consolas, monospace" font-size="16" fill="#2563eb">messages</text>
+  <text x="250" y="182" font-family="Menlo, Consolas, monospace" font-size="16" fill="#0f172a">: system/user/assistant/tool message timeline,</text>
+  <text x="154" y="214" font-family="Menlo, Consolas, monospace" font-size="16" fill="#2563eb">tool_call</text>
+  <text x="250" y="214" font-family="Menlo, Consolas, monospace" font-size="16" fill="#0f172a">: 模型选择的工具调用,</text>
+  <text x="154" y="246" font-family="Menlo, Consolas, monospace" font-size="16" fill="#2563eb">results</text>
+  <text x="250" y="246" font-family="Menlo, Consolas, monospace" font-size="16" fill="#0f172a">: search_notes 检索结果,</text>
+  <text x="154" y="278" font-family="Menlo, Consolas, monospace" font-size="16" fill="#2563eb">answer</text>
+  <text x="250" y="278" font-family="Menlo, Consolas, monospace" font-size="16" fill="#0f172a">: 最终回答,</text>
+  <text x="154" y="310" font-family="Menlo, Consolas, monospace" font-size="16" fill="#2563eb">graph_path</text>
+  <text x="282" y="310" font-family="Menlo, Consolas, monospace" font-size="16" fill="#0f172a">: 实际经过的节点,</text>
+  <text x="154" y="342" font-family="Menlo, Consolas, monospace" font-size="16" fill="#2563eb">trace</text>
+  <text x="250" y="342" font-family="Menlo, Consolas, monospace" font-size="16" fill="#0f172a">: 可展示的节点执行记录</text>
+  <text x="120" y="366" font-family="Menlo, Consolas, monospace" font-size="16" fill="#0f172a">}</text>
+
+  <text x="500" y="400" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#475569">节点不直接共享局部变量，而是读取 state 并返回 state 更新</text>
+</svg>

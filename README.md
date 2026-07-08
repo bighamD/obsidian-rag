@@ -16,6 +16,8 @@ V3.1 LLM Router、结构化 JSON 路由、Swagger 和每个 V3.1 文件职责见
 
 V3.2 Tool Calling、`search_notes/no_search/clarify` 工具选择、Swagger 和每个 V3.2 文件职责见：[docs/v3-2-tool-calling-guide.md](docs/v3-2-tool-calling-guide.md)。
 
+V3.3 LangGraph、节点编排、`graph_path` 和每个 V3.3 文件职责见：[docs/v3-3-langgraph-guide.md](docs/v3-3-langgraph-guide.md)。
+
 VSCode/Cursor 调试 RAG 流程见：[docs/debugging-rag-flow.md](docs/debugging-rag-flow.md)。
 
 配套学习图片见：[docs/assets](docs/assets)。
@@ -256,6 +258,28 @@ CLI 示例：
 
 ```bash
 .venv/bin/obsidian-rag agent-v3-2 ask "生鸡肉还需要清洗下锅吗？" --top-k 5 --mode hybrid --max-steps 1
+```
+
+## V3.3 LangGraph
+
+V3.3 把 V3.2 的 Tool Calling loop 拆成 LangGraph 节点：`select_tool`、`search_notes`、`evidence_check`、`answer`、`no_search`、`clarify`。详细说明见：[docs/v3-3-langgraph-guide.md](docs/v3-3-langgraph-guide.md)。
+
+启动 V3.3 Swagger：
+
+```bash
+.venv/bin/uvicorn obsidian_rag.v3_3.app:app --reload --port 8005
+```
+
+打开：
+
+```text
+http://127.0.0.1:8005/docs
+```
+
+CLI 示例：
+
+```bash
+.venv/bin/obsidian-rag agent-v3-3 ask "生鸡肉还需要清洗下锅吗？" --top-k 5 --mode hybrid --max-steps 1
 ```
 
 ## Offline Smoke Test

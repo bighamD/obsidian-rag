@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="980" height="380" viewBox="0 0 980 380" role="img" aria-labelledby="title desc">
+  <title id="title">V3.2 to V3.3 comparison</title>
+  <desc id="desc">V3.2 keeps the tool calling loop in one service. V3.3 moves the workflow into LangGraph nodes and edges.</desc>
+  <rect width="980" height="380" fill="#f8fafc"/>
+  <text x="490" y="42" text-anchor="middle" font-family="Arial, sans-serif" font-size="24" font-weight="700" fill="#111827">V3.2 到 V3.3 的核心变化</text>
+
+  <rect x="56" y="82" width="390" height="238" rx="8" fill="#ffffff" stroke="#cbd5e1" stroke-width="2"/>
+  <text x="251" y="120" text-anchor="middle" font-family="Arial, sans-serif" font-size="20" font-weight="700" fill="#166534">V3.2 Tool Calling</text>
+  <rect x="100" y="150" width="302" height="42" rx="6" fill="#dcfce7"/>
+  <text x="251" y="176" text-anchor="middle" font-family="Arial, sans-serif" font-size="15" fill="#14532d">模型返回 tool_calls</text>
+  <path d="M251 198 L251 224" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)"/>
+  <rect x="100" y="226" width="302" height="42" rx="6" fill="#e2e8f0"/>
+  <text x="251" y="252" text-anchor="middle" font-family="Arial, sans-serif" font-size="15" fill="#334155">一个 service 函数里顺序执行</text>
+  <text x="251" y="292" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#475569">能跑通，但节点边界不够显性</text>
+
+  <rect x="534" y="82" width="390" height="238" rx="8" fill="#ffffff" stroke="#a78bfa" stroke-width="2"/>
+  <text x="729" y="120" text-anchor="middle" font-family="Arial, sans-serif" font-size="20" font-weight="700" fill="#5b21b6">V3.3 LangGraph</text>
+  <rect x="578" y="150" width="302" height="42" rx="6" fill="#ede9fe"/>
+  <text x="729" y="176" text-anchor="middle" font-family="Arial, sans-serif" font-size="15" fill="#4c1d95">流程拆成 graph nodes</text>
+  <path d="M729 198 L729 224" stroke="#8b5cf6" stroke-width="2" marker-end="url(#arrow)"/>
+  <rect x="578" y="226" width="302" height="42" rx="6" fill="#fef9c3"/>
+  <text x="729" y="252" text-anchor="middle" font-family="Arial, sans-serif" font-size="15" fill="#713f12">条件边决定下一节点</text>
+  <text x="729" y="292" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#475569">更适合扩展、观测和测试</text>
+
+  <path d="M466 201 L514 201" stroke="#0f766e" stroke-width="3" marker-end="url(#arrow)"/>
+  <text x="490" y="184" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#0f766e">升级</text>
+
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L9,3 z" fill="#64748b"/>
+    </marker>
+  </defs>
+</svg>
