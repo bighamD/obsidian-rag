@@ -178,6 +178,15 @@ Recommended v2 acceptance criteria:
 - At least 10-20 real questions from the user's Obsidian workflow exist.
 - Evaluation output is saved so regressions are visible.
 
+Current v2 status:
+
+- `obsidian_rag/v2/` exists as a separate evaluation package.
+- `obsidian-rag eval retrieval eval_sets/retrieval-food-safety.yaml --top-k 5 --mode hybrid` reports hit rate, MRR, and source recall.
+- `POST /eval/retrieval` is available from `obsidian_rag.v2.app`.
+- `POST /eval/answer` provides deterministic source coverage and answer-point coverage checks for an already generated answer.
+- Example retrieval eval set exists at `eval_sets/retrieval-food-safety.yaml`.
+- V2 learning guide and diagrams live in `docs/v2-evaluation-guide.md`.
+
 ### v3: Agentic RAG
 
 Goal:
@@ -215,6 +224,15 @@ Recommended v3 acceptance criteria:
 - Agent can perform multi-hop retrieval for questions spanning multiple notes.
 - Agent does not search when the question does not need local knowledge.
 - Agent exposes trace/debug output showing tool calls and retrieved sources.
+
+Current v3 status:
+
+- `obsidian_rag/v3/` exists as a lightweight agentic RAG package.
+- `POST /agent/ask` is available from `obsidian_rag.v3.app`.
+- `obsidian-rag agent ask "..."` runs the same lightweight agent loop from CLI.
+- The agent decides `search` vs `no_search`, calls V1 `RetrievalService` as `search_notes`, and returns trace steps.
+- Multi-hop teaching behavior exists for common combined questions such as chicken washing plus kitchen cleaning.
+- V3 learning guide and diagrams live in `docs/v3-agentic-rag-guide.md`.
 
 ### v4: Personal Knowledge Assistant
 

@@ -2,6 +2,12 @@
 
 这份文档解释 `obsidian_rag/` 目录下每个文件的作用，并用架构图、数据流图、时序图串起 v0 RAG 的运行流程。
 
+V1 已增加 FastAPI JSON 接口、keyword search 和 hybrid search。V1 的改进点、流程图和 `obsidian_rag/v1/` 文件职责见：[V1 Hybrid Search Guide](v1-hybrid-search-guide.md)。
+
+V2 已增加 evaluation loop。评估集格式、检索指标、答案指标、CLI/API 用法和 `obsidian_rag/v2/` 文件职责见：[V2 Evaluation Guide](v2-evaluation-guide.md)。
+
+V3 已增加轻量 Agentic RAG。Agent loop、trace、Swagger/CLI 用法和 `obsidian_rag/v3/` 文件职责见：[V3 Agentic RAG Guide](v3-agentic-rag-guide.md)。
+
 ## Mental Model
 
 当前 v0 项目的核心不是 Agent，而是一个固定 RAG pipeline：

@@ -6,6 +6,12 @@
 
 源码职责、架构图和时序图见：[docs/obsidian-rag-code-guide.md](docs/obsidian-rag-code-guide.md)。
 
+V1 混合检索、FastAPI 接口和每个 V1 文件职责见：[docs/v1-hybrid-search-guide.md](docs/v1-hybrid-search-guide.md)。
+
+V2 评估集、检索指标、答案指标和每个 V2 文件职责见：[docs/v2-evaluation-guide.md](docs/v2-evaluation-guide.md)。
+
+V3 轻量 Agentic RAG、trace、Swagger 和每个 V3 文件职责见：[docs/v3-agentic-rag-guide.md](docs/v3-agentic-rag-guide.md)。
+
 VSCode/Cursor 调试 RAG 流程见：[docs/debugging-rag-flow.md](docs/debugging-rag-flow.md)。
 
 配套学习图片见：[docs/assets](docs/assets)。
@@ -106,6 +112,8 @@ docker start rag-qdrant
 
 V1 增加了 FastAPI JSON 接口和 Swagger 调试页面，代码放在 `obsidian_rag/v1/`。
 
+如果想理解 V1 比 V0 改进了什么、hybrid search 如何融合 dense 和 keyword，以及 `obsidian_rag/v1/` 每个文件的作用，先看：[docs/v1-hybrid-search-guide.md](docs/v1-hybrid-search-guide.md)。
+
 启动 API：
 
 ```bash
@@ -149,6 +157,50 @@ http://127.0.0.1:8000/docs
 ```
 
 注意：`keyword` 和 `hybrid` 依赖 `.rag/keyword_index.json`。运行 `obsidian-rag ingest --recreate` 或调用 `POST /ingest` 后会自动生成。
+
+## V2 Evaluation
+
+V2 增加了可重复评估工作流，用固定评估集衡量检索质量。详细说明见：[docs/v2-evaluation-guide.md](docs/v2-evaluation-guide.md)。
+
+运行示例检索评估：
+
+```bash
+.venv/bin/obsidian-rag eval retrieval eval_sets/retrieval-food-safety.yaml --top-k 5 --mode hybrid
+```
+
+启动 V2 Swagger：
+
+```bash
+.venv/bin/uvicorn obsidian_rag.v2.app:app --reload --port 8001
+```
+
+打开：
+
+```text
+http://127.0.0.1:8001/docs
+```
+
+## V3 Agentic RAG
+
+V3 增加轻量 Agentic RAG：agent 会判断是否需要检索、调用 `search_notes` 工具、必要时做第二次检索，并返回 trace。详细说明见：[docs/v3-agentic-rag-guide.md](docs/v3-agentic-rag-guide.md)。
+
+启动 V3 Swagger：
+
+```bash
+.venv/bin/uvicorn obsidian_rag.v3.app:app --reload --port 8002
+```
+
+打开：
+
+```text
+http://127.0.0.1:8002/docs
+```
+
+CLI 示例：
+
+```bash
+.venv/bin/obsidian-rag agent ask "生鸡肉要不要洗，处理完后厨房怎么清洁？" --top-k 5 --mode hybrid --max-steps 2
+```
 
 ## Offline Smoke Test
 
