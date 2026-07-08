@@ -164,6 +164,96 @@ V3.2 agent ask: tool calling loop
 | `obsidian_rag/v3_2/agent/service.py` | `final_messages` | tool result 如何回传模型。 |
 | `obsidian_rag/llm.py` | `complete_with_tools()` | OpenAI/Ollama tool calling 响应如何解析。 |
 
+### 逐步断点路线
+
+如果你想从 CLI 调试脚本一路跟到 tool calling，再跟到检索和最终回答，推荐按下面顺序打断点。
+
+1. [obsidian_rag/cli.py (line 129)](/Users/pengdahan/WorkSpace/rag/obsidian_rag/cli.py:129)
+
+   看 CLI 命中 `agent-v3-2 ask` 分支。
+
+2. [obsidian_rag/cli.py (line 247)](/Users/pengdahan/WorkSpace/rag/obsidian_rag/cli.py:247)
+
+   进入 `run_agent32_ask()`，看如何组装 `Agent32Service`。
+
+3. [obsidian_rag/v3_2/agent/service.py (line 20)](/Users/pengdahan/WorkSpace/rag/obsidian_rag/v3_2/agent/service.py:20)
+
+   V3.2 主流程入口。
+
+4. [obsidian_rag/v3_2/agent/service.py (line 25)](/Users/pengdahan/WorkSpace/rag/obsidian_rag/v3_2/agent/service.py:25)
+
+   看发给模型的 `messages`，这里包含 `system` 和 `user` 消息。
+
+5. [obsidian_rag/v3_2/tools.py (line 20)](/Users/pengdahan/WorkSpace/rag/obsidian_rag/v3_2/tools.py:20)
+
+   看传给模型的 `AGENT_TOOLS`，也就是 `search_notes`、`no_search`、`clarify` 的工具定义。
+
+6. [obsidian_rag/v3_2/agent/service.py (line 29)](/Users/pengdahan/WorkSpace/rag/obsidian_rag/v3_2/agent/service.py:29)
+
+   最关键：`complete_with_tools(messages, AGENT_TOOLS)`，模型在这里选择工具。
+
+7. [obsidian_rag/llm.py (line 31)](/Users/pengdahan/WorkSpace/rag/obsidian_rag/llm.py:31)
+
+   真正调用 OpenAI/Ollama Tool Calling API 的地方。
+
+8. [obsidian_rag/llm.py (line 40)](/Users/pengdahan/WorkSpace/rag/obsidian_rag/llm.py:40)
+
+   看模型返回的 `message.tool_calls` 如何解析成 `ToolCall`。
+
+9. [obsidian_rag/v3_2/agent/service.py (line 40)](/Users/pengdahan/WorkSpace/rag/obsidian_rag/v3_2/agent/service.py:40)
+
+   看第一个 `tool_call`，重点观察 `tool_call.name` 和 `tool_call.arguments`。
+
+10. [obsidian_rag/v3_2/agent/service.py (line 51)](/Users/pengdahan/WorkSpace/rag/obsidian_rag/v3_2/agent/service.py:51)
+
+    `no_search` 分支。天气、股价、实时新闻这类问题通常会走这里。
+
+11. [obsidian_rag/v3_2/agent/service.py (line 62)](/Users/pengdahan/WorkSpace/rag/obsidian_rag/v3_2/agent/service.py:62)
+
+    `clarify` 分支。问题太短、指代不明时会走这里。
+
+12. [obsidian_rag/v3_2/agent/service.py (line 84)](/Users/pengdahan/WorkSpace/rag/obsidian_rag/v3_2/agent/service.py:84)
+
+    `search_notes` 分支。只有模型选择 `search_notes` 才会走到这里。
+
+13. [obsidian_rag/v1/services/retrieval_service.py (line 16)](/Users/pengdahan/WorkSpace/rag/obsidian_rag/v1/services/retrieval_service.py:16)
+
+    真正进入 V1 检索服务。这里可以继续观察 `dense`、`keyword`、`hybrid` 不同检索模式。
+
+14. [obsidian_rag/v3_2/agent/service.py (line 109)](/Users/pengdahan/WorkSpace/rag/obsidian_rag/v3_2/agent/service.py:109)
+
+    看 `final_messages`，这里会把 tool result 作为 `role=tool` 消息回传给模型。
+
+15. [obsidian_rag/v3_2/agent/service.py (line 118)](/Users/pengdahan/WorkSpace/rag/obsidian_rag/v3_2/agent/service.py:118)
+
+    第二次调用 LLM，模型读取 tool result 后生成最终答案。
+
+调试时重点观察这些变量：
+
+```text
+AGENT_TOOLS
+messages
+tool_response
+tool_response.tool_calls
+tool_call.name
+tool_call.arguments
+final_messages
+response.trace
+```
+
+三个问题可以分别观察三条分支：
+
+```text
+今天深圳天气怎么样
+-> no_search
+
+这个呢
+-> clarify
+
+生鸡肉还需要清洗下锅吗？
+-> search_notes
+```
+
 ## V3.2 文件职责
 
 ### Tool Calling
