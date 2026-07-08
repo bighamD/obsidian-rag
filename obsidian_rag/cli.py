@@ -3,9 +3,17 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
+from obsidian_rag.config import RagConfig
 from obsidian_rag.config import load_config, resolve_ingest_path
 from obsidian_rag.pipeline import answer, ingest_path, search
 from obsidian_rag.prompting import format_sources
+from obsidian_rag.v1.schemas import SearchMode
+from obsidian_rag.v1.services.retrieval_service import RetrievalService
+from obsidian_rag.v2.evaluation.dataset import load_eval_dataset
+from obsidian_rag.v2.evaluation.retrieval import RetrievalEvaluator, default_retrieval_eval_output_path
+from obsidian_rag.v3.agent.service import AgentService
+from obsidian_rag.v3.schemas import AgentAskRequest
+from obsidian_rag.llm import OpenAIChatClient
 
 
 def main() -> None:
@@ -29,6 +37,23 @@ def main() -> None:
     ask_parser.add_argument("question")
     ask_parser.add_argument("--top-k", type=int, default=5)
 
+    eval_parser = subparsers.add_parser("eval", help="Run repeatable RAG evaluations")
+    eval_subparsers = eval_parser.add_subparsers(dest="eval_command", required=True)
+    retrieval_eval_parser = eval_subparsers.add_parser("retrieval", help="Evaluate retrieval hit rate, MRR, and source recall")
+    retrieval_eval_parser.add_argument("dataset", type=Path, help="YAML eval dataset path")
+    retrieval_eval_parser.add_argument("--top-k", type=int, default=5)
+    retrieval_eval_parser.add_argument("--mode", choices=["dense", "keyword", "hybrid"], default="hybrid")
+    retrieval_eval_parser.add_argument("--output", type=Path, help="Where to save the JSON report")
+    retrieval_eval_parser.add_argument("--no-save", action="store_true", help="Print metrics without saving a JSON report")
+
+    agent_parser = subparsers.add_parser("agent", help="Run lightweight agentic RAG")
+    agent_subparsers = agent_parser.add_subparsers(dest="agent_command", required=True)
+    agent_ask_parser = agent_subparsers.add_parser("ask", help="Let the agent decide whether and how to search")
+    agent_ask_parser.add_argument("question")
+    agent_ask_parser.add_argument("--top-k", type=int, default=5)
+    agent_ask_parser.add_argument("--mode", choices=["dense", "keyword", "hybrid"], default="hybrid")
+    agent_ask_parser.add_argument("--max-steps", type=int, default=2)
+
     args = parser.parse_args()
     config = load_config()
 
@@ -47,6 +72,85 @@ def main() -> None:
         response, results = answer(args.question, config=config, top_k=args.top_k)
         print(response.strip())
         _print_sources(format_sources(results))
+        return
+
+    if args.command == "eval" and args.eval_command == "retrieval":
+        output_path = None if args.no_save else args.output or default_retrieval_eval_output_path()
+        run_retrieval_eval(
+            dataset_path=args.dataset,
+            config=config,
+            top_k=args.top_k,
+            mode=args.mode,
+            output_path=output_path,
+        )
+        return
+
+    if args.command == "agent" and args.agent_command == "ask":
+        run_agent_ask(
+            question=args.question,
+            config=config,
+            top_k=args.top_k,
+            mode=args.mode,
+            max_steps=args.max_steps,
+        )
+        return
+
+
+def run_retrieval_eval(
+    dataset_path: Path,
+    config: RagConfig,
+    top_k: int = 5,
+    mode: SearchMode = "hybrid",
+    output_path: Path | None = None,
+    retrieval_service=None,
+) -> None:
+    dataset = load_eval_dataset(dataset_path)
+    service = retrieval_service or RetrievalService(config)
+    evaluator = RetrievalEvaluator(service)
+    report = evaluator.evaluate_dataset(dataset, top_k=top_k, mode=mode, output_path=output_path)
+    print(f"Examples: {report.summary.example_count}")
+    print(f"Mode: {report.mode}")
+    print(f"Top-K: {report.top_k}")
+    print(f"Hit rate@{top_k}: {report.summary.hit_rate_at_k:.4f}")
+    print(f"MRR: {report.summary.mean_reciprocal_rank:.4f}")
+    print(f"Source recall: {report.summary.mean_source_recall:.4f}")
+    if output_path is not None:
+        print(f"Saved report: {output_path}")
+
+
+def run_agent_ask(
+    question: str,
+    config: RagConfig,
+    top_k: int = 5,
+    mode: SearchMode = "hybrid",
+    max_steps: int = 2,
+    retrieval_service=None,
+    chat_client=None,
+) -> None:
+    service = retrieval_service or RetrievalService(config)
+    agent = AgentService(
+        retrieval_service=service,
+        chat_client=chat_client,
+        chat_client_factory=lambda: OpenAIChatClient(api_key=config.api_key, base_url=config.base_url, model=config.chat_model),
+    )
+    response = agent.ask(AgentAskRequest(question=question, top_k=top_k, mode=mode, max_steps=max_steps))
+    print(response.answer.strip())
+    if response.sources:
+        _print_sources(response.sources)
+    print("\nTrace:")
+    for index, step in enumerate(response.trace, start=1):
+        parts = [f"{index}. {step.step_type}"]
+        if step.decision:
+            parts.append(f"decision={step.decision}")
+        if step.tool_name:
+            parts.append(f"tool={step.tool_name}")
+        if step.query:
+            parts.append(f"query={step.query}")
+        if step.result_count is not None:
+            parts.append(f"results={step.result_count}")
+        if step.reason:
+            parts.append(f"reason={step.reason}")
+        print(" | ".join(parts))
 
 
 def _print_results(results) -> None:
