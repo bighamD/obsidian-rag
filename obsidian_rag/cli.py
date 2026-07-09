@@ -22,6 +22,8 @@ from obsidian_rag.v3_3.agent.service import AgentService as Agent33Service
 from obsidian_rag.v3_3.schemas import AgentAskRequest as Agent33AskRequest
 from obsidian_rag.v3_4.planner.service import PlannerService
 from obsidian_rag.v3_4.schemas import PlanRequest
+from obsidian_rag.v3_5.agent.service import AgentService as Agent35Service
+from obsidian_rag.v3_5.schemas import AgentAskRequest as Agent35AskRequest
 from obsidian_rag.llm import OpenAIChatClient
 
 
@@ -94,6 +96,14 @@ def main() -> None:
     agent34_plan_parser.add_argument("--top-k", type=int, default=5)
     agent34_plan_parser.add_argument("--mode", choices=["dense", "keyword", "hybrid"], default="hybrid")
     agent34_plan_parser.add_argument("--max-steps", type=int, default=4)
+
+    agent35_parser = subparsers.add_parser("agent-v3-5", help="Run V3.5 planner executor agentic RAG")
+    agent35_subparsers = agent35_parser.add_subparsers(dest="agent35_command", required=True)
+    agent35_ask_parser = agent35_subparsers.add_parser("ask", help="Plan, execute search steps, and synthesize an answer")
+    agent35_ask_parser.add_argument("question")
+    agent35_ask_parser.add_argument("--top-k", type=int, default=5)
+    agent35_ask_parser.add_argument("--mode", choices=["dense", "keyword", "hybrid"], default="hybrid")
+    agent35_ask_parser.add_argument("--max-steps", type=int, default=4)
 
     args = parser.parse_args()
     config = load_config()
@@ -168,6 +178,16 @@ def main() -> None:
 
     if args.command == "agent-v3-4" and args.agent34_command == "plan":
         run_agent34_plan(
+            question=args.question,
+            config=config,
+            top_k=args.top_k,
+            mode=args.mode,
+            max_steps=args.max_steps,
+        )
+        return
+
+    if args.command == "agent-v3-5" and args.agent35_command == "ask":
+        run_agent35_ask(
             question=args.question,
             config=config,
             top_k=args.top_k,
@@ -400,6 +420,57 @@ def run_agent34_plan(
             parts.append(f"reason={step.reason}")
         if step.metadata:
             parts.append(f"metadata={step.metadata}")
+        print(" | ".join(parts))
+
+
+def run_agent35_ask(
+    question: str,
+    config: RagConfig,
+    top_k: int = 5,
+    mode: SearchMode = "hybrid",
+    max_steps: int = 4,
+    retrieval_service=None,
+    chat_client=None,
+    agent_service=None,
+) -> None:
+    service = retrieval_service or RetrievalService(config)
+    agent = agent_service or Agent35Service(
+        retrieval_service=service,
+        chat_client=chat_client,
+        chat_client_factory=lambda: OpenAIChatClient(api_key=config.api_key, base_url=config.base_url, model=config.chat_model),
+    )
+    response = agent.ask(Agent35AskRequest(question=question, top_k=top_k, mode=mode, max_steps=max_steps))
+    print(f"Run: {response.run_id}")
+    print(response.answer.strip())
+    if response.sources:
+        _print_sources(response.sources)
+    print("\nStep results:")
+    for result in response.step_results:
+        parts = [result.step_id, result.kind]
+        if result.tool_name:
+            parts.append(f"tool={result.tool_name}")
+        parts.append(f"status={result.status}")
+        if result.query:
+            parts.append(f"query={result.query}")
+        parts.append(f"results={result.result_count}")
+        if result.error:
+            parts.append(f"error={result.error}")
+        print(" | ".join(parts))
+    print("\nGraph path:")
+    print(" -> ".join(response.graph_path) if response.graph_path else "- none")
+    print("\nTrace:")
+    for index, step in enumerate(response.trace, start=1):
+        parts = [f"{index}. {step.node_name}:{step.step_type}"]
+        if step.step_id:
+            parts.append(f"step={step.step_id}")
+        if step.tool_name:
+            parts.append(f"tool={step.tool_name}")
+        if step.query:
+            parts.append(f"query={step.query}")
+        if step.result_count is not None:
+            parts.append(f"results={step.result_count}")
+        if step.reason:
+            parts.append(f"reason={step.reason}")
         print(" | ".join(parts))
 
 
