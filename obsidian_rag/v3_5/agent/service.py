@@ -16,12 +16,15 @@ from obsidian_rag.v3_5.schemas import AgentAskRequest, AgentAskResponse, AgentTr
 from obsidian_rag.v3_5.tools import ToolRegistry, build_search_tool_registry
 
 
+SearchLikeResult = SearchResult | RankedSearchResult
+
+
 class AgentState(TypedDict, total=False):
     run_id: str
     request: AgentAskRequest
     plan: Plan
     step_results: list[StepResult]
-    search_results: list[SearchResult]
+    search_results: list[SearchLikeResult]
     answer: str
     used_retrieval: bool
     sources: list[str]
@@ -112,13 +115,13 @@ class AgentService:
         state["graph_path"].append("execute_steps")
         request = state["request"]
         step_results: list[StepResult] = []
-        search_results: list[SearchResult] = []
+        search_results: list[SearchLikeResult] = []
 
         for step in state["plan"].steps:
             if step.kind == "search":
                 result = self._execute_search_step(step, request)
                 step_results.append(result)
-                search_results.extend(_search_results_from_step(result))
+                search_results.extend(_search_results_from_step_result(result))
                 state["trace"].append(
                     AgentTraceStep(
                         node_name="execute_steps",
@@ -189,7 +192,7 @@ class AgentService:
             mode=request.mode,
             filters=request.filters,
         )
-        results = [_as_search_result(result) for result in tool_result.results]
+        results = list(tool_result.results)
         status = "success" if tool_result.status == "success" else "failed"
         return StepResult(
             step_id=step.id,
@@ -238,8 +241,8 @@ def _non_search_step_result(step: PlanStep) -> StepResult:
     )
 
 
-def _search_results_from_step(result: StepResult) -> list[SearchResult]:
-    search_results = []
+def _search_results_from_step_result(result: StepResult) -> list[SearchResult]:
+    search_results: list[SearchResult] = []
     for hit in result.results:
         search_results.append(
             SearchResult(
@@ -271,7 +274,7 @@ def _build_synthesis_messages(state: AgentState) -> list[dict[str, str]]:
     ]
 
 
-def _fallback_answer(results: list[SearchResult]) -> str:
+def _fallback_answer(results: list[SearchLikeResult]) -> str:
     preview = " ".join(results[0].chunk.text.split())[:240]
     return f"已执行计划并找到本地资料，但模型没有生成最终答案。证据摘要：{preview}"
 
@@ -289,9 +292,3 @@ def _mark_synthesize_steps_success(step_results: list[StepResult]) -> None:
     for index, result in enumerate(step_results):
         if result.kind == "synthesize":
             step_results[index] = result.model_copy(update={"status": "success", "tool_name": "synthesize"})
-
-
-def _as_search_result(result: SearchResult | RankedSearchResult) -> SearchResult:
-    if isinstance(result, SearchResult):
-        return result
-    return SearchResult(chunk=result.chunk, score=result.score)

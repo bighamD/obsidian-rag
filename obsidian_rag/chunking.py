@@ -1,6 +1,13 @@
 from __future__ import annotations
 
+import re
+
+import yaml
+
 from obsidian_rag.schema import SourceDocument, TextChunk
+
+
+CHUNK_METADATA_RE = re.compile(r"```ya?ml\s*\n(.*?)\n```", re.IGNORECASE | re.DOTALL)
 
 
 def chunk_document(document: SourceDocument, max_chars: int = 1200, overlap_chars: int = 150) -> list[TextChunk]:
@@ -17,6 +24,7 @@ def chunk_document(document: SourceDocument, max_chars: int = 1200, overlap_char
     for index, chunk_text in enumerate(_split_text(text, max_chars, overlap_chars)):
         metadata = dict(document.metadata)
         metadata["chunk_index"] = index
+        metadata.update(_extract_chunk_metadata(chunk_text, metadata))
         chunks.append(TextChunk(text=chunk_text, metadata=metadata))
     return chunks
 
@@ -72,3 +80,49 @@ def _with_overlap(previous: str, next_paragraph: str, overlap_chars: int) -> str
         return next_paragraph
     overlap = previous[-overlap_chars:].strip()
     return f"{overlap}\n\n{next_paragraph}".strip()
+
+
+def _extract_chunk_metadata(text: str, base_metadata: dict[str, object]) -> dict[str, object]:
+    match = CHUNK_METADATA_RE.search(text)
+    if not match:
+        return {}
+
+    try:
+        parsed = yaml.safe_load(match.group(1)) or {}
+    except yaml.YAMLError:
+        return {}
+    if not isinstance(parsed, dict):
+        return {}
+
+    metadata: dict[str, object] = {}
+    for key, value in parsed.items():
+        if value is None:
+            continue
+        normalized_key = str(key)
+        if normalized_key == "source":
+            metadata["kb_source"] = str(value)
+        elif normalized_key == "tags":
+            metadata["tags"] = _merge_unique(_as_list(base_metadata.get("tags")), _as_list(value))
+        else:
+            metadata[normalized_key] = value
+    return metadata
+
+
+def _as_list(value: object) -> list[str]:
+    if value is None:
+        return []
+    if isinstance(value, str):
+        return [value.strip().lstrip("#")] if value.strip() else []
+    if isinstance(value, list | tuple | set):
+        return [str(item).strip().lstrip("#") for item in value if str(item).strip()]
+    return [str(value).strip().lstrip("#")] if str(value).strip() else []
+
+
+def _merge_unique(first: list[str], second: list[str]) -> list[str]:
+    merged: list[str] = []
+    seen: set[str] = set()
+    for item in [*first, *second]:
+        if item and item not in seen:
+            merged.append(item)
+            seen.add(item)
+    return merged

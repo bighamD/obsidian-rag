@@ -1,4 +1,5 @@
 from obsidian_rag.schema import SearchResult, TextChunk
+from obsidian_rag.v1.retrieval.models import RankedSearchResult
 from obsidian_rag.v3_4.schemas import Plan, PlanResponse, PlanStep
 from obsidian_rag.v3_5.agent.service import AgentService
 from obsidian_rag.v3_5.schemas import AgentAskRequest
@@ -80,6 +81,43 @@ def test_executor_runs_search_steps_and_synthesizes_answer():
         {"query": "厨房 清洁 洗手", "top_k": 5, "mode": "hybrid", "filters": None},
     ]
     assert chat.messages
+
+
+def test_executor_preserves_hybrid_rank_fields_in_step_results():
+    plan = Plan(
+        goal="检索食品安全资料",
+        steps=[PlanStep(id="s1", kind="search", query="生鸡肉 清洗")],
+    )
+    retrieval = FakeRetrievalService()
+    retrieval.search = lambda *args, **kwargs: [
+        RankedSearchResult(
+            chunk=TextChunk(
+                text="不建议冲洗生鸡肉，因为水花会造成交叉污染。",
+                metadata={"source": "food.md", "chunk_id": "KB-072", "topic": "不建议清洗生鸡肉"},
+            ),
+            score=0.03278688524590164,
+            dense_rank=1,
+            keyword_rank=2,
+            dense_score=0.91,
+            keyword_score=3.5,
+            hybrid_score=0.03278688524590164,
+        )
+    ]
+    service = AgentService(
+        planner_service=FakePlannerService(plan),
+        retrieval_service=retrieval,
+        chat_client=FakeChatClient(),
+    )
+
+    response = service.ask(AgentAskRequest(question="生鸡肉还需要清洗下锅吗", mode="hybrid"))
+
+    hit = response.step_results[0].results[0]
+    assert hit.chunk_id == "KB-072"
+    assert hit.dense_rank == 1
+    assert hit.keyword_rank == 2
+    assert hit.dense_score == 0.91
+    assert hit.keyword_score == 3.5
+    assert hit.hybrid_score == 0.03278688524590164
 
 
 def test_executor_no_search_plan_does_not_call_retrieval():

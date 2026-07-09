@@ -4,13 +4,17 @@ from dataclasses import dataclass, field
 from typing import Any, Callable
 
 from obsidian_rag.schema import SearchResult
+from obsidian_rag.v1.retrieval.models import RankedSearchResult
+
+
+ToolSearchResult = SearchResult | RankedSearchResult
 
 
 @dataclass(frozen=True)
 class ToolResult:
     tool_name: str
     status: str
-    results: list[SearchResult] = field(default_factory=list)
+    results: list[ToolSearchResult] = field(default_factory=list)
     error: str | None = None
     metadata: dict[str, Any] = field(default_factory=dict)
 
