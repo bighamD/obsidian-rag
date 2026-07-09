@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1180" height="720" viewBox="0 0 1180 720">
+  <rect width="1180" height="720" fill="#f8fafc"/>
+  <text x="590" y="52" text-anchor="middle" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#0f172a">V3.7 Context Builder 流程</text>
+  <text x="590" y="84" text-anchor="middle" font-family="Arial, sans-serif" font-size="15" fill="#475569">把本轮 run 内的证据选择、排序、裁剪并格式化为 LLM messages</text>
+
+  <rect x="54" y="124" width="270" height="430" rx="12" fill="#ffffff" stroke="#93c5fd" stroke-width="2"/>
+  <text x="189" y="158" text-anchor="middle" font-family="Arial, sans-serif" font-size="20" font-weight="700" fill="#1d4ed8">输入材料</text>
+  <rect x="82" y="190" width="214" height="74" rx="10" fill="#eff6ff" stroke="#bfdbfe"/>
+  <text x="189" y="221" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="700" fill="#1e3a8a">question / plan</text>
+  <text x="189" y="245" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" fill="#334155">用户问题与计划步骤</text>
+  <rect x="82" y="290" width="214" height="74" rx="10" fill="#eff6ff" stroke="#bfdbfe"/>
+  <text x="189" y="321" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="700" fill="#1e3a8a">step_results</text>
+  <text x="189" y="345" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" fill="#334155">原始检索证据</text>
+  <rect x="82" y="390" width="214" height="74" rx="10" fill="#eff6ff" stroke="#bfdbfe"/>
+  <text x="189" y="421" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="700" fill="#1e3a8a">evidence_check</text>
+  <text x="189" y="445" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" fill="#334155">证据是否足够</text>
+
+  <rect x="362" y="124" width="456" height="430" rx="12" fill="#ffffff" stroke="#5eead4" stroke-width="2"/>
+  <text x="590" y="158" text-anchor="middle" font-family="Arial, sans-serif" font-size="20" font-weight="700" fill="#0f766e">LangGraph 主流程</text>
+  <g font-family="Arial, sans-serif">
+    <rect x="412" y="186" width="356" height="44" rx="8" fill="#ecfeff" stroke="#99f6e4"/>
+    <text x="590" y="214" text-anchor="middle" font-size="15" font-weight="700" fill="#115e59">1. planner</text>
+    <path d="M590 233 L590 255" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)"/>
+    <rect x="412" y="258" width="356" height="44" rx="8" fill="#ecfeff" stroke="#99f6e4"/>
+    <text x="590" y="286" text-anchor="middle" font-size="15" font-weight="700" fill="#115e59">2. execute_steps</text>
+    <path d="M590 305 L590 327" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)"/>
+    <rect x="412" y="330" width="356" height="50" rx="8" fill="#fefce8" stroke="#fde68a"/>
+    <text x="590" y="360" text-anchor="middle" font-size="15" font-weight="700" fill="#854d0e">3. evidence_check / retry_search</text>
+    <path d="M590 383 L590 405" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)"/>
+    <rect x="412" y="408" width="356" height="62" rx="8" fill="#f0fdf4" stroke="#86efac"/>
+    <text x="590" y="434" text-anchor="middle" font-size="16" font-weight="700" fill="#166534">4. build_context</text>
+    <text x="590" y="456" text-anchor="middle" font-size="13" fill="#166534">select -> rank -> trim -> format messages</text>
+    <path d="M590 473 L590 495" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)"/>
+    <rect x="412" y="498" width="356" height="44" rx="8" fill="#faf5ff" stroke="#ddd6fe"/>
+    <text x="590" y="526" text-anchor="middle" font-size="15" font-weight="700" fill="#6d28d9">5. synthesize_answer</text>
+  </g>
+
+  <rect x="856" y="124" width="270" height="430" rx="12" fill="#ffffff" stroke="#c4b5fd" stroke-width="2"/>
+  <text x="991" y="158" text-anchor="middle" font-family="Arial, sans-serif" font-size="20" font-weight="700" fill="#6d28d9">输出</text>
+  <rect x="884" y="190" width="214" height="84" rx="10" fill="#faf5ff" stroke="#ddd6fe"/>
+  <text x="991" y="224" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="700" fill="#581c87">ContextBundle</text>
+  <text x="991" y="249" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" fill="#475569">messages / summary</text>
+  <rect x="884" y="310" width="214" height="84" rx="10" fill="#faf5ff" stroke="#ddd6fe"/>
+  <text x="991" y="344" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="700" fill="#581c87">included_chunks</text>
+  <text x="991" y="369" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" fill="#475569">真正进入 prompt 的证据</text>
+  <rect x="884" y="430" width="214" height="84" rx="10" fill="#f8fafc" stroke="#cbd5e1"/>
+  <text x="991" y="464" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="700" fill="#334155">excluded_chunks</text>
+  <text x="991" y="489" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" fill="#475569">被裁掉的证据和原因</text>
+
+  <path d="M324 338 L362 338" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)"/>
+  <path d="M818 338 L856 338" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <rect x="54" y="594" width="1072" height="74" rx="12" fill="#eff6ff" stroke="#93c5fd"/>
+  <text x="590" y="626" text-anchor="middle" font-family="Arial, sans-serif" font-size="17" font-weight="700" fill="#1d4ed8">版本边界</text>
+  <text x="590" y="654" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#1e3a8a">V3.7 只处理本轮上下文构建；不读写持久 Memory，不处理跨轮历史，不做长期用户偏好。</text>
+
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L9,3 z" fill="#64748b"/>
+    </marker>
+  </defs>
+</svg>
