@@ -11,6 +11,7 @@ V3    ：规则版 agent loop
 V3.1  ：LLM Router，显式 intent routing
 V3.2  ：Tool Calling，模型通过 tool_calls 选择工具
 V3.3  ：LangGraph，用 State + Node + Edge 编排流程
+V3.4  ：LangGraph Planner，把复杂问题拆成 Plan JSON
 ```
 
 当前工程已经包含 intent router 能力：
@@ -18,7 +19,7 @@ V3.3  ：LangGraph，用 State + Node + Edge 编排流程
 - V3.1 是显式 router：模型输出 `RouterDecision JSON`。
 - V3.2/V3.3 是隐式 router：模型通过 `tool_calls` 选择 `search_notes`、`no_search`、`clarify`。
 
-所以 V3.3 之后可以开始学习 harness 的其它核心章节，尤其是 planner。
+所以 V3.4 之后可以继续学习 harness 的其它核心章节，尤其是 executor。
 
 ## 总体学习路线
 
@@ -106,10 +107,10 @@ Planner 输出可以是：
 
 建议实现：
 
-- 新增 `obsidian_rag/v3_4/`。
-- 新增 `PlannerService`。
+- `obsidian_rag/v3_4/` 已新增。
+- `PlannerService` 已新增。
 - Planner 用 LLM 输出结构化 `Plan JSON`。
-- Response 返回 `plan`、`step_results`、`trace`。
+- Response 返回 `plan`、`trace`。
 - 暂时不做复杂执行器，只验证 planner 能拆任务。
 
 学习重点：
@@ -125,6 +126,14 @@ Planner 输出可以是：
 - 多主题问题生成多个 search step。
 - 实时外部问题生成 `no_search` 或不可执行计划。
 - Swagger 可以看到完整 plan。
+
+当前状态：
+
+- `obsidian_rag/v3_4/` exists as a separate LangGraph planner package.
+- `POST /planner/plan` is available from `obsidian_rag.v3_4.app`.
+- `obsidian-rag agent-v3-4 plan "..."` runs the same planner workflow from CLI.
+- The planner graph uses nodes: `build_prompt`, `call_planner`, and `parse_plan`.
+- V3.4 learning guide and diagrams live in `docs/v3-4-planner-guide.md`.
 
 ## Phase 2：Executor
 

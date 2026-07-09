@@ -1,0 +1,74 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1180" height="620" viewBox="0 0 1180 620" role="img" aria-labelledby="title desc">
+  <title id="title">V3.4 Planner flow</title>
+  <desc id="desc">V3.4 uses LangGraph only for planner decomposition. It builds planner messages, calls the planner, parses plan JSON, and returns a plan without running RAG retrieval.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#475569"/>
+    </marker>
+    <marker id="soft-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#94a3b8"/>
+    </marker>
+  </defs>
+
+  <rect width="1180" height="620" fill="#f8fafc"/>
+  <text x="590" y="48" text-anchor="middle" font-family="Arial, sans-serif" font-size="28" font-weight="700" fill="#0f172a">V3.4 Planner 流程</text>
+  <text x="590" y="78" text-anchor="middle" font-family="Arial, sans-serif" font-size="15" fill="#475569">只生成计划，不执行检索；LangGraph 在这里负责把 Planner 流程拆成可观察节点</text>
+
+  <rect x="48" y="120" width="238" height="320" rx="8" fill="#ffffff" stroke="#bfdbfe" stroke-width="2"/>
+  <rect x="48" y="120" width="238" height="54" rx="8" fill="#eff6ff" stroke="#bfdbfe" stroke-width="2"/>
+  <text x="167" y="154" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" font-weight="700" fill="#1d4ed8">输入</text>
+  <text x="76" y="214" font-family="Arial, sans-serif" font-size="16" font-weight="700" fill="#0f172a">PlanRequest</text>
+  <text x="76" y="248" font-family="Arial, sans-serif" font-size="14" fill="#334155">question</text>
+  <text x="76" y="278" font-family="Arial, sans-serif" font-size="14" fill="#334155">top_k</text>
+  <text x="76" y="308" font-family="Arial, sans-serif" font-size="14" fill="#334155">mode</text>
+  <text x="76" y="338" font-family="Arial, sans-serif" font-size="14" fill="#334155">filters</text>
+  <text x="76" y="368" font-family="Arial, sans-serif" font-size="14" fill="#334155">max_steps</text>
+  <text x="76" y="410" font-family="Arial, sans-serif" font-size="13" fill="#64748b">用户的问题和规划约束</text>
+
+  <rect x="356" y="120" width="468" height="320" rx="8" fill="#ffffff" stroke="#bbf7d0" stroke-width="2"/>
+  <rect x="356" y="120" width="468" height="54" rx="8" fill="#f0fdf4" stroke="#bbf7d0" stroke-width="2"/>
+  <text x="590" y="154" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" font-weight="700" fill="#047857">LangGraph Planner</text>
+
+  <circle cx="418" cy="228" r="22" fill="#dcfce7" stroke="#22c55e" stroke-width="2"/>
+  <text x="418" y="235" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="700" fill="#166534">1</text>
+  <rect x="456" y="196" width="290" height="64" rx="8" fill="#ffffff" stroke="#86efac" stroke-width="2"/>
+  <text x="480" y="222" font-family="Arial, sans-serif" font-size="16" font-weight="700" fill="#166534">build_prompt</text>
+  <text x="480" y="246" font-family="Arial, sans-serif" font-size="13" fill="#475569">把请求组装成 system / user messages</text>
+
+  <circle cx="418" cy="318" r="22" fill="#fef9c3" stroke="#eab308" stroke-width="2"/>
+  <text x="418" y="325" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="700" fill="#854d0e">2</text>
+  <rect x="456" y="286" width="290" height="64" rx="8" fill="#ffffff" stroke="#fde047" stroke-width="2"/>
+  <text x="480" y="312" font-family="Arial, sans-serif" font-size="16" font-weight="700" fill="#854d0e">call_planner</text>
+  <text x="480" y="336" font-family="Arial, sans-serif" font-size="13" fill="#475569">调用 LLM，只要求输出 Plan JSON</text>
+
+  <circle cx="418" cy="408" r="22" fill="#ffedd5" stroke="#fb923c" stroke-width="2"/>
+  <text x="418" y="415" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="700" fill="#9a3412">3</text>
+  <rect x="456" y="376" width="290" height="64" rx="8" fill="#ffffff" stroke="#fdba74" stroke-width="2"/>
+  <text x="480" y="402" font-family="Arial, sans-serif" font-size="16" font-weight="700" fill="#9a3412">parse_plan</text>
+  <text x="480" y="426" font-family="Arial, sans-serif" font-size="13" fill="#475569">解析 JSON，校验 Plan schema</text>
+
+  <path d="M418 250 L418 290" stroke="#475569" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+  <path d="M418 340 L418 380" stroke="#475569" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+  <text x="590" y="188" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" fill="#64748b">graph_path: build_prompt -> call_planner -> parse_plan</text>
+
+  <rect x="894" y="120" width="238" height="320" rx="8" fill="#ffffff" stroke="#cbd5e1" stroke-width="2"/>
+  <rect x="894" y="120" width="238" height="54" rx="8" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="2"/>
+  <text x="1013" y="154" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" font-weight="700" fill="#334155">输出</text>
+  <text x="922" y="214" font-family="Arial, sans-serif" font-size="16" font-weight="700" fill="#0f172a">PlanResponse</text>
+  <text x="922" y="250" font-family="Arial, sans-serif" font-size="14" fill="#334155">plan.goal</text>
+  <text x="922" y="280" font-family="Arial, sans-serif" font-size="14" fill="#334155">plan.steps[]</text>
+  <text x="942" y="310" font-family="Arial, sans-serif" font-size="13" fill="#64748b">search</text>
+  <text x="942" y="334" font-family="Arial, sans-serif" font-size="13" fill="#64748b">synthesize</text>
+  <text x="942" y="358" font-family="Arial, sans-serif" font-size="13" fill="#64748b">no_search / clarify</text>
+  <text x="922" y="394" font-family="Arial, sans-serif" font-size="14" fill="#334155">graph_path + trace</text>
+
+  <path d="M286 280 L356 280" stroke="#475569" stroke-width="2.5" fill="none" marker-end="url(#arrow)"/>
+  <path d="M824 280 L894 280" stroke="#475569" stroke-width="2.5" fill="none" marker-end="url(#arrow)"/>
+
+  <rect x="156" y="490" width="868" height="72" rx="8" fill="#fff1f2" stroke="#fda4af" stroke-width="2" stroke-dasharray="7 6"/>
+  <text x="590" y="520" text-anchor="middle" font-family="Arial, sans-serif" font-size="17" font-weight="700" fill="#be123c">V3.4 到这里就结束</text>
+  <text x="590" y="548" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#475569">不会调用 RetrievalService.search，不会查 Qdrant，不会生成最终 RAG 答案；这些留给 V3.5 Executor</text>
+
+  <path d="M746 408 C820 458 900 486 1024 508" stroke="#94a3b8" stroke-width="2" fill="none" stroke-dasharray="6 6" marker-end="url(#soft-arrow)"/>
+  <text x="884" y="468" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#64748b">计划生成后停止</text>
+</svg>

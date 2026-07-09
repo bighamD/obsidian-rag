@@ -293,6 +293,21 @@ Current v3.3 status:
 - Responses include `graph_path` and trace entries with `node_name`.
 - V3.3 learning guide and diagrams live in `docs/v3-3-langgraph-guide.md`.
 
+### v3.4: Planner
+
+Goal:
+
+Learn how a harness planner turns a complex user request into structured `Plan JSON` before any tool execution.
+
+Current v3.4 status:
+
+- `obsidian_rag/v3_4/` exists as a separate LangGraph planner package.
+- `POST /planner/plan` is available from `obsidian_rag.v3_4.app`.
+- `obsidian-rag agent-v3-4 plan "..."` runs the same planner workflow from CLI.
+- The planner graph uses nodes: `build_prompt`, `call_planner`, and `parse_plan`.
+- The planner returns `plan`, `graph_path`, and `trace`; it does not execute retrieval yet.
+- V3.4 learning guide and diagrams live in `docs/v3-4-planner-guide.md`.
+
 ### v4: Personal Knowledge Assistant
 
 Goal:

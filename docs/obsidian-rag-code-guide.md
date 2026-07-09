@@ -14,6 +14,8 @@ V3.2 已增加 Tool Calling。工具定义、tool_calls 消息闭环、Swagger/C
 
 V3.3 已增加 LangGraph。节点编排、`graph_path`、Swagger/CLI 用法和 `obsidian_rag/v3_3/` 文件职责见：[V3.3 LangGraph Guide](v3-3-langgraph-guide.md)。
 
+V3.4 已增加 Planner。LangGraph planner nodes、结构化 `Plan JSON`、Swagger/CLI 用法和 `obsidian_rag/v3_4/` 文件职责见：[V3.4 Planner Guide](v3-4-planner-guide.md)。
+
 ## Mental Model
 
 当前 v0 项目的核心不是 Agent，而是一个固定 RAG pipeline：
