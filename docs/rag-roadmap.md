@@ -2,7 +2,7 @@
 
 This document preserves the project plan so future sessions can recover context quickly after compaction.
 
-For the post-V3.3 harness architecture learning plan, see [Harness Engineering Learning Roadmap](harness-learning-roadmap.md).
+For the post-V3.3 harness architecture learning plan, see [Harness Engineering Learning Roadmap](harness-learning-roadmap.md). That roadmap now maps the broader harness modules, including context building, tool execution, memory/state, orchestration, verification, observation, permissions, and production hardening.
 
 ## Project Intent
 
@@ -323,6 +323,38 @@ Current v3.5 status:
 - Responses include `run_id`, `plan`, `step_results`, `graph_path`, and `trace`.
 - V3.5 introduces a lightweight `ToolRegistry` and `StepResult`.
 - V3.5 learning guide and diagrams live in `docs/v3-5-planner-executor-guide.md`.
+
+### v3.6: Evidence Checker
+
+Goal:
+
+Add a runtime evidence check after planned search steps so the agent can tell whether each search step found supporting evidence, and retry search once when evidence is missing.
+
+Current v3.6 status:
+
+- `obsidian_rag/v3_6/` exists as a separate LangGraph evidence-checking planner executor package.
+- `POST /agent/ask` is available from `obsidian_rag.v3_6.app`.
+- `obsidian-rag agent-v3-6 ask "..."` runs the same evidence-checking workflow from CLI.
+- The graph uses nodes: `planner`, `execute_steps`, `evidence_check`, `retry_search`, and `synthesize_answer`.
+- Responses include `run_id`, `plan`, `step_results`, `retry_step_results`, `evidence_check`, `graph_path`, and `trace`.
+- V3.6 introduces `EvidenceCheckResult` and a bounded retry loop controlled by `max_retries`.
+- V3.6 learning guide and diagrams live in `docs/v3-6-evidence-checker-guide.md`.
+
+### v3.7: Context Builder
+
+Goal:
+
+Move prompt construction into a dedicated context-building layer that selects, ranks, trims, and formats current-run evidence before synthesis.
+
+Current v3.7 status:
+
+- `obsidian_rag/v3_7/` exists as a separate LangGraph context-building planner executor package.
+- `POST /agent/ask` is available from `obsidian_rag.v3_7.app`.
+- `obsidian-rag agent-v3-7 ask "..."` runs the same context-building workflow from CLI.
+- The graph uses nodes: `planner`, `execute_steps`, `evidence_check`, `retry_search`, `build_context`, and `synthesize_answer`.
+- Responses include `context_bundle` with `messages`, `included_chunks`, `excluded_chunks`, `token_budget`, and `context_summary`.
+- V3.7 does not introduce persistent memory; it only builds context from the current run.
+- V3.7 learning guide and diagrams live in `docs/v3-7-context-builder-guide.md`.
 
 ### v4: Personal Knowledge Assistant
 

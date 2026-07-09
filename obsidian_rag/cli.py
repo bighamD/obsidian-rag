@@ -7,7 +7,7 @@ from obsidian_rag.config import RagConfig
 from obsidian_rag.config import load_config, resolve_ingest_path
 from obsidian_rag.pipeline import answer, ingest_path, search
 from obsidian_rag.prompting import format_sources
-from obsidian_rag.v1.schemas import SearchMode
+from obsidian_rag.v1.schemas import SearchFilters, SearchMode
 from obsidian_rag.v1.services.retrieval_service import RetrievalService
 from obsidian_rag.v2.evaluation.dataset import load_eval_dataset
 from obsidian_rag.v2.evaluation.retrieval import RetrievalEvaluator, default_retrieval_eval_output_path
@@ -24,6 +24,10 @@ from obsidian_rag.v3_4.planner.service import PlannerService
 from obsidian_rag.v3_4.schemas import PlanRequest
 from obsidian_rag.v3_5.agent.service import AgentService as Agent35Service
 from obsidian_rag.v3_5.schemas import AgentAskRequest as Agent35AskRequest
+from obsidian_rag.v3_6.agent.service import AgentService as Agent36Service
+from obsidian_rag.v3_6.schemas import AgentAskRequest as Agent36AskRequest
+from obsidian_rag.v3_7.agent.service import AgentService as Agent37Service
+from obsidian_rag.v3_7.schemas import AgentAskRequest as Agent37AskRequest
 from obsidian_rag.llm import OpenAIChatClient
 
 
@@ -104,6 +108,28 @@ def main() -> None:
     agent35_ask_parser.add_argument("--top-k", type=int, default=5)
     agent35_ask_parser.add_argument("--mode", choices=["dense", "keyword", "hybrid"], default="hybrid")
     agent35_ask_parser.add_argument("--max-steps", type=int, default=4)
+
+    agent36_parser = subparsers.add_parser("agent-v3-6", help="Run V3.6 evidence-checking planner executor agentic RAG")
+    agent36_subparsers = agent36_parser.add_subparsers(dest="agent36_command", required=True)
+    agent36_ask_parser = agent36_subparsers.add_parser("ask", help="Plan, execute, check evidence, retry search, and synthesize")
+    agent36_ask_parser.add_argument("question")
+    agent36_ask_parser.add_argument("--top-k", type=int, default=5)
+    agent36_ask_parser.add_argument("--mode", choices=["dense", "keyword", "hybrid"], default="hybrid")
+    agent36_ask_parser.add_argument("--max-steps", type=int, default=4)
+    agent36_ask_parser.add_argument("--max-retries", type=int, default=1)
+    agent36_ask_parser.add_argument("--filter-path", help="Limit retrieval to a source path; useful for evidence-insufficient debugging")
+
+    agent37_parser = subparsers.add_parser("agent-v3-7", help="Run V3.7 context-building agentic RAG")
+    agent37_subparsers = agent37_parser.add_subparsers(dest="agent37_command", required=True)
+    agent37_ask_parser = agent37_subparsers.add_parser("ask", help="Plan, execute, check evidence, build context, and synthesize")
+    agent37_ask_parser.add_argument("question")
+    agent37_ask_parser.add_argument("--top-k", type=int, default=5)
+    agent37_ask_parser.add_argument("--mode", choices=["dense", "keyword", "hybrid"], default="hybrid")
+    agent37_ask_parser.add_argument("--max-steps", type=int, default=4)
+    agent37_ask_parser.add_argument("--max-retries", type=int, default=1)
+    agent37_ask_parser.add_argument("--filter-path", help="Limit retrieval to a source path")
+    agent37_ask_parser.add_argument("--context-max-chunks", type=int, default=6)
+    agent37_ask_parser.add_argument("--context-token-budget", type=int, default=4000)
 
     args = parser.parse_args()
     config = load_config()
@@ -193,6 +219,32 @@ def main() -> None:
             top_k=args.top_k,
             mode=args.mode,
             max_steps=args.max_steps,
+        )
+        return
+
+    if args.command == "agent-v3-6" and args.agent36_command == "ask":
+        run_agent36_ask(
+            question=args.question,
+            config=config,
+            top_k=args.top_k,
+            mode=args.mode,
+            max_steps=args.max_steps,
+            max_retries=args.max_retries,
+            filter_path=args.filter_path,
+        )
+        return
+
+    if args.command == "agent-v3-7" and args.agent37_command == "ask":
+        run_agent37_ask(
+            question=args.question,
+            config=config,
+            top_k=args.top_k,
+            mode=args.mode,
+            max_steps=args.max_steps,
+            max_retries=args.max_retries,
+            filter_path=args.filter_path,
+            context_max_chunks=args.context_max_chunks,
+            context_token_budget=args.context_token_budget,
         )
         return
 
@@ -471,6 +523,158 @@ def run_agent35_ask(
             parts.append(f"results={step.result_count}")
         if step.reason:
             parts.append(f"reason={step.reason}")
+        print(" | ".join(parts))
+
+
+def run_agent36_ask(
+    question: str,
+    config: RagConfig,
+    top_k: int = 5,
+    mode: SearchMode = "hybrid",
+    max_steps: int = 4,
+    max_retries: int = 1,
+    filter_path: str | None = None,
+    retrieval_service=None,
+    chat_client=None,
+    agent_service=None,
+) -> None:
+    service = retrieval_service or RetrievalService(config)
+    agent = agent_service or Agent36Service(
+        retrieval_service=service,
+        chat_client=chat_client,
+        chat_client_factory=lambda: OpenAIChatClient(api_key=config.api_key, base_url=config.base_url, model=config.chat_model),
+    )
+    response = agent.ask(
+        Agent36AskRequest(
+            question=question,
+            top_k=top_k,
+            mode=mode,
+            filters=SearchFilters(path=filter_path) if filter_path else None,
+            max_steps=max_steps,
+            max_retries=max_retries,
+        )
+    )
+    print(f"Run: {response.run_id}")
+    print(response.answer.strip())
+    if response.sources:
+        _print_sources(response.sources)
+    print("\nEvidence check:")
+    evidence = response.evidence_check
+    print(f"sufficient={evidence.is_sufficient} | retry_count={evidence.retry_count} | reason={evidence.reason}")
+    if evidence.missing_points:
+        print("Missing points:")
+        for point in evidence.missing_points:
+            print(f"- {point}")
+    if evidence.suggested_queries:
+        print("Suggested queries:")
+        for query in evidence.suggested_queries:
+            print(f"- {query}")
+    print("\nStep results:")
+    _print_step_results(response.step_results)
+    if response.retry_step_results:
+        print("\nRetry step results:")
+        _print_step_results(response.retry_step_results)
+    print("\nGraph path:")
+    print(" -> ".join(response.graph_path) if response.graph_path else "- none")
+    print("\nTrace:")
+    for index, step in enumerate(response.trace, start=1):
+        parts = [f"{index}. {step.node_name}:{step.step_type}"]
+        if step.step_id:
+            parts.append(f"step={step.step_id}")
+        if step.tool_name:
+            parts.append(f"tool={step.tool_name}")
+        if step.query:
+            parts.append(f"query={step.query}")
+        if step.result_count is not None:
+            parts.append(f"results={step.result_count}")
+        if step.reason:
+            parts.append(f"reason={step.reason}")
+        print(" | ".join(parts))
+
+
+def run_agent37_ask(
+    question: str,
+    config: RagConfig,
+    top_k: int = 5,
+    mode: SearchMode = "hybrid",
+    max_steps: int = 4,
+    max_retries: int = 1,
+    filter_path: str | None = None,
+    context_max_chunks: int = 6,
+    context_token_budget: int = 4000,
+    retrieval_service=None,
+    chat_client=None,
+    agent_service=None,
+) -> None:
+    service = retrieval_service or RetrievalService(config)
+    agent = agent_service or Agent37Service(
+        retrieval_service=service,
+        chat_client=chat_client,
+        chat_client_factory=lambda: OpenAIChatClient(api_key=config.api_key, base_url=config.base_url, model=config.chat_model),
+    )
+    response = agent.ask(
+        Agent37AskRequest(
+            question=question,
+            top_k=top_k,
+            mode=mode,
+            filters=SearchFilters(path=filter_path) if filter_path else None,
+            max_steps=max_steps,
+            max_retries=max_retries,
+            context_max_chunks=context_max_chunks,
+            context_token_budget=context_token_budget,
+        )
+    )
+    print(f"Run: {response.run_id}")
+    print(response.answer.strip())
+    if response.sources:
+        _print_sources(response.sources)
+    print("\nEvidence check:")
+    evidence = response.evidence_check
+    print(f"sufficient={evidence.is_sufficient} | retry_count={evidence.retry_count} | reason={evidence.reason}")
+    print("\nContext bundle:")
+    bundle = response.context_bundle
+    print(f"{bundle.context_summary} | token_budget={bundle.token_budget}")
+    for chunk in bundle.included_chunks:
+        chunk_label = chunk.chunk_id or "-"
+        print(f"included: {chunk.step_id} | {chunk_label} | {chunk.source} | score={chunk.score:.4f}")
+    for chunk in bundle.excluded_chunks:
+        chunk_label = chunk.chunk_id or "-"
+        reason = chunk.reason or "-"
+        print(f"excluded: {chunk.step_id} | {chunk_label} | {chunk.source} | score={chunk.score:.4f} | reason={reason}")
+    print("\nStep results:")
+    _print_step_results(response.step_results)
+    if response.retry_step_results:
+        print("\nRetry step results:")
+        _print_step_results(response.retry_step_results)
+    print("\nGraph path:")
+    print(" -> ".join(response.graph_path) if response.graph_path else "- none")
+    print("\nTrace:")
+    for index, step in enumerate(response.trace, start=1):
+        parts = [f"{index}. {step.node_name}:{step.step_type}"]
+        if step.step_id:
+            parts.append(f"step={step.step_id}")
+        if step.tool_name:
+            parts.append(f"tool={step.tool_name}")
+        if step.query:
+            parts.append(f"query={step.query}")
+        if step.result_count is not None:
+            parts.append(f"results={step.result_count}")
+        if step.reason:
+            parts.append(f"reason={step.reason}")
+        print(" | ".join(parts))
+
+
+def _print_step_results(step_results) -> None:
+    for result in step_results:
+        parts = [result.step_id, result.kind]
+        if result.tool_name:
+            parts.append(f"tool={result.tool_name}")
+        parts.append(f"status={result.status}")
+        if result.query:
+            parts.append(f"query={result.query}")
+        parts.append(f"results={result.result_count}")
+        if result.error:
+            parts.append(f"error={result.error}")
         print(" | ".join(parts))
 
 

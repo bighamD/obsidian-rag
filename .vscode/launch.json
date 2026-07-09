@@ -2,6 +2,93 @@
 	"version": "0.2.0",
 	"configurations": [
 		{
+			"name": "V3.7 agent ask: context builder",
+			"type": "debugpy",
+			"request": "launch",
+			"module": "obsidian_rag.cli",
+			"console": "integratedTerminal",
+			"cwd": "${workspaceFolder}",
+			"python": "${workspaceFolder}/.venv/bin/python",
+			"envFile": "${workspaceFolder}/.env",
+			"env": {
+				"RAG_DEBUG_BREAKPOINTS": "search.after_query_embedding,qdrant.after_search,search.after_retrieval,prompting.messages_built"
+			},
+			"args": [
+				"agent-v3-7",
+				"ask",
+				"帮我总结生鸡肉处理、厨房清洁、剩菜保存三类食品安全建议",
+				"--top-k",
+				"5",
+				"--mode",
+				"hybrid",
+				"--max-steps",
+				"4",
+				"--max-retries",
+				"1",
+				"--context-max-chunks",
+				"4",
+				"--context-token-budget",
+				"4000"
+			],
+			"justMyCode": true
+		},
+		{
+			"name": "V3.6 agent ask: evidence checker",
+			"type": "debugpy",
+			"request": "launch",
+			"module": "obsidian_rag.cli",
+			"console": "integratedTerminal",
+			"cwd": "${workspaceFolder}",
+			"python": "${workspaceFolder}/.venv/bin/python",
+			"envFile": "${workspaceFolder}/.env",
+			"env": {
+				"RAG_DEBUG_BREAKPOINTS": "search.after_query_embedding,qdrant.after_search,search.after_retrieval,prompting.messages_built"
+			},
+			"args": [
+				"agent-v3-6",
+				"ask",
+				"帮我总结生鸡肉处理、厨房清洁、剩菜保存三类食品安全建议",
+				"--top-k",
+				"5",
+				"--mode",
+				"hybrid",
+				"--max-steps",
+				"4",
+				"--max-retries",
+				"1"
+			],
+			"justMyCode": true
+		},
+		{
+			"name": "V3.6 agent ask: evidence insufficient",
+			"type": "debugpy",
+			"request": "launch",
+			"module": "obsidian_rag.cli",
+			"console": "integratedTerminal",
+			"cwd": "${workspaceFolder}",
+			"python": "${workspaceFolder}/.venv/bin/python",
+			"envFile": "${workspaceFolder}/.env",
+			"env": {
+				"RAG_DEBUG_BREAKPOINTS": "search.after_query_embedding,qdrant.after_search,search.after_retrieval,prompting.messages_built"
+			},
+			"args": [
+				"agent-v3-6",
+				"ask",
+				"请从我的知识库里总结生鸡肉清洗的食品安全建议",
+				"--top-k",
+				"5",
+				"--mode",
+				"hybrid",
+				"--max-steps",
+				"4",
+				"--max-retries",
+				"1",
+				"--filter-path",
+				"__not_exists__.md"
+			],
+			"justMyCode": true
+		},
+		{
 			"name": "V3.5 agent ask: planner executor",
 			"type": "debugpy",
 			"request": "launch",

@@ -4,7 +4,7 @@
 
 - 默认用中文回答。
 - 命令、文件名、配置项、API 名称保留英文原文。
-- 解释学习概念时优先结合本仓库已有版本：`v0`、`v1`、`v2`、`v3`、`v3_1`、`v3_2`、`v3_3`、`v3_4`。
+- 解释学习概念时优先结合本仓库已有版本：`v0`、`v1`、`v2`、`v3`、`v3_1`、`v3_2`、`v3_3`、`v3_4`、`v3_5`、`v3_6`。
 
 ## 新增版本的固定要求
 
@@ -60,29 +60,36 @@ docs/assets/rag-v3-4-planner-flow.svg
 已完成到：
 
 ```text
-V3.4 LangGraph Planner
+V3.7 Context Builder
 ```
 
-当前 V3.4 只做 planner 拆解：
+当前 V3.7 在 V3.6 Evidence Checker 后增加本轮上下文构建：
 
 ```text
-build_prompt -> call_planner -> parse_plan
+planner -> execute_steps -> evidence_check -> retry_search -> evidence_check -> build_context -> synthesize_answer
 ```
 
-V3.4 不会执行 RAG：
+V3.7 会执行 RAG：
 
-- 不调用 `RetrievalService.search()`。
-- 不查 Qdrant。
-- 不做 hybrid retrieval。
-- 不生成最终 RAG answer。
+- 调用 `RetrievalService.search()`。
+- 支持 dense / keyword / hybrid retrieval。
+- 返回 `step_results`、`retry_step_results`、`evidence_check`、`context_bundle`、`trace`。
+- 当某个 search step 没有证据时，最多按 `max_retries` 补搜。
+- 使用 `ContextBuilder` 选择、排序、裁剪本轮 chunks，并生成 `context_bundle.messages`。
+
+V3.7 仍然不做：
+
+- 不做多轮 Memory。
+- 不读写持久 conversation state。
+- 不做生产级权限审批和 shell execution。
 
 下一阶段建议：
 
 ```text
-V3.5 Planner Executor
+V3.8 Conversation Memory
 ```
 
-V3.5 再考虑把 `plan.steps[]` 里的 `search` / `synthesize` 真正执行起来。
+V3.8 再新增 `MemoryReader` / `MemoryWriter`，把跨轮历史摘要、上一轮 sources 和用户偏好交给 Context Builder。
 
 ## CodeGraph
 
