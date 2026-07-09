@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1180" height="720" viewBox="0 0 1180 720">
+  <rect width="1180" height="720" fill="#f8fafc"/>
+  <text x="590" y="52" text-anchor="middle" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#0f172a">V3.6 Evidence Checker 流程</text>
+  <text x="590" y="84" text-anchor="middle" font-family="Arial, sans-serif" font-size="15" fill="#475569">在 V3.5 Planner Executor 后增加证据检查与一次补搜</text>
+
+  <rect x="54" y="124" width="260" height="430" rx="12" fill="#ffffff" stroke="#93c5fd" stroke-width="2"/>
+  <text x="184" y="158" text-anchor="middle" font-family="Arial, sans-serif" font-size="20" font-weight="700" fill="#1d4ed8">输入</text>
+  <rect x="82" y="190" width="204" height="92" rx="10" fill="#eff6ff" stroke="#bfdbfe"/>
+  <text x="184" y="224" text-anchor="middle" font-family="Arial, sans-serif" font-size="17" font-weight="700" fill="#1e3a8a">AgentAskRequest</text>
+  <text x="184" y="252" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#334155">question / top_k / mode</text>
+  <text x="184" y="274" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#334155">max_steps / max_retries</text>
+  <rect x="82" y="322" width="204" height="92" rx="10" fill="#f8fafc" stroke="#cbd5e1"/>
+  <text x="184" y="356" text-anchor="middle" font-family="Arial, sans-serif" font-size="17" font-weight="700" fill="#334155">Plan JSON</text>
+  <text x="184" y="384" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#475569">由 V3.4 Planner 生成</text>
+
+  <rect x="352" y="124" width="476" height="430" rx="12" fill="#ffffff" stroke="#5eead4" stroke-width="2"/>
+  <text x="590" y="158" text-anchor="middle" font-family="Arial, sans-serif" font-size="20" font-weight="700" fill="#0f766e">LangGraph 主流程</text>
+
+  <g font-family="Arial, sans-serif">
+    <rect x="402" y="190" width="376" height="54" rx="8" fill="#ecfeff" stroke="#99f6e4"/>
+    <text x="590" y="224" text-anchor="middle" font-size="16" font-weight="700" fill="#115e59">1. planner</text>
+
+    <path d="M590 248 L590 278" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)"/>
+    <rect x="402" y="282" width="376" height="54" rx="8" fill="#ecfeff" stroke="#99f6e4"/>
+    <text x="590" y="316" text-anchor="middle" font-size="16" font-weight="700" fill="#115e59">2. execute_steps</text>
+
+    <path d="M590 340 L590 370" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)"/>
+    <rect x="402" y="374" width="376" height="64" rx="8" fill="#fefce8" stroke="#fde68a"/>
+    <text x="590" y="401" text-anchor="middle" font-size="16" font-weight="700" fill="#854d0e">3. evidence_check</text>
+    <text x="590" y="424" text-anchor="middle" font-size="13" fill="#713f12">逐个 search step 判断是否有证据</text>
+
+    <path d="M778 407 C850 407 850 486 778 486" fill="none" stroke="#f97316" stroke-width="2" marker-end="url(#arrow)"/>
+    <rect x="402" y="466" width="376" height="64" rx="8" fill="#fff7ed" stroke="#fed7aa"/>
+    <text x="590" y="493" text-anchor="middle" font-size="16" font-weight="700" fill="#9a3412">4. retry_search</text>
+    <text x="590" y="516" text-anchor="middle" font-size="13" fill="#7c2d12">证据不足时最多补搜 max_retries 次</text>
+
+    <path d="M590 438 L590 462" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)"/>
+    <path d="M402 498 C334 498 334 407 398 407" fill="none" stroke="#f97316" stroke-width="2" marker-end="url(#arrow)"/>
+  </g>
+
+  <rect x="866" y="124" width="260" height="430" rx="12" fill="#ffffff" stroke="#c4b5fd" stroke-width="2"/>
+  <text x="996" y="158" text-anchor="middle" font-family="Arial, sans-serif" font-size="20" font-weight="700" fill="#6d28d9">输出</text>
+  <rect x="894" y="190" width="204" height="86" rx="10" fill="#faf5ff" stroke="#ddd6fe"/>
+  <text x="996" y="224" text-anchor="middle" font-family="Arial, sans-serif" font-size="17" font-weight="700" fill="#581c87">EvidenceCheckResult</text>
+  <text x="996" y="251" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#475569">is_sufficient / missing_points</text>
+  <rect x="894" y="314" width="204" height="86" rx="10" fill="#faf5ff" stroke="#ddd6fe"/>
+  <text x="996" y="348" text-anchor="middle" font-family="Arial, sans-serif" font-size="17" font-weight="700" fill="#581c87">retry_step_results</text>
+  <text x="996" y="375" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#475569">补搜 query 与结果</text>
+  <rect x="894" y="438" width="204" height="86" rx="10" fill="#f8fafc" stroke="#cbd5e1"/>
+  <text x="996" y="472" text-anchor="middle" font-family="Arial, sans-serif" font-size="17" font-weight="700" fill="#334155">answer / trace</text>
+  <text x="996" y="499" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#475569">最终回答与执行轨迹</text>
+
+  <path d="M314 338 L352 338" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)"/>
+  <path d="M828 338 L866 338" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <rect x="54" y="594" width="1072" height="74" rx="12" fill="#fff7ed" stroke="#fdba74"/>
+  <text x="590" y="626" text-anchor="middle" font-family="Arial, sans-serif" font-size="17" font-weight="700" fill="#9a3412">版本边界</text>
+  <text x="590" y="654" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#7c2d12">V3.6 做运行时证据检查和一次补搜；不做 Context Builder、不做多轮 Memory、不做生产级权限审批。</text>
+
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L9,3 z" fill="#64748b"/>
+    </marker>
+  </defs>
+</svg>
