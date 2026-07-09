@@ -20,6 +20,8 @@ V3.3 LangGraph、节点编排、`graph_path` 和每个 V3.3 文件职责见：[d
 
 V3.4 Planner、LangGraph planner nodes、结构化 `Plan JSON`、Swagger 和每个 V3.4 文件职责见：[docs/v3-4-planner-guide.md](docs/v3-4-planner-guide.md)。
 
+V3.5 Planner Executor、`ToolRegistry`、`StepResult`、Swagger 和每个 V3.5 文件职责见：[docs/v3-5-planner-executor-guide.md](docs/v3-5-planner-executor-guide.md)。
+
 VSCode/Cursor 调试 RAG 流程见：[docs/debugging-rag-flow.md](docs/debugging-rag-flow.md)。
 
 配套学习图片见：[docs/assets](docs/assets)。
@@ -304,6 +306,28 @@ CLI 示例：
 
 ```bash
 .venv/bin/obsidian-rag agent-v3-4 plan "帮我总结生鸡肉处理、厨房清洁、剩菜保存三类食品安全建议" --top-k 5 --mode hybrid --max-steps 4
+```
+
+## V3.5 Planner Executor
+
+V3.5 把 V3.4 的 `Plan JSON` 执行起来：`search` step 会调用本地知识库检索，最终基于 `step_results` 综合答案。详细说明见：[docs/v3-5-planner-executor-guide.md](docs/v3-5-planner-executor-guide.md)。
+
+启动 V3.5 Swagger：
+
+```bash
+.venv/bin/uvicorn obsidian_rag.v3_5.app:app --reload --port 8007
+```
+
+打开：
+
+```text
+http://127.0.0.1:8007/docs
+```
+
+CLI 示例：
+
+```bash
+.venv/bin/obsidian-rag agent-v3-5 ask "帮我总结生鸡肉处理、厨房清洁、剩菜保存三类食品安全建议" --top-k 5 --mode hybrid --max-steps 4
 ```
 
 ## Offline Smoke Test

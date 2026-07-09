@@ -12,6 +12,7 @@ V3.1  ：LLM Router，显式 intent routing
 V3.2  ：Tool Calling，模型通过 tool_calls 选择工具
 V3.3  ：LangGraph，用 State + Node + Edge 编排流程
 V3.4  ：LangGraph Planner，把复杂问题拆成 Plan JSON
+V3.5  ：Planner Executor，执行 search steps 并综合答案
 ```
 
 当前工程已经包含 intent router 能力：
@@ -19,7 +20,7 @@ V3.4  ：LangGraph Planner，把复杂问题拆成 Plan JSON
 - V3.1 是显式 router：模型输出 `RouterDecision JSON`。
 - V3.2/V3.3 是隐式 router：模型通过 `tool_calls` 选择 `search_notes`、`no_search`、`clarify`。
 
-所以 V3.4 之后可以继续学习 harness 的其它核心章节，尤其是 executor。
+所以 V3.5 之后可以继续学习 harness 的其它核心章节，尤其是 evidence checker。
 
 ## 总体学习路线
 
@@ -32,6 +33,17 @@ Phase 4：Memory，对话状态和长期记忆
 Phase 5：Agent Evaluation，评估 router/tool/planner/answer
 Phase 6：Production Harness，配置、权限、观测、成本和稳定性
 ```
+
+除了这些纵向版本，还要逐步补上真实 harness 工程常见的横切能力：
+
+```text
+Run Lifecycle：run_id、status、latency、error、token/tool summary
+Tool Registry：工具定义、工具白名单、工具执行和 ToolResult 统一抽象
+Schema Contract：结构化输出 schema、解析失败 fallback、prompt/schema 版本
+Checkpoint / Recovery：节点失败、重试、恢复、中间结果保存
+```
+
+这些能力不一定都单独成一个版本，但每次新增版本时都应该考虑是否需要引入一点点雏形。比如 V3.5 适合引入轻量 `ToolRegistry` 和 `StepResult`，V3.6 适合引入 retry/checkpoint，V3.9 再系统化成生产 harness。
 
 每个阶段都建议保持之前的节奏：
 
@@ -133,6 +145,8 @@ Planner 输出可以是：
 - `POST /planner/plan` is available from `obsidian_rag.v3_4.app`.
 - `obsidian-rag agent-v3-4 plan "..."` runs the same planner workflow from CLI.
 - The planner graph uses nodes: `build_prompt`, `call_planner`, and `parse_plan`.
+- Response returns `plan`、`graph_path`、`trace`.
+- V3.4 stops after plan generation and does not call `RetrievalService.search()` or Qdrant.
 - V3.4 learning guide and diagrams live in `docs/v3-4-planner-guide.md`.
 
 ## Phase 2：Executor
@@ -167,11 +181,23 @@ planner
 
 - 扩展 LangGraph。
 - `AgentState` 增加：
+  - `run_id`
   - `plan`
   - `current_step_index`
   - `step_results`
   - `completed_steps`
-- 每个 search step 调用 `search_notes`。
+- 新增轻量 `ToolRegistry`：
+  - 注册 `search_notes`
+  - 后续可注册 `no_search`、`clarify`、其它工具
+  - 统一工具调用入口和 `ToolResult`
+- 新增 `StepResult`：
+  - `step_id`
+  - `tool_name`
+  - `query`
+  - `result_count`
+  - `sources`
+  - `status`
+- 每个 `search` step 通过 `ToolRegistry` 调用 `search_notes`。
 - 最后 `synthesize_answer` 读取所有 step results。
 
 学习重点：
@@ -180,12 +206,27 @@ planner
 - 多步工具调用如何串联。
 - step result 如何进入最终回答。
 - graph 如何表达循环或多步执行。
+- 为什么真实 harness 通常需要 `ToolRegistry`，而不是在业务代码里到处 `if tool.name == ...`。
+- `run_id`、`step_results`、`trace` 各自服务什么调试场景。
 
 完成标准：
 
 - 一个多主题问题能执行多个 search step。
 - response 能展示每个 step 的 query、结果数、sources。
 - 最终答案能综合多个 step result。
+- trace 能看出每个 plan step 是如何被执行的。
+- 执行失败时能返回结构化失败 step，而不是让整个接口 500。
+
+当前状态：
+
+- `obsidian_rag/v3_5/` exists as a separate LangGraph planner executor package.
+- `POST /agent/ask` is available from `obsidian_rag.v3_5.app`.
+- `obsidian-rag agent-v3-5 ask "..."` runs the same planner executor workflow from CLI.
+- The graph uses nodes: `planner`, `execute_steps`, and `synthesize_answer`.
+- Response returns `run_id`、`answer`、`plan`、`step_results`、`graph_path`、`trace`.
+- V3.5 introduces a lightweight `ToolRegistry` and `StepResult`.
+- V3.5 does not yet do evidence sufficiency check, retry search, or checkpoint recovery.
+- V3.5 learning guide and diagrams live in `docs/v3-5-planner-executor-guide.md`.
 
 ## Phase 3：Evidence Checker
 
@@ -218,6 +259,11 @@ planner
   - `reason`
 - evidence checker 可以先用规则版，再升级 LLM 版。
 - 如果证据不足，进入 `retry_search` 节点。
+- 给 retry 增加停止条件：
+  - 最多重试次数
+  - 已尝试 query 列表
+  - 没有新 query 时停止
+- 为 evidence 节点保留 checkpoint 信息，方便看清楚失败发生在检索、证据覆盖还是答案生成。
 
 学习重点：
 
@@ -225,6 +271,7 @@ planner
 - groundedness / faithfulness。
 - coverage check。
 - retry search 的停止条件。
+- checkpoint / recovery：节点失败后，如何保留已经完成的 step results。
 
 完成标准：
 
@@ -301,6 +348,7 @@ Agent Evaluation 要评估：
 router 是否正确
 tool call 是否正确
 planner 是否合理
+executor 是否按计划执行
 evidence check 是否准确
 最终 answer 是否 grounded
 ```
@@ -331,6 +379,7 @@ examples:
 - 工具选择准确率。
 - graph path 准确率。
 - plan step coverage。
+- executor step success rate。
 - answer groundedness。
 - regression test for agents。
 
@@ -348,6 +397,12 @@ examples:
 
 可能包含：
 
+- Run Lifecycle：
+  - run_id
+  - request_id
+  - status
+  - started_at / ended_at
+  - latency_ms
 - 配置管理：
   - 不同模型
   - 不同工具开关
@@ -365,6 +420,11 @@ examples:
   - retry
   - fallback
   - rate limit
+- Schema Contract：
+  - prompt version
+  - output schema version
+  - parse failure fallback
+  - invalid output repair
 - 成本：
   - 每次请求 token 统计
   - 模型调用次数
@@ -388,48 +448,49 @@ examples:
 不要一次实现所有阶段。建议节奏：
 
 ```text
-第 1 轮：只学 Planner 概念，写 V3.4 设计
-第 2 轮：实现 V3.4 Planner
-第 3 轮：实现 V3.5 Executor
-第 4 轮：暂停复盘，把 Planner/Executor 彻底吃透
-第 5 轮：再进入 Evidence Checker
+第 1 轮：复盘 V3.4 Planner，确认只生成 plan、不执行 RAG
+第 2 轮：复盘 V3.5 Executor，确认 plan steps 如何变成 step_results
+第 3 轮：暂停复盘，把 Planner/Executor 职责边界彻底吃透
+第 4 轮：设计 V3.6 Evidence Checker，明确 coverage / retry / checkpoint
+第 5 轮：实现 V3.6 Evidence Checker 和 retry/checkpoint
 ```
 
 优先级最高的是：
 
 ```text
-V3.4 Planner
+V3.6 Evidence Checker
 ```
 
 因为它会把你从：
 
 ```text
-模型选择一个工具
+系统按计划执行多个工具步骤
 ```
 
 推进到：
 
 ```text
-模型拆解一个复杂任务，并协调多个步骤完成目标
+系统判断证据是否足够，不够时能重试或追问
 ```
 
-这是 harness 工程里很核心的一层。
+这是 harness 工程从“系统会做”走向“系统知道自己做得够不够”的关键一层。
 
 ## 下一步建议
 
-下一步不要直接写代码，先制定 `V3.4 Planner` 设计：
+下一步不要直接写代码，先制定 `V3.6 Evidence Checker` 设计：
 
-- Planner 输入是什么？
-- Plan schema 怎么定义？
-- 哪些问题需要 planner？
-- Planner 和 tool calling 是并列关系，还是 planner 产出 tool steps？
-- LangGraph 里 planner 节点放在哪里？
-- V3.4 是否只生成 plan，还是也执行 plan？
+- Evidence check 应该检查整个 answer，还是逐个 plan step 检查？
+- `EvidenceCheckResult` schema 应该包含哪些字段？
+- coverage 不足时，是 retry search，还是 clarify？
+- retry query 由规则生成，还是 LLM 生成？
+- 最多 retry 几次？
+- checkpoint 应该保存哪些中间状态？
+- 如何在 response/trace 中展示证据不足的原因？
 
-建议 V3.4 的第一版只做：
+建议 V3.6 的第一版先做：
 
 ```text
-用户问题 -> planner -> plan JSON -> 返回 plan + trace
+用户问题 -> planner -> execute search steps -> evidence_check -> synthesize answer
 ```
 
-等 planner 理解清楚后，再进入 executor。
+等 evidence checker 理解清楚后，再进入 memory。

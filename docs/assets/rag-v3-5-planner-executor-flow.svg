@@ -1,0 +1,66 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1180" height="650" viewBox="0 0 1180 650" role="img" aria-labelledby="title desc">
+  <title id="title">V3.5 Planner Executor flow</title>
+  <desc id="desc">V3.5 uses LangGraph to plan, execute search steps through ToolRegistry, and synthesize an answer with step results.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#475569"/>
+    </marker>
+  </defs>
+  <rect width="1180" height="650" fill="#f8fafc"/>
+  <text x="590" y="48" text-anchor="middle" font-family="Arial, sans-serif" font-size="28" font-weight="700" fill="#0f172a">V3.5 Planner Executor 流程</text>
+  <text x="590" y="78" text-anchor="middle" font-family="Arial, sans-serif" font-size="15" fill="#475569">先生成计划，再执行 search steps，最后基于 step_results 综合答案</text>
+
+  <rect x="48" y="122" width="238" height="340" rx="8" fill="#ffffff" stroke="#bfdbfe" stroke-width="2"/>
+  <rect x="48" y="122" width="238" height="54" rx="8" fill="#eff6ff" stroke="#bfdbfe" stroke-width="2"/>
+  <text x="167" y="156" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" font-weight="700" fill="#1d4ed8">输入</text>
+  <text x="76" y="216" font-family="Arial, sans-serif" font-size="16" font-weight="700" fill="#0f172a">AgentAskRequest</text>
+  <text x="76" y="250" font-family="Arial, sans-serif" font-size="14" fill="#334155">question</text>
+  <text x="76" y="280" font-family="Arial, sans-serif" font-size="14" fill="#334155">top_k / mode / filters</text>
+  <text x="76" y="310" font-family="Arial, sans-serif" font-size="14" fill="#334155">max_steps</text>
+  <text x="76" y="352" font-family="Arial, sans-serif" font-size="13" fill="#64748b">用户任务和检索约束</text>
+  <text x="76" y="386" font-family="Arial, sans-serif" font-size="13" fill="#64748b">V3.5 会真正执行计划里的 search step</text>
+
+  <rect x="356" y="122" width="468" height="340" rx="8" fill="#ffffff" stroke="#bbf7d0" stroke-width="2"/>
+  <rect x="356" y="122" width="468" height="54" rx="8" fill="#f0fdf4" stroke="#bbf7d0" stroke-width="2"/>
+  <text x="590" y="156" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" font-weight="700" fill="#047857">LangGraph Executor</text>
+  <text x="590" y="190" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" fill="#64748b">graph_path: planner -> execute_steps -> synthesize_answer</text>
+
+  <circle cx="418" cy="240" r="22" fill="#dcfce7" stroke="#22c55e" stroke-width="2"/>
+  <text x="418" y="247" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="700" fill="#166534">1</text>
+  <rect x="456" y="208" width="300" height="64" rx="8" fill="#ffffff" stroke="#86efac" stroke-width="2"/>
+  <text x="480" y="234" font-family="Arial, sans-serif" font-size="16" font-weight="700" fill="#166534">planner</text>
+  <text x="480" y="258" font-family="Arial, sans-serif" font-size="13" fill="#475569">复用 V3.4 Plan，得到 search / synthesize steps</text>
+
+  <circle cx="418" cy="330" r="22" fill="#fef9c3" stroke="#eab308" stroke-width="2"/>
+  <text x="418" y="337" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="700" fill="#854d0e">2</text>
+  <rect x="456" y="298" width="300" height="64" rx="8" fill="#ffffff" stroke="#fde047" stroke-width="2"/>
+  <text x="480" y="324" font-family="Arial, sans-serif" font-size="16" font-weight="700" fill="#854d0e">execute_steps</text>
+  <text x="480" y="348" font-family="Arial, sans-serif" font-size="13" fill="#475569">ToolRegistry 调用 search_notes，记录 StepResult</text>
+
+  <circle cx="418" cy="420" r="22" fill="#ffedd5" stroke="#fb923c" stroke-width="2"/>
+  <text x="418" y="427" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="700" fill="#9a3412">3</text>
+  <rect x="456" y="388" width="300" height="64" rx="8" fill="#ffffff" stroke="#fdba74" stroke-width="2"/>
+  <text x="480" y="414" font-family="Arial, sans-serif" font-size="16" font-weight="700" fill="#9a3412">synthesize_answer</text>
+  <text x="480" y="438" font-family="Arial, sans-serif" font-size="13" fill="#475569">读取 step_results，生成最终答案</text>
+
+  <path d="M418 262 L418 302" stroke="#475569" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+  <path d="M418 352 L418 392" stroke="#475569" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+
+  <rect x="894" y="122" width="238" height="340" rx="8" fill="#ffffff" stroke="#cbd5e1" stroke-width="2"/>
+  <rect x="894" y="122" width="238" height="54" rx="8" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="2"/>
+  <text x="1013" y="156" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" font-weight="700" fill="#334155">输出</text>
+  <text x="922" y="216" font-family="Arial, sans-serif" font-size="16" font-weight="700" fill="#0f172a">AgentAskResponse</text>
+  <text x="922" y="250" font-family="Arial, sans-serif" font-size="14" fill="#334155">run_id</text>
+  <text x="922" y="280" font-family="Arial, sans-serif" font-size="14" fill="#334155">answer</text>
+  <text x="922" y="310" font-family="Arial, sans-serif" font-size="14" fill="#334155">plan</text>
+  <text x="922" y="340" font-family="Arial, sans-serif" font-size="14" fill="#334155">step_results[]</text>
+  <text x="942" y="370" font-family="Arial, sans-serif" font-size="13" fill="#64748b">query / result_count / sources / status</text>
+  <text x="922" y="406" font-family="Arial, sans-serif" font-size="14" fill="#334155">graph_path + trace</text>
+
+  <path d="M286 292 L356 292" stroke="#475569" stroke-width="2.5" fill="none" marker-end="url(#arrow)"/>
+  <path d="M824 292 L894 292" stroke="#475569" stroke-width="2.5" fill="none" marker-end="url(#arrow)"/>
+
+  <rect x="156" y="514" width="868" height="78" rx="8" fill="#fff7ed" stroke="#fdba74" stroke-width="2" stroke-dasharray="7 6"/>
+  <text x="590" y="544" text-anchor="middle" font-family="Arial, sans-serif" font-size="17" font-weight="700" fill="#9a3412">V3.5 的边界</text>
+  <text x="590" y="572" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#475569">会执行 search step 并综合答案；还不做证据充分性判断、retry search、checkpoint recovery，这些留给 V3.6</text>
+</svg>

@@ -16,6 +16,8 @@ V3.3 已增加 LangGraph。节点编排、`graph_path`、Swagger/CLI 用法和 `
 
 V3.4 已增加 Planner。LangGraph planner nodes、结构化 `Plan JSON`、Swagger/CLI 用法和 `obsidian_rag/v3_4/` 文件职责见：[V3.4 Planner Guide](v3-4-planner-guide.md)。
 
+V3.5 已增加 Planner Executor。`ToolRegistry`、`StepResult`、Swagger/CLI 用法和 `obsidian_rag/v3_5/` 文件职责见：[V3.5 Planner Executor Guide](v3-5-planner-executor-guide.md)。
+
 ## Mental Model
 
 当前 v0 项目的核心不是 Agent，而是一个固定 RAG pipeline：
@@ -33,23 +35,23 @@ V3.4 已增加 Planner。LangGraph planner nodes、结构化 `Plan JSON`、Swagg
 
 ## Visual Guide
 
-下面三张图是用 ImageGen 生成的学习辅助图，帮助先建立整体直觉；精确的模块关系和时序以本文后面的 Mermaid 图为准。
+下面三张图帮助先建立整体直觉；精确的模块关系和时序以本文后面的 Mermaid 图为准。
 
 ### v0 总览
 
-![Obsidian RAG v0 总览](assets/rag-v0-overview.png)
+![Obsidian RAG v0 总览](assets/rag-v0-overview.svg)
 
 这张图适合先看：左边是本地知识源，中间是 RAG pipeline，右边是回答阶段。
 
 ### 索引阶段
 
-![索引阶段 ingest](assets/rag-ingest-flow.png)
+![索引阶段 ingest](assets/rag-ingest-flow.svg)
 
 索引阶段对应 `obsidian-rag ingest`。这一步把本地文档变成可检索的向量索引，通常离线执行，LLM 不参与。
 
 ### 提问阶段
 
-![提问阶段 search ask](assets/rag-ask-flow.png)
+![提问阶段 search ask](assets/rag-ask-flow.svg)
 
 提问阶段分两层：`search` 只检索，适合调试召回质量；`ask` 在检索结果基础上拼 prompt，再调用 LLM 生成带来源的答案。
 

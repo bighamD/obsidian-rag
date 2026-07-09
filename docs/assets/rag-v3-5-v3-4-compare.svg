@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1040" height="420" viewBox="0 0 1040 420" role="img" aria-labelledby="title desc">
+  <title id="title">V3.4 to V3.5 comparison</title>
+  <desc id="desc">V3.4 only generates a plan. V3.5 executes search steps and synthesizes an answer.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#64748b"/>
+    </marker>
+  </defs>
+  <rect width="1040" height="420" fill="#f8fafc"/>
+  <text x="520" y="46" text-anchor="middle" font-family="Arial, sans-serif" font-size="26" font-weight="700" fill="#0f172a">V3.4 到 V3.5 的变化</text>
+
+  <rect x="62" y="92" width="390" height="250" rx="8" fill="#ffffff" stroke="#bbf7d0" stroke-width="2"/>
+  <rect x="62" y="92" width="390" height="52" rx="8" fill="#f0fdf4" stroke="#bbf7d0" stroke-width="2"/>
+  <text x="257" y="126" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" font-weight="700" fill="#047857">V3.4 Planner</text>
+  <text x="96" y="184" font-family="Arial, sans-serif" font-size="15" fill="#334155">1. 生成 Plan JSON</text>
+  <text x="96" y="224" font-family="Arial, sans-serif" font-size="15" fill="#334155">2. 返回 plan / graph_path / trace</text>
+  <text x="96" y="264" font-family="Arial, sans-serif" font-size="15" fill="#334155">3. 不执行 search，不查 Qdrant</text>
+  <text x="96" y="304" font-family="Arial, sans-serif" font-size="15" font-weight="700" fill="#166534">重点：模型会规划</text>
+
+  <rect x="588" y="92" width="390" height="250" rx="8" fill="#ffffff" stroke="#fed7aa" stroke-width="2"/>
+  <rect x="588" y="92" width="390" height="52" rx="8" fill="#fff7ed" stroke="#fed7aa" stroke-width="2"/>
+  <text x="783" y="126" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" font-weight="700" fill="#9a3412">V3.5 Planner Executor</text>
+  <text x="622" y="184" font-family="Arial, sans-serif" font-size="15" fill="#334155">1. 生成 Plan JSON</text>
+  <text x="622" y="224" font-family="Arial, sans-serif" font-size="15" fill="#334155">2. 执行 search steps，保存 StepResult</text>
+  <text x="622" y="264" font-family="Arial, sans-serif" font-size="15" fill="#334155">3. 综合 step_results 生成答案</text>
+  <text x="622" y="304" font-family="Arial, sans-serif" font-size="15" font-weight="700" fill="#9a3412">重点：系统会执行</text>
+
+  <path d="M452 218 L588 218" stroke="#64748b" stroke-width="2.5" fill="none" marker-end="url(#arrow)"/>
+  <text x="520" y="202" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" fill="#64748b">加入 Executor</text>
+</svg>

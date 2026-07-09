@@ -308,6 +308,22 @@ Current v3.4 status:
 - The planner returns `plan`, `graph_path`, and `trace`; it does not execute retrieval yet.
 - V3.4 learning guide and diagrams live in `docs/v3-4-planner-guide.md`.
 
+### v3.5: Planner Executor
+
+Goal:
+
+Execute the planner's search steps, preserve per-step results, and synthesize an answer from those results.
+
+Current v3.5 status:
+
+- `obsidian_rag/v3_5/` exists as a separate LangGraph planner executor package.
+- `POST /agent/ask` is available from `obsidian_rag.v3_5.app`.
+- `obsidian-rag agent-v3-5 ask "..."` runs the same planner executor workflow from CLI.
+- The graph uses nodes: `planner`, `execute_steps`, and `synthesize_answer`.
+- Responses include `run_id`, `plan`, `step_results`, `graph_path`, and `trace`.
+- V3.5 introduces a lightweight `ToolRegistry` and `StepResult`.
+- V3.5 learning guide and diagrams live in `docs/v3-5-planner-executor-guide.md`.
+
 ### v4: Personal Knowledge Assistant
 
 Goal:
