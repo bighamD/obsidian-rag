@@ -20,6 +20,8 @@ from obsidian_rag.v3_2.agent.service import AgentService as Agent32Service
 from obsidian_rag.v3_2.schemas import AgentAskRequest as Agent32AskRequest
 from obsidian_rag.v3_3.agent.service import AgentService as Agent33Service
 from obsidian_rag.v3_3.schemas import AgentAskRequest as Agent33AskRequest
+from obsidian_rag.v3_4.planner.service import PlannerService
+from obsidian_rag.v3_4.schemas import PlanRequest
 from obsidian_rag.llm import OpenAIChatClient
 
 
@@ -85,6 +87,14 @@ def main() -> None:
     agent33_ask_parser.add_argument("--mode", choices=["dense", "keyword", "hybrid"], default="hybrid")
     agent33_ask_parser.add_argument("--max-steps", type=int, default=1)
 
+    agent34_parser = subparsers.add_parser("agent-v3-4", help="Run V3.4 planner-only agent")
+    agent34_subparsers = agent34_parser.add_subparsers(dest="agent34_command", required=True)
+    agent34_plan_parser = agent34_subparsers.add_parser("plan", help="Generate structured plan JSON without executing retrieval")
+    agent34_plan_parser.add_argument("question")
+    agent34_plan_parser.add_argument("--top-k", type=int, default=5)
+    agent34_plan_parser.add_argument("--mode", choices=["dense", "keyword", "hybrid"], default="hybrid")
+    agent34_plan_parser.add_argument("--max-steps", type=int, default=4)
+
     args = parser.parse_args()
     config = load_config()
 
@@ -148,6 +158,16 @@ def main() -> None:
 
     if args.command == "agent-v3-3" and args.agent33_command == "ask":
         run_agent33_ask(
+            question=args.question,
+            config=config,
+            top_k=args.top_k,
+            mode=args.mode,
+            max_steps=args.max_steps,
+        )
+        return
+
+    if args.command == "agent-v3-4" and args.agent34_command == "plan":
+        run_agent34_plan(
             question=args.question,
             config=config,
             top_k=args.top_k,
@@ -341,6 +361,45 @@ def run_agent33_ask(
             parts.append(f"results={step.result_count}")
         if step.reason:
             parts.append(f"reason={step.reason}")
+        print(" | ".join(parts))
+
+
+def run_agent34_plan(
+    question: str,
+    config: RagConfig,
+    top_k: int = 5,
+    mode: SearchMode = "hybrid",
+    max_steps: int = 4,
+    planner_service=None,
+    chat_client=None,
+) -> None:
+    planner = planner_service or PlannerService(
+        chat_client=chat_client,
+        chat_client_factory=lambda: OpenAIChatClient(api_key=config.api_key, base_url=config.base_url, model=config.chat_model),
+    )
+    response = planner.plan(PlanRequest(question=question, top_k=top_k, mode=mode, max_steps=max_steps))
+    print(f"Goal: {response.plan.goal}")
+    print("\nPlan:")
+    for step in response.plan.steps:
+        parts = [step.id, step.kind]
+        if step.query:
+            parts.append(f"query={step.query}")
+        if step.instruction:
+            parts.append(f"instruction={step.instruction}")
+        if step.depends_on:
+            parts.append(f"depends_on={','.join(step.depends_on)}")
+        if step.reason:
+            parts.append(f"reason={step.reason}")
+        print(" | ".join(parts))
+    print("\nGraph path:")
+    print(" -> ".join(response.graph_path) if response.graph_path else "- none")
+    print("\nTrace:")
+    for index, step in enumerate(response.trace, start=1):
+        parts = [f"{index}. {step.node_name}:{step.step_type}"]
+        if step.reason:
+            parts.append(f"reason={step.reason}")
+        if step.metadata:
+            parts.append(f"metadata={step.metadata}")
         print(" | ".join(parts))
 
 

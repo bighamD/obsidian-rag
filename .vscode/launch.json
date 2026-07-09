@@ -2,6 +2,28 @@
 	"version": "0.2.0",
 	"configurations": [
 		{
+			"name": "V3.4 planner: structured plan",
+			"type": "debugpy",
+			"request": "launch",
+			"module": "obsidian_rag.cli",
+			"console": "integratedTerminal",
+			"cwd": "${workspaceFolder}",
+			"python": "${workspaceFolder}/.venv/bin/python",
+			"envFile": "${workspaceFolder}/.env",
+			"args": [
+				"agent-v3-4",
+				"plan",
+				"帮我总结生鸡肉处理、厨房清洁、剩菜保存三类食品安全建议",
+				"--top-k",
+				"5",
+				"--mode",
+				"hybrid",
+				"--max-steps",
+				"4"
+			],
+			"justMyCode": true
+		},
+		{
 			"name": "V3.3 agent ask: LangGraph loop",
 			"type": "debugpy",
 			"request": "launch",
