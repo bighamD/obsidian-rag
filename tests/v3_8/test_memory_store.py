@@ -1,3 +1,5 @@
+import sqlite3
+
 from obsidian_rag.v3_8.memory import SQLiteConversationMemoryStore
 
 
@@ -30,3 +32,20 @@ def test_sqlite_memory_store_isolates_conversations(tmp_path):
 
     assert snapshot.total_turn_count == 0
     assert snapshot.recent_turns == []
+
+
+def test_memory_turn_created_at_is_displayed_in_china_timezone(tmp_path):
+    db_path = tmp_path / "memory.sqlite3"
+    store = SQLiteConversationMemoryStore(db_path)
+    write_result = store.append_turn("conv_food", "问题", "回答", [], [])
+
+    with sqlite3.connect(db_path) as connection:
+        connection.execute(
+            "UPDATE turns SET created_at = ? WHERE turn_id = ?",
+            ("2026-07-10T06:28:41.347667+00:00", write_result.turn_id),
+        )
+
+    snapshot = store.load_snapshot("conv_food", window=1)
+
+    assert snapshot.recent_turns[0].created_at == "26-07-10 14:28:41"
+

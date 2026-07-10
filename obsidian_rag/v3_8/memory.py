@@ -6,6 +6,7 @@ import sqlite3
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 from obsidian_rag.v3_8.schemas import MemorySnapshot, MemoryTurn, MemoryWriteResult
 
@@ -57,7 +58,7 @@ class SQLiteConversationMemoryStore:
         tool_calls: list[dict[str, object]],
     ) -> MemoryWriteResult:
         turn_id = f"turn_{uuid.uuid4().hex[:12]}"
-        created_at = datetime.now(timezone.utc).isoformat()
+        created_at = _china_time_text(datetime.now(timezone.utc).isoformat())
         with self._connect() as connection:
             connection.execute(
                 """
@@ -119,6 +120,7 @@ class SQLiteConversationMemoryStore:
             connection.execute(
                 "CREATE INDEX IF NOT EXISTS idx_turns_conversation_created ON turns(conversation_id, created_at)"
             )
+            _migrate_timestamps_to_china_time(connection)
 
 
 def default_memory_db_path() -> Path:
@@ -140,3 +142,28 @@ def _memory_turn_from_row(row: sqlite3.Row) -> MemoryTurn:
 def _load_json_list(value: str) -> list:
     parsed = json.loads(value)
     return parsed if isinstance(parsed, list) else []
+
+
+def _migrate_timestamps_to_china_time(connection: sqlite3.Connection) -> None:
+    for table, id_column, columns in (
+        ("conversations", "conversation_id", ("created_at", "updated_at")),
+        ("turns", "turn_id", ("created_at",)),
+    ):
+        selected_columns = ", ".join((id_column, *columns))
+        for row in connection.execute(f"SELECT {selected_columns} FROM {table}").fetchall():
+            updates = {column: _china_time_text(str(row[column])) for column in columns}
+            assignments = ", ".join(f"{column} = ?" for column in columns)
+            connection.execute(
+                f"UPDATE {table} SET {assignments} WHERE {id_column} = ?",
+                (*updates.values(), row[id_column]),
+            )
+
+
+def _china_time_text(value: str) -> str:
+    try:
+        parsed = datetime.fromisoformat(value)
+    except ValueError:
+        return value
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=timezone.utc)
+    return parsed.astimezone(ZoneInfo("Asia/Shanghai")).strftime("%y-%m-%d %H:%M:%S")

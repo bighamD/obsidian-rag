@@ -13,7 +13,7 @@
 			"args": [
 				"agent-v3-8",
 				"ask",
-				"生鸡肉要不要洗？",
+				"熟肉跟生肉能放一起吗",
 				"--conversation-id",
 				"conv_food_demo",
 				"--memory-window",

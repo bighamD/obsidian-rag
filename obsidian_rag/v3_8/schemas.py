@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+from datetime import datetime, timezone
 from typing import Any, Literal
+from zoneinfo import ZoneInfo
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from obsidian_rag.v1.schemas import SearchFilters, SearchHit, SearchMode
 from obsidian_rag.v3_4.schemas import Plan
@@ -96,6 +98,19 @@ class MemoryTurn(BaseModel):
     sources: list[str] = Field(default_factory=list)
     tool_calls: list[dict[str, Any]] = Field(default_factory=list)
     created_at: str
+
+    @field_validator("created_at", mode="before")
+    @classmethod
+    def format_created_at_for_china(cls, value: Any) -> Any:
+        if not isinstance(value, str):
+            return value
+        try:
+            parsed = datetime.fromisoformat(value)
+        except ValueError:
+            return value
+        if parsed.tzinfo is None:
+            parsed = parsed.replace(tzinfo=timezone.utc)
+        return parsed.astimezone(ZoneInfo("Asia/Shanghai")).strftime("%y-%m-%d %H:%M:%S")
 
 
 class MemorySnapshot(BaseModel):

@@ -158,7 +158,7 @@ GET /memory/conv_food_demo?window=20
 .venv/bin/obsidian-rag agent-v3-8 ask "那处理完厨房怎么清洁？" --conversation-id conv_food_demo
 ```
 
-## 调试断点
+## 核心流程断点调试
 
 VS Code/Cursor 依次运行：
 
@@ -167,17 +167,38 @@ V3.8 memory: first turn
 V3.8 memory: follow-up turn
 ```
 
-推荐断点：
+两次调试必须使用相同的 `conversation_id`。第一轮观察空 Memory 如何写入 SQLite，第二轮观察上一轮如何进入 Planner 和 Answer Context。
 
-| 文件 | 函数 | 看什么 |
+按执行顺序设置以下核心断点：
+
+| 顺序 | 断点 | 重点观察 |
 | --- | --- | --- |
-| `obsidian_rag/v3_8/memory.py` | `load_snapshot()` | SQLite 如何按 window 读取最近 turns。 |
-| `obsidian_rag/v3_8/agent/service.py` | `_load_memory_node()` | MemorySnapshot 如何进入 AgentState。 |
-| `obsidian_rag/v3_8/context.py` | `build_memory_aware_planner_question()` | 历史如何进入 Planner。 |
-| `obsidian_rag/v3_8/agent/service.py` | `_build_context_node()` | Memory 如何进入 ContextBundle。 |
-| `obsidian_rag/v3_8/context.py` | `_build_messages()` | 历史和检索证据如何组成 answer prompt。 |
-| `obsidian_rag/v3_8/agent/service.py` | `_save_memory_node()` | 本轮问答如何持久化。 |
-| `obsidian_rag/v3_8/memory.py` | `append_turn()` | conversations/turns 如何写入 SQLite。 |
+| 1 | `agent/service.py:73` `ask()` | `request`、`conversation_id`、`initial_state`。 |
+| 2 | `agent/service.py:140` `_load_memory_node()` | `memory_snapshot` 如何进入 `AgentState`。 |
+| 3 | `memory.py:19` `load_snapshot()` | `window`、`rows`、`recent_turns`。 |
+| 4 | `context.py:97` `build_memory_aware_planner_question()` | 历史如何补充到 `planner_question`。 |
+| 5 | `agent/service.py:191` `_execute_steps_node()` | `plan.steps`、检索 query 和 `search_results`。 |
+| 6 | `agent/service.py:234` `_evidence_check_node()` | `is_sufficient`、`suggested_queries`。 |
+| 7 | `agent/service.py:317` `_build_context_node()` | `memory_snapshot` 和检索结果如何进入 `ContextBundle`。 |
+| 8 | `context.py:72` `_build_messages()` | `conversation_memory`、`included_chunks`、最终 messages。 |
+| 9 | `agent/service.py:350` `_synthesize_answer_node()` | `context_bundle.messages` 和 LLM 最终 `answer`。 |
+| 10 | `agent/service.py:381` `_save_memory_node()` | 准备保存的问答、sources 和 tool calls。 |
+| 11 | `memory.py:51` `append_turn()` | SQLite `conversations`、`turns` 写入结果。 |
+
+完整主链路：
+
+```text
+ask -> load_memory -> planner -> execute_steps -> evidence_check
+    -> build_context -> synthesize_answer -> save_memory
+```
+
+证据不足时会额外经过：
+
+```text
+evidence_check -> retry_search -> evidence_check
+```
+
+行号会随代码修改发生变化；如果行号失效，以表中的函数名重新定位。
 
 ## 文件职责
 
