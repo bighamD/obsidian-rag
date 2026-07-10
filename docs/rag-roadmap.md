@@ -356,6 +356,24 @@ Current v3.7 status:
 - V3.7 does not introduce persistent memory; it only builds context from the current run.
 - V3.7 learning guide and diagrams live in `docs/v3-7-context-builder-guide.md`.
 
+### v3.8: Conversation Memory
+
+Goal:
+
+Persist complete raw conversation turns in local SQLite while loading only a bounded recent-history window into Planner and Answer Context.
+
+Current v3.8 status:
+
+- `obsidian_rag/v3_8/` exists as a separate LangGraph conversation-memory package.
+- `POST /agent/ask` is available from `obsidian_rag.v3_8.app`.
+- `GET /memory/{conversation_id}` exposes saved turns for Swagger inspection.
+- `obsidian-rag agent-v3-8 ask "..." --conversation-id ...` runs the same memory workflow from CLI.
+- The graph adds `load_memory` before planner and `save_memory` after answer synthesis.
+- SQLite stores complete user/assistant messages, sources, and tool calls.
+- `memory_window` limits only the history injected into the current run; older turns remain persisted.
+- V3.8 does not implement LLM summaries, rolling summaries, or vector memory retrieval.
+- V3.8 learning guide and diagram live in `docs/v3-8-conversation-memory-guide.md`.
+
 ### v4: Personal Knowledge Assistant
 
 Goal:

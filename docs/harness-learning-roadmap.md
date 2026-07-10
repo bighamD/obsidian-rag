@@ -15,6 +15,7 @@ V3.4  ：LangGraph Planner，把复杂问题拆成 Plan JSON
 V3.5  ：Planner Executor，执行 search steps 并综合答案
 V3.6  ：Evidence Checker，检查证据覆盖并触发一次补搜
 V3.7  ：Context Builder，选择、裁剪并格式化本轮上下文
+V3.8  ：Conversation Memory，SQLite 持久化并加载最近对话窗口
 ```
 
 当前工程已经包含 intent router 能力：
@@ -22,7 +23,7 @@ V3.7  ：Context Builder，选择、裁剪并格式化本轮上下文
 - V3.1 是显式 router：模型输出 `RouterDecision JSON`。
 - V3.2/V3.3 是隐式 router：模型通过 `tool_calls` 选择 `search_notes`、`no_search`、`clarify`。
 
-所以 V3.7 之后可以继续学习 harness 的其它核心章节，尤其是 Conversation Memory。
+所以 V3.8 之后可以继续学习 harness 的其它核心章节，尤其是 Agent Evaluation。
 
 ## 总体学习路线
 
@@ -49,12 +50,12 @@ AI Agent = LLM + Harness
 
 | Harness 模块 | 本项目对应版本 | 当前状态 |
 | --- | --- | --- |
-| Context / 上下文 | V3.7 Context Builder | 目前只有 `_build_synthesis_messages()` 这种隐式拼接，还没有独立模块。 |
+| Context / 上下文 | V3.7 Context Builder | 已独立为 `ContextBuilder`，V3.8 再加入最近对话 Memory。 |
 | Tool Calling / 工具调用 | V3.2、V3.3、V3.5 | 已覆盖：模型选择工具、LangGraph 编排、`ToolRegistry` 执行工具。 |
 | File I/O / 文件读写 | V0、V1 | 已覆盖基础：Markdown/PDF loader、chunk、ingest。后续不作为 agent 主线重点。 |
 | Shell Execution / 终端执行 | 暂不进入 RAG 主线 | 当前项目是知识库 RAG，不计划让 agent 直接执行 shell，避免学习目标发散。 |
 | Permissions / 权限审批 | V3.10 Production Harness | 后期补：工具白名单、危险工具审批、知识库 scope 控制。 |
-| Memory & State / 记忆状态 | V3.3、V3.5、V3.8 | 已有 `AgentState` 短期状态；V3.8 再做多轮 conversation memory。 |
+| Memory & State / 记忆状态 | V3.3、V3.5、V3.8 | 已有 AgentState 和 SQLite Conversation Memory。 |
 | Orchestrator / 任务编排 | V3.3、V3.4、V3.5、V3.6 | 已用 LangGraph 表达 node/edge；V3.6 会加入 evidence/retry 分支。 |
 | Verification / 测试验证 | V2、V3.6、V3.9 | V2 是 retrieval/answer eval；V3.6 是运行时 evidence check；V3.9 做 agent eval。 |
 | Observation / 返回观察 | V3.5、V3.6、V3.10 | 已有 `trace`、`step_results`；后续补 latency、tool summary、error summary。 |
@@ -65,16 +66,15 @@ AI Agent = LLM + Harness
 - 主线必学：`Context`、`Tool Calling`、`Memory & State`、`Orchestrator`、`Verification`、`Observation`、`Reporter`。
 - 后期或可选：`Permissions`、`Shell Execution`、更完整的 `File I/O`。这些更偏生产安全和通用 agent 平台，不适合太早压进当前 RAG 学习线。
 
-当前到 V3.7 为止，项目已经覆盖了：
+当前到 V3.8 为止，项目已经覆盖了：
 
 ```text
-Planner -> Orchestrator -> Tool Executor -> State -> Evidence Checker -> Context Builder -> Reporter
+Memory Reader -> Planner -> Orchestrator -> Tool Executor -> Evidence Checker -> Context Builder -> Reporter -> Memory Writer
 ```
 
 还缺的关键层是：
 
 ```text
-Conversation Memory
 Agent Evaluation
 Production Harness
 ```
@@ -424,12 +424,12 @@ conversation_id
 message history
 previous tool calls
 previous sources
-user preferences
+bounded recent history
 ```
 
 建议实现：
 
-- 新增简单本地 memory store。
+- 新增本地 SQLite memory store。
 - request 增加 `conversation_id`。
 - response 返回更新后的 conversation state。
 - 支持追问：
@@ -453,6 +453,17 @@ user preferences
 - 多轮追问能复用上一轮上下文。
 - trace 能显示 memory 被读取。
 - 不相关历史不会污染当前问题。
+
+当前状态：
+
+- `obsidian_rag/v3_8/` exists as a separate LangGraph conversation-memory package.
+- `POST /agent/ask` and `GET /memory/{conversation_id}` are available from `obsidian_rag.v3_8.app`.
+- `obsidian-rag agent-v3-8 ask "..." --conversation-id ...` runs the same workflow from CLI.
+- The graph adds `load_memory` before planner and `save_memory` after synthesis.
+- SQLite persists complete raw turns, sources, and tool calls.
+- Planner and ContextBuilder receive only the most recent `memory_window` turns.
+- V3.8 does not implement LLM summaries, rolling summaries, or vector memory retrieval.
+- V3.8 learning guide and diagram live in `docs/v3-8-conversation-memory-guide.md`.
 
 ## Phase 6：Agent Evaluation
 
