@@ -16,6 +16,7 @@ V3.5  ：Planner Executor，执行 search steps 并综合答案
 V3.6  ：Evidence Checker，检查证据覆盖并触发一次补搜
 V3.7  ：Context Builder，选择、裁剪并格式化本轮上下文
 V3.8  ：Conversation Memory，SQLite 持久化并加载最近对话窗口
+V3.8.1：Conversation Compaction，旧 Turns 滚动摘要 + 最近 Turns 原文
 ```
 
 当前工程已经包含 intent router 能力：
@@ -23,7 +24,7 @@ V3.8  ：Conversation Memory，SQLite 持久化并加载最近对话窗口
 - V3.1 是显式 router：模型输出 `RouterDecision JSON`。
 - V3.2/V3.3 是隐式 router：模型通过 `tool_calls` 选择 `search_notes`、`no_search`、`clarify`。
 
-所以 V3.8 之后可以继续学习 harness 的其它核心章节，尤其是 Agent Evaluation。
+所以 V3.8.1 之后可以继续学习 harness 的其它核心章节，尤其是 Agent Evaluation。
 
 ## 总体学习路线
 
@@ -33,9 +34,14 @@ Phase 1：Planner，复杂任务拆解
 Phase 2：Executor，按计划执行工具步骤
 Phase 3：Evidence Checker，证据覆盖与重试
 Phase 4：Context Builder，组装可控上下文
-Phase 5：Memory，对话状态和长期记忆
+Phase 5：Memory，对话窗口、滚动摘要和长期记忆边界
 Phase 6：Agent Evaluation，评估 router/tool/planner/answer
-Phase 7：Production Harness，配置、权限、观测、成本和稳定性
+Phase 7：Production Core，Run Lifecycle、配置、观测和稳定性
+Phase 8：Skill System，Skill Registry、Skill Router 和渐进式加载
+Phase 9：MCP Integration，连接外部 MCP 并暴露本地 RAG 能力
+Phase 10：Permission Policy，工具风险分级、参数校验和人工审批
+Phase 11：Sandbox Execution，隔离执行、资源限制和 Artifacts
+Phase 12：Recovery & HITL，Checkpoint、恢复和人工介入
 ```
 
 ## Harness 模块映射
@@ -50,23 +56,26 @@ AI Agent = LLM + Harness
 
 | Harness 模块 | 本项目对应版本 | 当前状态 |
 | --- | --- | --- |
-| Context / 上下文 | V3.7 Context Builder | 已独立为 `ContextBuilder`，V3.8 再加入最近对话 Memory。 |
+| Context / 上下文 | V3.7、V3.8.1 | V3.7 独立 `ContextBuilder`；V3.8.1 加入滚动摘要和最近对话。 |
 | Tool Calling / 工具调用 | V3.2、V3.3、V3.5 | 已覆盖：模型选择工具、LangGraph 编排、`ToolRegistry` 执行工具。 |
+| Skills / 技能系统 | V3.11 | 后续补：Skill Registry、LLM Skill Router、按需加载 `SKILL.md`。 |
+| MCP / 外部工具协议 | V3.12 | 后续补：MCP Client、MCP Tool Adapter，以及把本地 RAG 暴露为 MCP Server。 |
 | File I/O / 文件读写 | V0、V1 | 已覆盖基础：Markdown/PDF loader、chunk、ingest。后续不作为 agent 主线重点。 |
-| Shell Execution / 终端执行 | 暂不进入 RAG 主线 | 当前项目是知识库 RAG，不计划让 agent 直接执行 shell，避免学习目标发散。 |
-| Permissions / 权限审批 | V3.10 Production Harness | 后期补：工具白名单、危险工具审批、知识库 scope 控制。 |
-| Memory & State / 记忆状态 | V3.3、V3.5、V3.8 | 已有 AgentState 和 SQLite Conversation Memory。 |
+| Shell Execution / 终端执行 | V3.14 Sandbox Execution | 后期只在隔离 Sandbox 中开放，不直接把宿主机 Shell 暴露给模型。 |
+| Permissions / 权限审批 | V3.13 Permission Policy | 在 Sandbox 前补工具白名单、风险等级、参数校验、scope 和人工审批。 |
+| Memory & State / 记忆状态 | V3.3、V3.5、V3.8、V3.8.1 | 已有 AgentState、SQLite Raw Turns、最近窗口和滚动摘要。 |
 | Orchestrator / 任务编排 | V3.3、V3.4、V3.5、V3.6 | 已用 LangGraph 表达 node/edge；V3.6 会加入 evidence/retry 分支。 |
 | Verification / 测试验证 | V2、V3.6、V3.9 | V2 是 retrieval/answer eval；V3.6 是运行时 evidence check；V3.9 做 agent eval。 |
 | Observation / 返回观察 | V3.5、V3.6、V3.10 | 已有 `trace`、`step_results`；后续补 latency、tool summary、error summary。 |
 | Reporter / 汇总输出 | V3.5、V3.7 | 已有 `synthesize_answer`；V3.7 会把上下文构建从 reporter 中拆出去。 |
+| Checkpoint / 恢复 | V3.15 | 后续补节点恢复、interrupt/resume、幂等和 Human-in-the-loop。 |
 
 这张图里的模块都会涉及，但节奏上分两类：
 
 - 主线必学：`Context`、`Tool Calling`、`Memory & State`、`Orchestrator`、`Verification`、`Observation`、`Reporter`。
 - 后期或可选：`Permissions`、`Shell Execution`、更完整的 `File I/O`。这些更偏生产安全和通用 agent 平台，不适合太早压进当前 RAG 学习线。
 
-当前到 V3.8 为止，项目已经覆盖了：
+当前到 V3.8.1 为止，项目已经覆盖了：
 
 ```text
 Memory Reader -> Planner -> Orchestrator -> Tool Executor -> Evidence Checker -> Context Builder -> Reporter -> Memory Writer
@@ -76,7 +85,12 @@ Memory Reader -> Planner -> Orchestrator -> Tool Executor -> Evidence Checker ->
 
 ```text
 Agent Evaluation
-Production Harness
+Production Core
+Skill System
+MCP Integration
+Permission Policy
+Sandbox Execution
+Recovery & HITL
 ```
 
 所以接下来推荐顺序保持为：
@@ -85,8 +99,14 @@ Production Harness
 V3.6 Evidence Checker：系统知道证据够不够
 V3.7 Context Builder：系统知道把什么上下文交给模型
 V3.8 Conversation Memory：系统能处理多轮状态
+V3.8.1 Conversation Compaction：系统能压缩旧历史并保留最近原文
 V3.9 Agent Evaluation：系统能评估 agent 行为
-V3.10 Production Harness：系统具备权限、观测、稳定性雏形
+V3.10 Production Core：系统具备 run、观测、配置和稳定性基础
+V3.11 Skill System：系统能选择并渐进式加载任务方法
+V3.12 MCP Integration：系统能接入标准化外部工具并对外提供 RAG 工具
+V3.13 Permission Policy：系统能在执行前判断 allow / confirm / deny
+V3.14 Sandbox Execution：系统能在隔离环境中执行文件和 Shell 工具
+V3.15 Recovery & HITL：系统能从中断和失败中恢复并等待人工输入
 ```
 
 除了这些纵向版本，还要逐步补上真实 harness 工程常见的横切能力：
@@ -98,7 +118,28 @@ Schema Contract：结构化输出 schema、解析失败 fallback、prompt/schema
 Checkpoint / Recovery：节点失败、重试、恢复、中间结果保存
 ```
 
-这些能力不一定都单独成一个版本，但每次新增版本时都应该考虑是否需要引入一点点雏形。比如 V3.5 适合引入轻量 `ToolRegistry` 和 `StepResult`，V3.6 适合引入 retry/checkpoint，V3.10 再系统化成生产 harness。
+这些能力不一定都单独成一个版本，但每次新增版本时都应该考虑是否需要引入一点点雏形。比如 V3.5 引入轻量 `ToolRegistry` 和 `StepResult`，V3.6 引入 retry，V3.10 再把 Run Lifecycle 和观测系统化，V3.15 最后补完整 checkpoint/recovery。
+
+## 路线合理性复核
+
+这条路线符合真实 Harness 的依赖关系，也保持了当前每个版本只学习一个主要概念的节奏：
+
+1. `V3.8.1` 先控制 Context Window，否则长对话会让后续评测结果受上下文膨胀影响。
+2. `V3.9` 先建立 Agent Evaluation，后续增加 Skill、MCP 和 Sandbox 时才能做行为回归。
+3. `V3.10` 先补 Run Lifecycle 和观测，因为外部工具越多，越需要统一的 latency、token、error 和 tool summary。
+4. `V3.11` 先学习 Skill Router，再接 MCP。两者技术上没有强制依赖，但 Skill 负责“采用什么工作方法”，MCP 负责“通过什么协议调用外部能力”，按这个顺序更容易区分职责。
+5. `V3.12` 先让普通低风险 MCP 工具接入统一 `ToolRegistry`，验证协议适配和错误边界。
+6. `V3.13` 必须在开放文件写入和 Shell 前完成。所有本地工具和 MCP 工具都统一经过 allow / confirm / deny 策略。
+7. `V3.14` 只在 Sandbox 中执行高风险工具，不允许模型直接获得宿主机任意 Shell 权限。
+8. `V3.15` 最后补跨节点恢复和 Human-in-the-loop，因为它依赖前面已经稳定的 Run、Tool、Policy 和 Sandbox 状态模型。
+
+需要保持的三个概念边界：
+
+```text
+Skill：告诉 Agent 应该采用什么方法和流程
+MCP：规定 Agent 如何发现和调用外部工具
+Sandbox：规定工具真正在哪里、以什么资源和权限执行
+```
 
 每个阶段都建议保持之前的节奏：
 
@@ -465,6 +506,32 @@ bounded recent history
 - V3.8 does not implement LLM summaries, rolling summaries, or vector memory retrieval.
 - V3.8 learning guide and diagram live in `docs/v3-8-conversation-memory-guide.md`.
 
+### V3.8.1 Conversation Compaction
+
+目标：学习真实 Harness 如何避免把完整消息历史持续塞给 LLM。
+
+核心结构：
+
+```text
+Raw Turns：SQLite 永久保留全部原始记录
+Rolling Summary：压缩窗口之外的重要历史
+Recent Turns：保留最近 memory_window 轮原文
+```
+
+实现状态：
+
+- `obsidian_rag/v3_8_1/` 是独立版本目录。
+- LangGraph 在 `load_memory` 和 `planner` 之间增加 `compact_memory`。
+- 按未摘要旧 Turn 数量或估算 token 阈值触发压缩。
+- 摘要使用 `existing_summary + new old turns` 滚动更新，不重扫全部历史。
+- SQLite 保存 `summary_text`、`summary_through_turn_id`、`summary_updated_at`。
+- 原始 `turns` 永不因压缩删除。
+- Planner 和 Answer Context 使用 `summary_text + recent_turns`。
+- `POST /memory/{conversation_id}/compact` 和 CLI `agent-v3-8-1 compact` 支持手动观察。
+- 学习指南和流程图位于 `docs/v3-8-1-conversation-compaction-guide.md`。
+
+V3.8.1 仍不做跨 conversation 用户画像、向量 Memory 检索、异步事实提取和事实置信度；这些不应和会话上下文压缩混为一层。
+
 ## Phase 6：Agent Evaluation
 
 建议版本：`V3.9 Agent Evaluation`
@@ -525,110 +592,161 @@ examples:
 - Swagger 能提交单条 agent eval。
 - 报告能区分 router/tool/planner/retrieval/answer 哪一层失败。
 
-## Phase 7：Production Harness
+## Phase 7：Production Core
 
-建议版本：`V3.10 Production Harness`
+建议版本：`V3.10 Production Core`
 
-目标：学习真实工程上线时需要的外围能力。
+目标：在继续增加工具类型之前，先建立统一的 Run Lifecycle、配置、观测和失败边界。
 
-可能包含：
+建议实现：
 
-- Run Lifecycle：
-  - run_id
-  - request_id
-  - status
-  - started_at / ended_at
-  - latency_ms
-- 配置管理：
-  - 不同模型
-  - 不同工具开关
-  - 不同知识库 scope
-- 权限：
-  - 哪些用户能访问哪些 vault
-  - 工具调用白名单
-- 观测：
-  - latency
-  - token usage
-  - tool call count
-  - error rate
-- 稳定性：
-  - timeout
-  - retry
-  - fallback
-  - rate limit
-- Schema Contract：
-  - prompt version
-  - output schema version
-  - parse failure fallback
-  - invalid output repair
-- 成本：
-  - 每次请求 token 统计
-  - 模型调用次数
-  - 工具调用次数
-
-学习重点：
-
-- agent 不是只要能回答，还要可控、可观测、可恢复。
-- trace 面向调试，metrics 面向系统健康。
-- 生产 harness 需要把模型行为变成可管理的软件系统。
+- `run_id`、`request_id`、`status`、`started_at`、`ended_at`、`latency_ms`。
+- LLM、Tool、Retrieval 分层耗时。
+- token usage、模型调用次数、工具调用次数。
+- timeout、retry、fallback 和结构化 error summary。
+- prompt version、schema version 和解析失败降级。
+- 不同模型、工具开关、知识库 scope 的配置入口。
 
 完成标准：
 
-- 每次 agent run 有结构化 run id。
-- response 或日志包含 token/tool/latency summary。
-- 常见错误有清晰 fallback。
-- 文档说明如何排查一次 agent run。
+- 一次请求可以通过 `run_id` 串起 Planner、Tool、Memory 和 Answer 记录。
+- response 或日志包含统一的 latency/token/tool/error summary。
+- 能区分业务失败、工具失败、LLM 失败和超时。
+
+## Phase 8：Skill System
+
+建议版本：`V3.11 Skill System`
+
+目标：学习 Skill 与 Tool 的区别，以及如何按任务渐进式加载工作方法。
+
+建议实现：
+
+- `SkillManifest`：名称、描述、触发提示、入口文件和版本。
+- `SkillRegistry`：发现和注册本地 Skills。
+- `SkillRouter`：LLM 选择零个或一个 Skill，并返回结构化选择结果。
+- 先只给模型 Skill 名称和简介，选中后才加载完整 `SKILL.md`。
+- Planner 接收选中的 Skill Context，ToolRegistry 保持独立。
+
+版本边界：
+
+- Skill 负责“如何完成一类任务”，Tool 负责“执行一个具体动作”。
+- 本版不接 MCP，不执行 Shell，不允许 Skill 绕过 ToolRegistry。
+
+完成标准：
+
+- 能调试 Skill 未命中、正确命中和错误命中三条路径。
+- trace 展示候选 Skill、最终选择、加载文件和注入 token。
+
+## Phase 9：MCP Integration
+
+建议版本：`V3.12 MCP Integration`
+
+目标：学习标准化外部工具协议，并把现有 `ToolRegistry` 扩展为本地工具和 MCP 工具统一入口。
+
+建议分两步实现：
+
+1. MCP Client：连接测试 MCP Server，执行 `tools/list` 和 `tools/call`，把结果转换成统一 `ToolResult`。
+2. MCP Server：把本项目的 `search_notes`、`ask_notes` 等能力暴露给其它 MCP Client。
+
+需要覆盖：
+
+- MCP Server 连接生命周期和超时。
+- MCP Tool schema 到本地 Tool schema 的适配。
+- 工具重名、服务不可用、参数错误和返回值过大的处理。
+- trace 中记录 server、tool、latency、status，不记录敏感参数。
+
+版本边界：
+
+- 第一批只接低风险、只读 MCP 工具。
+- 不允许 MCP 工具绕过 ToolRegistry、Evaluation 和后续 Permission Policy。
+
+## Phase 10：Permission Policy
+
+建议版本：`V3.13 Permission Policy`
+
+目标：在开放文件写入和 Shell 之前，建立统一的执行策略和人工审批流程。
+
+建议实现：
+
+- 工具风险等级：`safe`、`confirm`、`restricted`。
+- Tool allowlist、参数 schema 校验、路径 scope 和知识库 scope。
+- Policy Decision：`allow`、`confirm`、`deny`。
+- LangGraph `interrupt/resume` 或等价状态，保存待审批 tool call。
+- 审批记录和执行审计。
+- 本地工具和 MCP 工具使用同一套 Policy Engine。
+
+完成标准：
+
+- 只读检索可自动执行。
+- 高风险调用在执行前暂停并等待批准。
+- 拒绝后返回结构化 ToolResult，不让整个 Agent 500。
+
+## Phase 11：Sandbox Execution
+
+建议版本：`V3.14 Sandbox Execution`
+
+目标：学习文件和 Shell 工具如何在隔离环境中执行，而不是直接获得宿主机权限。
+
+建议实现：
+
+- 每个 run 或 conversation 的独立 workspace。
+- 文件读写只能访问允许的 Sandbox 路径。
+- 命令超时、输出大小限制、进程终止和资源限制。
+- 网络访问开关和环境变量白名单。
+- 将生成文件登记为 Artifacts，并在 response/trace 中返回元数据。
+- 所有 Sandbox Tool Call 先经过 V3.13 Policy Engine。
+
+版本边界：
+
+- 不直接暴露任意宿主机 Shell。
+- 第一版只支持少量白名单命令和临时目录。
+- Secret 不进入普通 AgentState、trace 或工具输出。
+
+## Phase 12：Recovery & HITL
+
+建议版本：`V3.15 Recovery & HITL`
+
+目标：学习长任务如何保存中间状态、从失败点恢复，并在需要时等待用户输入。
+
+建议实现：
+
+- LangGraph checkpointer 和明确的 checkpoint schema。
+- run/step 幂等键，避免恢复后重复执行有副作用的工具。
+- 节点失败重试、从指定 checkpoint 恢复。
+- clarify、permission approval 和外部等待统一为 Human-in-the-loop 状态。
+- resume 后继续原 graph，而不是重新执行完整请求。
+
+完成标准：
+
+- Agent 可以在等待审批时安全退出请求。
+- 重启服务后可以加载 checkpoint 继续执行。
+- 已成功执行的有副作用工具不会因恢复而重复运行。
 
 ## 推荐执行节奏
 
-不要一次实现所有阶段。建议节奏：
+后续保持“一个版本解决一个主要问题”的节奏：
 
 ```text
-第 1 轮：复盘 V3.4 Planner，确认只生成 plan、不执行 RAG
-第 2 轮：复盘 V3.5 Executor，确认 plan steps 如何变成 step_results
-第 3 轮：暂停复盘，把 Planner/Executor 职责边界彻底吃透
-第 4 轮：设计 V3.6 Evidence Checker，明确 coverage / retry / checkpoint
-第 5 轮：实现 V3.6 Evidence Checker 和 retry/checkpoint
-第 6 轮：设计 V3.7 Context Builder，明确上下文选择、裁剪和格式化
-第 7 轮：实现 V3.7 Context Builder，把 prompt 拼接从 reporter 中拆出去
+V3.8.1：先完成 Context Compaction 学习和复盘
+V3.9  ：建立 Agent Evaluation 基线
+V3.10 ：补 Run Lifecycle、观测和错误边界
+V3.11 ：实现 Skill Registry、Skill Router 和渐进式加载
+V3.12 ：先作为 MCP Client 调工具，再把 RAG 暴露为 MCP Server
+V3.13 ：建立工具风险分级和人工审批
+V3.14 ：在 Permission Policy 后开放 Sandbox 文件和 Shell 工具
+V3.15 ：补 Checkpoint、恢复和 Human-in-the-loop
 ```
 
-优先级最高的是：
-
-```text
-V3.6 Evidence Checker
-```
-
-因为它会把你从：
-
-```text
-系统按计划执行多个工具步骤
-```
-
-推进到：
-
-```text
-系统判断证据是否足够，不够时能重试或追问
-```
-
-这是 harness 工程从“系统会做”走向“系统知道自己做得够不够”的关键一层。
+不要把 V3.10～V3.15 合并成一个“大而全”的 Production Harness。它们分别解决观测、方法选择、协议适配、安全策略、隔离执行和恢复问题，合并实现会掩盖这些模块之间的职责边界。
 
 ## 下一步建议
 
-下一步不要直接写代码，先制定 `V3.6 Evidence Checker` 设计：
+当前先完成 V3.8.1 Conversation Compaction 的代码走读和断点复盘，确认能解释：
 
-- Evidence check 应该检查整个 answer，还是逐个 plan step 检查？
-- `EvidenceCheckResult` schema 应该包含哪些字段？
-- coverage 不足时，是 retry search，还是 clarify？
-- retry query 由规则生成，还是 LLM 生成？
-- 最多 retry 几次？
-- checkpoint 应该保存哪些中间状态？
-- 如何在 response/trace 中展示证据不足的原因？
+- 为什么 Raw Turns 不能删除。
+- 为什么 Summary 和 Recent Turns 要同时存在。
+- 什么条件触发自动压缩。
+- 滚动摘要如何避免每次重扫全部历史。
+- 摘要失败时为什么不能阻断 RAG 主流程。
 
-建议 V3.6 的第一版先做：
-
-```text
-用户问题 -> planner -> execute search steps -> evidence_check -> synthesize answer
-```
-
-等 evidence checker 理解清楚后，下一步不是直接进入 memory，而是先进入 `V3.7 Context Builder`。原因是 memory 读出来的信息最终也要经过 Context Builder 进入模型上下文；如果没有这层，后续 memory 很容易变成“把历史消息全塞进 prompt”的粗糙实现。
+完成这部分学习后，再进入 V3.9 Agent Evaluation。V3.9 会成为后续 Skill、MCP、Permission 和 Sandbox 版本的回归基线。
