@@ -4,7 +4,7 @@
 
 - 默认用中文回答。
 - 命令、文件名、配置项、API 名称保留英文原文。
-- 解释学习概念时优先结合本仓库已有版本：`v0`、`v1`、`v2`、`v3`、`v3_1`、`v3_2`、`v3_3`、`v3_4`、`v3_5`、`v3_6`、`v3_7`、`v3_8`。
+- 解释学习概念时优先结合本仓库已有版本：`v0`、`v1`、`v2`、`v3`、`v3_1`、`v3_2`、`v3_3`、`v3_4`、`v3_5`、`v3_6`、`v3_7`、`v3_8`、`v3_8_1`。
 
 ## 新增版本的固定要求
 
@@ -64,28 +64,30 @@ docs/assets/rag-v3-4-planner-flow.svg
 已完成到：
 
 ```text
-V3.8 Conversation Memory
+V3.8.1 Conversation Compaction
 ```
 
-当前 V3.8 在 V3.7 Context Builder 前后增加 Memory read/write：
+当前 V3.8.1 在 V3.8 的 Memory read/write 中间增加滚动摘要：
 
 ```text
-load_memory -> planner -> execute_steps -> evidence_check -> retry_search -> evidence_check -> build_context -> synthesize_answer -> save_memory
+load_memory -> compact_memory -> planner -> execute_steps -> evidence_check -> retry_search -> evidence_check -> build_context -> synthesize_answer -> save_memory
 ```
 
-V3.8 会执行 RAG：
+V3.8.1 会执行 RAG：
 
 - 调用 `RetrievalService.search()`。
 - 支持 dense / keyword / hybrid retrieval。
-- 返回 `conversation_id`、`memory_snapshot`、`memory_write`、`context_bundle`、`trace`。
+- 返回 `conversation_id`、`memory_snapshot`、`memory_compaction`、`memory_write`、`context_bundle`、`trace`。
 - 当某个 search step 没有证据时，最多按 `max_retries` 补搜。
-- SQLite 保存完整原始 turns，ContextBuilder 只注入最近 `memory_window` 轮。
-- 最近历史同时进入 Planner 和最终 Answer Context。
+- SQLite 保存完整原始 turns，并额外保存滚动 `summary_text` 和摘要截止 Turn。
+- ContextBuilder 注入滚动摘要和最近 `memory_window` 轮原文。
+- 旧 Turn 数量或估算 token 达到阈值时自动压缩，也支持 Swagger/CLI 手动压缩。
+- 摘要失败时降级使用已有摘要和最近 Turns，不阻断 RAG。
 
-V3.8 仍然不做：
+V3.8.1 仍然不做：
 
-- 不做 LLM 摘要和 rolling summary。
 - 不做向量化 Memory 检索和跨 conversation 用户画像。
+- 不做异步事实提取、事实置信度、过期检查和 Memory consolidation。
 - 不做生产级权限审批和 shell execution。
 
 下一阶段建议：
