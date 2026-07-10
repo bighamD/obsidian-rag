@@ -2,6 +2,86 @@
 	"version": "0.2.0",
 	"configurations": [
 		{
+			"name": "V3.8.1 API server: context compaction",
+			"type": "debugpy",
+			"request": "launch",
+			"module": "uvicorn",
+			"console": "integratedTerminal",
+			"cwd": "${workspaceFolder}",
+			"python": "${workspaceFolder}/.venv/bin/python",
+			"envFile": "${workspaceFolder}/.env",
+			"args": [
+				"obsidian_rag.v3_8_1.app:app",
+				"--host",
+				"127.0.0.1",
+				"--port",
+				"8011"
+			],
+			"justMyCode": true
+		},
+		{
+			"name": "V3.8.1 compaction: first turn",
+			"type": "debugpy",
+			"request": "launch",
+			"module": "obsidian_rag.cli",
+			"console": "integratedTerminal",
+			"cwd": "${workspaceFolder}",
+			"python": "${workspaceFolder}/.venv/bin/python",
+			"envFile": "${workspaceFolder}/.env",
+			"args": [
+				"agent-v3-8-1",
+				"ask",
+				"生鸡肉要不要洗？",
+				"--conversation-id",
+				"conv_compaction_demo",
+				"--memory-window",
+				"1",
+				"--memory-compaction-trigger-turns",
+				"99"
+			],
+			"justMyCode": true
+		},
+		{
+			"name": "V3.8.1 compaction: follow-up turn",
+			"type": "debugpy",
+			"request": "launch",
+			"module": "obsidian_rag.cli",
+			"console": "integratedTerminal",
+			"cwd": "${workspaceFolder}",
+			"python": "${workspaceFolder}/.venv/bin/python",
+			"envFile": "${workspaceFolder}/.env",
+			"args": [
+				"agent-v3-8-1",
+				"ask",
+				"那处理完厨房怎么清洁？",
+				"--conversation-id",
+				"conv_compaction_demo",
+				"--memory-window",
+				"1",
+				"--memory-compaction-trigger-turns",
+				"99"
+			],
+			"justMyCode": true
+		},
+		{
+			"name": "V3.8.1 compaction: force compact",
+			"type": "debugpy",
+			"request": "launch",
+			"module": "obsidian_rag.cli",
+			"console": "integratedTerminal",
+			"cwd": "${workspaceFolder}",
+			"python": "${workspaceFolder}/.venv/bin/python",
+			"envFile": "${workspaceFolder}/.env",
+			"args": [
+				"agent-v3-8-1",
+				"compact",
+				"conv_compaction_demo",
+				"--keep-recent-turns",
+				"1"
+			],
+			"justMyCode": true
+		},
+		{
 			"name": "V3.8 memory: first turn",
 			"type": "debugpy",
 			"request": "launch",
