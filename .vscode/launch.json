@@ -2,6 +2,50 @@
 	"version": "0.2.0",
 	"configurations": [
 		{
+			"name": "V3.8 memory: first turn",
+			"type": "debugpy",
+			"request": "launch",
+			"module": "obsidian_rag.cli",
+			"console": "integratedTerminal",
+			"cwd": "${workspaceFolder}",
+			"python": "${workspaceFolder}/.venv/bin/python",
+			"envFile": "${workspaceFolder}/.env",
+			"args": [
+				"agent-v3-8",
+				"ask",
+				"生鸡肉要不要洗？",
+				"--conversation-id",
+				"conv_food_demo",
+				"--memory-window",
+				"3",
+				"--mode",
+				"hybrid"
+			],
+			"justMyCode": true
+		},
+		{
+			"name": "V3.8 memory: follow-up turn",
+			"type": "debugpy",
+			"request": "launch",
+			"module": "obsidian_rag.cli",
+			"console": "integratedTerminal",
+			"cwd": "${workspaceFolder}",
+			"python": "${workspaceFolder}/.venv/bin/python",
+			"envFile": "${workspaceFolder}/.env",
+			"args": [
+				"agent-v3-8",
+				"ask",
+				"那处理完厨房怎么清洁？",
+				"--conversation-id",
+				"conv_food_demo",
+				"--memory-window",
+				"3",
+				"--mode",
+				"hybrid"
+			],
+			"justMyCode": true
+		},
+		{
 			"name": "V3.7 agent ask: context builder",
 			"type": "debugpy",
 			"request": "launch",
@@ -16,7 +60,8 @@
 			"args": [
 				"agent-v3-7",
 				"ask",
-				"帮我总结生鸡肉处理、厨房清洁、剩菜保存三类食品安全建议",
+				// "帮我总结生鸡肉处理、厨房清洁、剩菜保存三类食品安全建议",
+				"剩菜可以保存多少天？",
 				"--top-k",
 				"5",
 				"--mode",

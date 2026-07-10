@@ -28,6 +28,9 @@ from obsidian_rag.v3_6.agent.service import AgentService as Agent36Service
 from obsidian_rag.v3_6.schemas import AgentAskRequest as Agent36AskRequest
 from obsidian_rag.v3_7.agent.service import AgentService as Agent37Service
 from obsidian_rag.v3_7.schemas import AgentAskRequest as Agent37AskRequest
+from obsidian_rag.v3_8.agent.service import AgentService as Agent38Service
+from obsidian_rag.v3_8.memory import SQLiteConversationMemoryStore, default_memory_db_path
+from obsidian_rag.v3_8.schemas import AgentAskRequest as Agent38AskRequest
 from obsidian_rag.llm import OpenAIChatClient
 
 
@@ -130,6 +133,21 @@ def main() -> None:
     agent37_ask_parser.add_argument("--filter-path", help="Limit retrieval to a source path")
     agent37_ask_parser.add_argument("--context-max-chunks", type=int, default=6)
     agent37_ask_parser.add_argument("--context-token-budget", type=int, default=4000)
+
+    agent38_parser = subparsers.add_parser("agent-v3-8", help="Run V3.8 conversation-memory agentic RAG")
+    agent38_subparsers = agent38_parser.add_subparsers(dest="agent38_command", required=True)
+    agent38_ask_parser = agent38_subparsers.add_parser("ask", help="Load memory, run the agent, and persist the new turn")
+    agent38_ask_parser.add_argument("question")
+    agent38_ask_parser.add_argument("--conversation-id")
+    agent38_ask_parser.add_argument("--memory-window", type=int, default=3)
+    agent38_ask_parser.add_argument("--top-k", type=int, default=5)
+    agent38_ask_parser.add_argument("--mode", choices=["dense", "keyword", "hybrid"], default="hybrid")
+    agent38_ask_parser.add_argument("--max-steps", type=int, default=4)
+    agent38_ask_parser.add_argument("--max-retries", type=int, default=1)
+    agent38_ask_parser.add_argument("--filter-path")
+    agent38_ask_parser.add_argument("--context-max-chunks", type=int, default=6)
+    agent38_ask_parser.add_argument("--context-token-budget", type=int, default=4000)
+    agent38_ask_parser.add_argument("--memory-db-path", type=Path)
 
     args = parser.parse_args()
     config = load_config()
@@ -245,6 +263,23 @@ def main() -> None:
             filter_path=args.filter_path,
             context_max_chunks=args.context_max_chunks,
             context_token_budget=args.context_token_budget,
+        )
+        return
+
+    if args.command == "agent-v3-8" and args.agent38_command == "ask":
+        run_agent38_ask(
+            question=args.question,
+            conversation_id=args.conversation_id,
+            memory_window=args.memory_window,
+            config=config,
+            top_k=args.top_k,
+            mode=args.mode,
+            max_steps=args.max_steps,
+            max_retries=args.max_retries,
+            filter_path=args.filter_path,
+            context_max_chunks=args.context_max_chunks,
+            context_token_budget=args.context_token_budget,
+            memory_db_path=args.memory_db_path,
         )
         return
 
@@ -657,6 +692,82 @@ def run_agent37_ask(
             parts.append(f"tool={step.tool_name}")
         if step.query:
             parts.append(f"query={step.query}")
+        if step.result_count is not None:
+            parts.append(f"results={step.result_count}")
+        if step.reason:
+            parts.append(f"reason={step.reason}")
+        print(" | ".join(parts))
+
+
+def run_agent38_ask(
+    question: str,
+    config: RagConfig,
+    conversation_id: str | None = None,
+    memory_window: int = 3,
+    top_k: int = 5,
+    mode: SearchMode = "hybrid",
+    max_steps: int = 4,
+    max_retries: int = 1,
+    filter_path: str | None = None,
+    context_max_chunks: int = 6,
+    context_token_budget: int = 4000,
+    memory_db_path: Path | None = None,
+    retrieval_service=None,
+    chat_client=None,
+    agent_service=None,
+) -> None:
+    if agent_service is None:
+        service = retrieval_service or RetrievalService(config)
+        memory_store = SQLiteConversationMemoryStore(memory_db_path or default_memory_db_path())
+        agent = Agent38Service(
+            retrieval_service=service,
+            chat_client=chat_client,
+            chat_client_factory=lambda: OpenAIChatClient(
+                api_key=config.api_key,
+                base_url=config.base_url,
+                model=config.chat_model,
+            ),
+            memory_store=memory_store,
+        )
+    else:
+        agent = agent_service
+    response = agent.ask(
+        Agent38AskRequest(
+            question=question,
+            conversation_id=conversation_id,
+            memory_window=memory_window,
+            top_k=top_k,
+            mode=mode,
+            filters=SearchFilters(path=filter_path) if filter_path else None,
+            max_steps=max_steps,
+            max_retries=max_retries,
+            context_max_chunks=context_max_chunks,
+            context_token_budget=context_token_budget,
+        )
+    )
+    print(f"Run: {response.run_id}")
+    print(f"Conversation: {response.conversation_id}")
+    snapshot = response.memory_snapshot
+    print(
+        f"Memory: loaded={snapshot.loaded_turn_count} | total={snapshot.total_turn_count} "
+        f"| omitted={snapshot.omitted_turn_count}"
+    )
+    for turn in snapshot.recent_turns:
+        print(f"- {turn.user_message} -> {turn.assistant_message}")
+    print(response.answer.strip())
+    if response.sources:
+        _print_sources(response.sources)
+    print(
+        f"\nMemory write: saved={response.memory_write.saved} "
+        f"| turn={response.memory_write.turn_id or '-'}"
+    )
+    print("\nContext bundle:")
+    print(f"{response.context_bundle.context_summary} | token_budget={response.context_bundle.token_budget}")
+    print("\nGraph path:")
+    print(" -> ".join(response.graph_path) if response.graph_path else "- none")
+    print("\nTrace:")
+    for index, step in enumerate(response.trace, start=1):
+        parts = [f"{index}. {step.node_name}:{step.step_type}"]
         if step.result_count is not None:
             parts.append(f"results={step.result_count}")
         if step.reason:
