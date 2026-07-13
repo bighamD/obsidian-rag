@@ -4,7 +4,7 @@
 
 - 默认用中文回答。
 - 命令、文件名、配置项、API 名称保留英文原文。
-- 解释学习概念时优先结合本仓库已有版本：`v0`、`v1`、`v2`、`v3`、`v3_1`、`v3_2`、`v3_3`、`v3_4`、`v3_5`、`v3_6`、`v3_7`、`v3_8`、`v3_8_1`、`v3_9`、`v3_10`。
+- 解释学习概念时优先结合本仓库已有版本：`v0`、`v1`、`v2`、`v3`、`v3_1`、`v3_2`、`v3_3`、`v3_4`、`v3_5`、`v3_6`、`v3_7`、`v3_8`、`v3_8_1`、`v3_9`、`v3_10`、`v3_10_1`。
 
 ## 提交习惯
 
@@ -69,39 +69,38 @@ docs/assets/rag-v3-4-planner-flow.svg
 已完成到：
 
 ```text
-V3.10 Production Core
+V3.10.1 Agent Console (JSON First)
 ```
 
-当前 V3.10 在 V3.8.1 Agent 外增加单次运行的生命周期与可观测层：
+当前 V3.10.1 将 V3.10 的 JSON Run / Agent Response 做成 Vite + Vue 3 会话工作台：
 
 ```text
-ProductionAskRequest -> RunRecord(queued/running) -> V3.8.1 AgentService.ask()
-                     -> succeeded: metrics / tool summary / token estimate
-                     -> failed: standardized error
+Vue Agent Console -> /api proxy -> V3.10.1 FastAPI
+                  -> V3.10 Production Runtime -> V3.8.1 AgentService.ask()
+                  -> ProductionAskResponse -> Chat / Run Inspector
 ```
 
-V3.10 会：
+V3.10.1 会：
 
-- 复用 V3.8.1 的完整 Agent 链路，不修改 Planner、Tool、Memory 或 Prompt。
-- 创建独立 `prod_...` Run ID，并保留 V3.8.1 的 `agent_run_id`。
-- 返回生命周期事件、总耗时、graph/trace 数、工具聚合、检索结果数和可观察 Answer token 估算。
-- 将异常标准化为 `RunError`，不返回 Python traceback。
-- 通过进程内 `InMemoryRunStore` 支持 `GET /runs` 与 `GET /runs/{run_id}` 查询。
-- 使用 `.rag/v3_10_memory.sqlite3` 隔离 V3.10 调试产生的 Raw Turns。
+- 在 `frontend/v3_10_1_agent_console/` 提供 Vite + Vue 3 + TypeScript 的 Agent Console。
+- 用会话侧栏、对话主区、Run Inspector 消费 `ProductionAskResponse` 的 answer、sources、Run、Plan、Tool、Evidence、Context、Memory 与 trace。
+- 通过 `localStorage` 保存浏览器近期会话，并通过 `/console/conversations/{conversation_id}` 读取 SQLite Memory 快照。
+- 保留 Swagger JSON、CLI 和 V3.10 Runtime；不改 Planner、Tool、Memory 或 Prompt。
+- 使用 Vite `/api` proxy 指向 `127.0.0.1:8013`，开发环境不需要新增 CORS。
 
-V3.10 仍然不做：
+V3.10.1 仍然不做：
 
-- 不持久化 Run，也不做跨进程运行查询、队列或 dashboard。
-- 不提供供应商真实 token / 成本数据，也不做自动重试。
-- 不改变 V3.8.1 的推理和执行策略。
+- 不通过 SSE 实时显示节点或工具进度；运行中状态只是前端本地 loading。
+- 不展示 chain-of-thought，不做 token-by-token 生成。
+- 不做多用户会话管理、Run 持久化或新的 Agent 推理策略。
 
 下一阶段建议：
 
 ```text
-V3.11 Skill System
+V3.10.2 Run Event Streaming
 ```
 
-V3.11 将学习 Skill Registry、Skill Router 和按需加载 `SKILL.md`，让 Agent 先决定采用哪一种任务方法。
+V3.10.2 将在节点与工具边界增加 EventSink / SSE，令现有 Run Inspector 真正实时更新；JSON 接口继续保留。
 
 ## CodeGraph
 

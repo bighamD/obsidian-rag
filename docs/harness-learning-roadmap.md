@@ -19,6 +19,7 @@ V3.8  ：Conversation Memory，SQLite 持久化并加载最近对话窗口
 V3.8.1：Conversation Compaction，旧 Turns 滚动摘要 + 最近 Turns 原文
 V3.9  ：Agent Evaluation Lite，运行 Agent 并用结构化契约评测行为
 V3.10 ：Production Core，为单次 Agent Run 提供生命周期、观测和错误摘要
+V3.10.1：Agent Console，Vite + Vue 3 消费 JSON Run / Agent Response
 ```
 
 当前工程已经包含 intent router 能力：
@@ -26,7 +27,7 @@ V3.10 ：Production Core，为单次 Agent Run 提供生命周期、观测和错
 - V3.1 是显式 router：模型输出 `RouterDecision JSON`。
 - V3.2/V3.3 是隐式 router：模型通过 `tool_calls` 选择 `search_notes`、`no_search`、`clarify`。
 
-V3.9 已建立 Agent 行为回归基线；V3.10 已把运行生命周期、观测和错误摘要系统化。下一步可以进入 Skill System。
+V3.9 已建立 Agent 行为回归基线；V3.10 已把运行生命周期、观测和错误摘要系统化。下一步先把这些结构化数据做成可使用的 Agent Console，再单独学习 SSE 事件流，之后进入 Skill System。
 
 ## 总体学习路线
 
@@ -39,6 +40,8 @@ Phase 4：Context Builder，组装可控上下文
 Phase 5：Memory，对话窗口、滚动摘要和长期记忆边界
 Phase 6：Agent Evaluation，评估 router/tool/planner/answer
 Phase 7：Production Core，Run Lifecycle、配置、观测和稳定性
+Phase 7.1：Agent Console，消费 JSON Run / Agent Response 的会话与运行详情界面
+Phase 7.2：Run Event Streaming，SSE 推送真实节点、工具和最终完成事件
 Phase 8：Skill System，Skill Registry、Skill Router 和渐进式加载
 Phase 9：MCP Integration，连接外部 MCP 并暴露本地 RAG 能力
 Phase 10：Permission Policy，工具风险分级、参数校验和人工审批
@@ -60,7 +63,7 @@ AI Agent = LLM + Harness
 | --- | --- | --- |
 | Context / 上下文 | V3.7、V3.8.1 | V3.7 独立 `ContextBuilder`；V3.8.1 加入滚动摘要和最近对话。 |
 | Tool Calling / 工具调用 | V3.2、V3.3、V3.5 | 已覆盖：模型选择工具、LangGraph 编排、`ToolRegistry` 执行工具。 |
-| Skills / 技能系统 | V3.11 | 下一步补：Skill Registry、LLM Skill Router、按需加载 `SKILL.md`。 |
+| Skills / 技能系统 | V3.11 | 后续补：Skill Registry、LLM Skill Router、按需加载 `SKILL.md`。 |
 | MCP / 外部工具协议 | V3.12 | 后续补：MCP Client、MCP Tool Adapter，以及把本地 RAG 暴露为 MCP Server。 |
 | File I/O / 文件读写 | V0、V1 | 已覆盖基础：Markdown/PDF loader、chunk、ingest。后续不作为 agent 主线重点。 |
 | Shell Execution / 终端执行 | V3.14 Sandbox Execution | 后期只在隔离 Sandbox 中开放，不直接把宿主机 Shell 暴露给模型。 |
@@ -69,6 +72,7 @@ AI Agent = LLM + Harness
 | Orchestrator / 任务编排 | V3.3、V3.4、V3.5、V3.6 | 已用 LangGraph 表达 node/edge；V3.6 会加入 evidence/retry 分支。 |
 | Verification / 测试验证 | V2、V3.6、V3.9 | V2 是 retrieval/answer eval；V3.6 是运行时 evidence check；V3.9 Lite 用 case contract 评测 routing、plan、tool、retrieval、evidence 和 answer。 |
 | Observation / 返回观察 | V3.5、V3.6、V3.10 | 已有 `trace`、`step_results`；V3.10 已补 `RunRecord`、latency、tool summary、token estimate 和 error summary。 |
+| Agent Console / 前端观察 | V3.10.1、V3.10.2 | V3.10.1 已消费 JSON 响应展示会话与运行详情；V3.10.2 将通过 SSE 接收运行中事件。 |
 | Reporter / 汇总输出 | V3.5、V3.7 | 已有 `synthesize_answer`；V3.7 会把上下文构建从 reporter 中拆出去。 |
 | Checkpoint / 恢复 | V3.15 | 后续补节点恢复、interrupt/resume、幂等和 Human-in-the-loop。 |
 
@@ -77,17 +81,17 @@ AI Agent = LLM + Harness
 - 主线必学：`Context`、`Tool Calling`、`Memory & State`、`Orchestrator`、`Verification`、`Observation`、`Reporter`。
 - 后期或可选：`Permissions`、`Shell Execution`、更完整的 `File I/O`。这些更偏生产安全和通用 agent 平台，不适合太早压进当前 RAG 学习线。
 
-当前到 V3.9 为止，项目已经覆盖了：
+当前到 V3.10.1 为止，项目已经覆盖了：
 
 ```text
 Memory Reader -> Planner -> Orchestrator -> Tool Executor -> Evidence Checker -> Context Builder -> Reporter -> Memory Writer
-                                                              -> Agent Evaluation
+                                                              -> Agent Evaluation -> Production Run Observation -> Agent Console
 ```
 
 还缺的关键层是：
 
 ```text
-Production Core
+Run Event Streaming
 Skill System
 MCP Integration
 Permission Policy
@@ -104,6 +108,8 @@ V3.8 Conversation Memory：系统能处理多轮状态
 V3.8.1 Conversation Compaction：系统能压缩旧历史并保留最近原文
 V3.9 Agent Evaluation：系统能评估 agent 行为
 V3.10 Production Core：系统具备 run、观测、配置和稳定性基础（已完成）
+V3.10.1 Agent Console：用户能以会话界面查看答案、来源、Plan 和 Run 详情（已完成）
+V3.10.2 Run Event Streaming：前端能实时接收节点和工具事件，不展示 chain-of-thought
 V3.11 Skill System：系统能选择并渐进式加载任务方法
 V3.12 MCP Integration：系统能接入标准化外部工具并对外提供 RAG 工具
 V3.13 Permission Policy：系统能在执行前判断 allow / confirm / deny
@@ -129,11 +135,13 @@ Checkpoint / Recovery：节点失败、重试、恢复、中间结果保存
 1. `V3.8.1` 先控制 Context Window，否则长对话会让后续评测结果受上下文膨胀影响。
 2. `V3.9` 先建立 Agent Evaluation，后续增加 Skill、MCP 和 Sandbox 时才能做行为回归。
 3. `V3.10` 已补 Run Lifecycle 和观测，因为外部工具越多，越需要统一的 latency、token、error 和 tool summary。
-4. `V3.11` 将学习 Skill Router，再接 MCP。两者技术上没有强制依赖，但 Skill 负责“采用什么工作方法”，MCP 负责“通过什么协议调用外部能力”，按这个顺序更容易区分职责。
-5. `V3.12` 先让普通低风险 MCP 工具接入统一 `ToolRegistry`，验证协议适配和错误边界。
-6. `V3.13` 必须在开放文件写入和 Shell 前完成。所有本地工具和 MCP 工具都统一经过 allow / confirm / deny 策略。
-7. `V3.14` 只在 Sandbox 中执行高风险工具，不允许模型直接获得宿主机任意 Shell 权限。
-8. `V3.15` 最后补跨节点恢复和 Human-in-the-loop，因为它依赖前面已经稳定的 Run、Tool、Policy 和 Sandbox 状态模型。
+4. `V3.10.1` 先用已有 JSON 构建 Agent Console，验证 `ProductionAskResponse` 的数据分层是否适合用户阅读，不引入实时传输变量。
+5. `V3.10.2` 再把 V3.8.1 节点事件接入 EventSink / SSE；先推阶段事件和最终答案，不急于实现 token-by-token 输出。
+6. `V3.11` 将学习 Skill Router，再接 MCP。两者技术上没有强制依赖，但 Skill 负责“采用什么工作方法”，MCP 负责“通过什么协议调用外部能力”，按这个顺序更容易区分职责。
+7. `V3.12` 先让普通低风险 MCP 工具接入统一 `ToolRegistry`，验证协议适配和错误边界。
+8. `V3.13` 必须在开放文件写入和 Shell 前完成。所有本地工具和 MCP 工具都统一经过 allow / confirm / deny 策略。
+9. `V3.14` 只在 Sandbox 中执行高风险工具，不允许模型直接获得宿主机任意 Shell 权限。
+10. `V3.15` 最后补跨节点恢复和 Human-in-the-loop，因为它依赖前面已经稳定的 Run、Tool、Policy 和 Sandbox 状态模型。
 
 需要保持的三个概念边界：
 
@@ -616,6 +624,52 @@ examples:
 - response 或日志包含统一的 latency/token/tool/error summary。
 - 能区分业务失败、工具失败、LLM 失败和超时。
 
+## Phase 7.1：Agent Console
+
+实现版本：`V3.10.1 Agent Console（JSON First）`
+
+目标：把 V3.10 已经存在的 `ProductionAskResponse` 转换为可操作的 Vue 3 会话工作台，验证 Run、Plan、Tool、Evidence、Context 和 Memory 这些结构化数据是否对用户可理解。
+
+本次实现：
+
+- `frontend/v3_10_1_agent_console/` 使用 Vite、Vue 3、TypeScript 和 `lucide-vue-next`。
+- 桌面端提供会话侧栏、对话主区和 Run Inspector；移动端将 Inspector 收为侧边抽屉。
+- 对话主区展示最终答案和来源；Inspector 分成概览、计划与工具、证据、上下文四个视图。
+- 通过浏览器 `localStorage` 保存近期会话 ID 和轻量消息；通过 `GET /console/conversations/{conversation_id}` 读取 V3.10 SQLite Memory 快照。
+- Vite dev proxy 将 `/api/*` 转发给 `127.0.0.1:8013`，因此开发环境不需要先引入 CORS。
+- V3.10.1 FastAPI 保留 JSON `POST /agent/ask`、`GET /runs`、`GET /runs/{run_id}`，并增加 Console 配置和会话快照接口。
+
+版本边界：
+
+- 本版只在请求完成后一次性渲染 `ProductionAskResponse`；请求中的“运行中”是浏览器本地状态。
+- 不把 `trace` 当作 chain-of-thought；界面只显示节点、工具、结果数和已有的原因说明。
+- 不实现 SSE、token-by-token 输出、实时节点进度或多用户会话管理。
+- 不改变 V3.8.1 Agent 和 V3.10 Runtime 的执行策略。
+
+完成标准：
+
+- 能在浏览器发起同一个 `conversation_id` 的追问，并查看 Memory 快照与本次 Run。
+- 能清楚区分 `succeeded`、`failed`、`no_search`、`clarify` 和 Evidence 不足。
+- 前端构建、前端单测、Python API/CLI 测试都可独立验证。
+
+## Phase 7.2：Run Event Streaming
+
+建议版本：`V3.10.2 Run Event Streaming`
+
+目标：让 Agent 在运行过程中就把可观察事件交给前端，而不是等待完整 JSON 响应结束。
+
+建议实现：
+
+- 在 V3.8.1 节点和 Tool 执行边界引入 `EventSink` / `RunEventBus`。
+- 先发送 `run_started`、`node_started`、`node_finished`、`tool_result`、`run_finished`、`run_failed` 等事实事件。
+- 以 SSE 暴露事件；浏览器继续使用 V3.10.1 的 Inspector，但实时追加时间线。
+- 第一版只发送阶段事件和最终答案，不做 LLM token delta；真实文本流式输出需要 LLM Client 新增 `stream()`。
+
+版本边界：
+
+- SSE 不是展示模型内部思考的接口。
+- 不因为改用 SSE 删除 JSON `/agent/ask`；JSON 继续保留给 Swagger、CLI、测试和非流式调用方。
+
 ## Phase 8：Skill System
 
 建议版本：`V3.11 Skill System`
@@ -733,6 +787,8 @@ examples:
 V3.8.1：已完成 Context Compaction 学习和复盘
 V3.9  ：已建立 Agent Evaluation 基线
 V3.10 ：已补最小 Run Lifecycle、观测和错误边界
+V3.10.1：已用 Vue Agent Console 消费 JSON Run / Agent Response
+V3.10.2：用 SSE 推送真实运行事件
 V3.11 ：实现 Skill Registry、Skill Router 和渐进式加载
 V3.12 ：先作为 MCP Client 调工具，再把 RAG 暴露为 MCP Server
 V3.13 ：建立工具风险分级和人工审批
@@ -744,12 +800,14 @@ V3.15 ：补 Checkpoint、恢复和 Human-in-the-loop
 
 ## 下一步建议
 
-V3.10 已完成最小 Production Core，下一步进入 V3.11 Skill System。进入前应能解释：
+V3.10.1 已完成 Agent Console，下一步进入 V3.10.2 Run Event Streaming。进入前应能解释：
 
 - V3.9 的离线行为评分和 V3.10 的单次在线 Run 观察有什么区别。
 - 为什么 `prod_...` 和 V3.8.1 的 `run_...` 不能混为一个 ID。
 - 为什么 `InMemoryRunStore` 与 SQLite Conversation Memory 不是同一类存储。
 - 为什么 `token_estimate` 不能当作供应商真实 usage 或成本。
-- 为什么需要先有统一 Run 观察，再让 Skill Router、MCP 和高风险工具扩展运行链路。
+- 为什么 UI 在当前 JSON 模式下只能知道“请求中 / 已完成”，不能真实显示节点实时进度。
+- 为什么 `trace` 是可观察执行事实，而不是 chain-of-thought。
+- 为什么 SSE 应保留 JSON 接口作为 Swagger、CLI 和测试的稳定契约。
 
-V3.9 会继续作为行为回归基线，V3.10 会为后续 Skill、MCP、Permission 和 Sandbox 提供运行观察基线。
+V3.9 会继续作为行为回归基线，V3.10 / V3.10.1 会为后续 SSE、Skill、MCP、Permission 和 Sandbox 提供运行观察与用户界面基线。

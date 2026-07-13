@@ -2,6 +2,71 @@
 	"version": "0.2.0",
 	"configurations": [
 		{
+			"name": "V3.10.1 API server: Agent Console",
+			"type": "debugpy",
+			"request": "launch",
+			"module": "uvicorn",
+			"console": "integratedTerminal",
+			"cwd": "${workspaceFolder}",
+			"python": "${workspaceFolder}/.venv/bin/python",
+			"envFile": "${workspaceFolder}/.env",
+			"args": [
+				"obsidian_rag.v3_10_1.app:app",
+				"--host",
+				"127.0.0.1",
+				"--port",
+				"8013"
+			],
+			"justMyCode": true
+		},
+		{
+			"name": "V3.10.1 UI: Vite Agent Console",
+			"type": "node-terminal",
+			"request": "launch",
+			"command": "npm run dev",
+			"cwd": "${workspaceFolder}/frontend/v3_10_1_agent_console"
+		},
+		{
+			"name": "V3.10.1 Console: first turn",
+			"type": "debugpy",
+			"request": "launch",
+			"module": "obsidian_rag.cli",
+			"console": "integratedTerminal",
+			"cwd": "${workspaceFolder}",
+			"python": "${workspaceFolder}/.venv/bin/python",
+			"envFile": "${workspaceFolder}/.env",
+			"args": [
+				"agent-v3-10-1",
+				"ask",
+				"生鸡肉要不要洗？",
+				"--conversation-id",
+				"conv_v3101_debug",
+				"--mode",
+				"hybrid"
+			],
+			"justMyCode": true
+		},
+		{
+			"name": "V3.10.1 Console: follow-up turn",
+			"type": "debugpy",
+			"request": "launch",
+			"module": "obsidian_rag.cli",
+			"console": "integratedTerminal",
+			"cwd": "${workspaceFolder}",
+			"python": "${workspaceFolder}/.venv/bin/python",
+			"envFile": "${workspaceFolder}/.env",
+			"args": [
+				"agent-v3-10-1",
+				"ask",
+				"那处理完厨房怎么清洁？",
+				"--conversation-id",
+				"conv_v3101_debug",
+				"--mode",
+				"hybrid"
+			],
+			"justMyCode": true
+		},
+		{
 			"name": "V3.10 API server: production core",
 			"type": "debugpy",
 			"request": "launch",

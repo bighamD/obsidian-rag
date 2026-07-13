@@ -1,0 +1,64 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1180" height="680" viewBox="0 0 1180 680" role="img" aria-labelledby="title desc">
+  <title id="title">V3.10.1 Agent Console JSON flow</title>
+  <desc id="desc">The V3.10.1 Vite and Vue agent console sends a JSON request through a Vite proxy to the V3.10.1 FastAPI API. The API reuses V3.10 production runtime and V3.8.1 agent. The final JSON response populates chat, sources, and the run inspector. No SSE is used in this version.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#475569"/></marker>
+    <marker id="soft-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#94a3b8"/></marker>
+  </defs>
+
+  <rect width="1180" height="680" fill="#f8fafc"/>
+  <text x="590" y="48" text-anchor="middle" font-family="Arial, sans-serif" font-size="28" font-weight="700" fill="#0f172a">V3.10.1 Agent Console 流程</text>
+  <text x="590" y="78" text-anchor="middle" font-family="Arial, sans-serif" font-size="15" fill="#475569">先消费完整 JSON 响应并呈现会话与运行详情；实时节点事件留给下一版 SSE</text>
+
+  <rect x="40" y="122" width="324" height="376" rx="8" fill="#ffffff" stroke="#bfdbfe" stroke-width="2"/>
+  <rect x="40" y="122" width="324" height="54" rx="8" fill="#eff6ff" stroke="#bfdbfe" stroke-width="2"/>
+  <text x="202" y="156" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" font-weight="700" fill="#1d4ed8">浏览器：Vite + Vue 3</text>
+  <rect x="62" y="204" width="84" height="242" rx="6" fill="#f8fafc" stroke="#dbeafe"/>
+  <text x="104" y="234" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" font-weight="700" fill="#334155">会话</text>
+  <line x1="76" y1="260" x2="132" y2="260" stroke="#cbd5e1" stroke-width="7" stroke-linecap="round"/>
+  <line x1="76" y1="282" x2="122" y2="282" stroke="#dbeafe" stroke-width="7" stroke-linecap="round"/>
+  <line x1="76" y1="304" x2="128" y2="304" stroke="#dbeafe" stroke-width="7" stroke-linecap="round"/>
+  <text x="104" y="414" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="#64748b">localStorage</text>
+  <rect x="158" y="204" width="184" height="117" rx="6" fill="#ffffff" stroke="#bbf7d0"/>
+  <text x="250" y="233" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="700" fill="#166534">对话主区</text>
+  <line x1="177" y1="260" x2="312" y2="260" stroke="#cbd5e1" stroke-width="6" stroke-linecap="round"/>
+  <line x1="177" y1="280" x2="293" y2="280" stroke="#dbeafe" stroke-width="6" stroke-linecap="round"/>
+  <rect x="176" y="293" width="128" height="15" rx="3" fill="#d9f3ee"/>
+  <rect x="158" y="334" width="184" height="112" rx="6" fill="#ffffff" stroke="#fde68a"/>
+  <text x="250" y="364" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="700" fill="#9a5d02">Run Inspector</text>
+  <text x="250" y="391" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="#64748b">Run · Plan · Tool · Evidence</text>
+  <text x="250" y="413" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="#64748b">Context · Memory · Trace</text>
+
+  <rect x="435" y="204" width="174" height="112" rx="8" fill="#ffffff" stroke="#c4b5fd" stroke-width="2"/>
+  <text x="522" y="240" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="700" fill="#6d28d9">Vite Proxy</text>
+  <text x="522" y="270" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" fill="#475569">/api/*</text>
+  <text x="522" y="292" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#64748b">127.0.0.1:5173</text>
+
+  <rect x="680" y="122" width="460" height="376" rx="8" fill="#ffffff" stroke="#bbf7d0" stroke-width="2"/>
+  <rect x="680" y="122" width="460" height="54" rx="8" fill="#f0fdf4" stroke="#bbf7d0" stroke-width="2"/>
+  <text x="910" y="156" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" font-weight="700" fill="#047857">V3.10.1 FastAPI：127.0.0.1:8013</text>
+  <rect x="708" y="204" width="182" height="114" rx="6" fill="#ffffff" stroke="#86efac" stroke-width="2"/>
+  <text x="799" y="233" text-anchor="middle" font-family="Arial, sans-serif" font-size="15" font-weight="700" fill="#166534">JSON 接口</text>
+  <text x="729" y="264" font-family="Arial, sans-serif" font-size="12" fill="#475569">POST /agent/ask</text>
+  <text x="729" y="287" font-family="Arial, sans-serif" font-size="12" fill="#475569">GET /runs</text>
+  <text x="729" y="310" font-family="Arial, sans-serif" font-size="12" fill="#475569">GET /console/conversations</text>
+  <rect x="930" y="204" width="182" height="114" rx="6" fill="#ffffff" stroke="#fde68a" stroke-width="2"/>
+  <text x="1021" y="233" text-anchor="middle" font-family="Arial, sans-serif" font-size="15" font-weight="700" fill="#9a5d02">V3.10 Runtime</text>
+  <text x="1021" y="265" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#475569">RunRecord</text>
+  <text x="1021" y="288" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#475569">metrics / error</text>
+  <text x="1021" y="311" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#475569">V3.8.1 AgentService</text>
+  <rect x="708" y="352" width="404" height="92" rx="6" fill="#f8fafc" stroke="#cbd5e1" stroke-width="2"/>
+  <text x="730" y="384" font-family="Arial, sans-serif" font-size="14" font-weight="700" fill="#334155">SQLite Conversation Memory</text>
+  <text x="730" y="412" font-family="Arial, sans-serif" font-size="12" fill="#64748b">.rag/v3_10_memory.sqlite3 · 持久化原始 Turn 与滚动摘要</text>
+
+  <path d="M364 260 L435 260" stroke="#475569" stroke-width="2.5" fill="none" marker-end="url(#arrow)"/>
+  <path d="M609 260 L680 260" stroke="#475569" stroke-width="2.5" fill="none" marker-end="url(#arrow)"/>
+  <path d="M890 260 L930 260" stroke="#475569" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+  <path d="M1021 318 L1021 352" stroke="#94a3b8" stroke-width="2" fill="none" marker-end="url(#soft-arrow)"/>
+  <path d="M680 430 C596 500 475 490 342 430" stroke="#0f766e" stroke-width="2.5" fill="none" marker-end="url(#arrow)"/>
+  <text x="522" y="480" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#047857">完整 ProductionAskResponse 一次性返回</text>
+
+  <rect x="160" y="560" width="860" height="76" rx="8" fill="#fff1f2" stroke="#fda4af" stroke-width="2" stroke-dasharray="7 6"/>
+  <text x="590" y="592" text-anchor="middle" font-family="Arial, sans-serif" font-size="17" font-weight="700" fill="#be123c">V3.10.1 没有 SSE</text>
+  <text x="590" y="620" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#475569">浏览器在请求结束后才获得完整 Run / trace；下一版在节点与工具边界发送可观察事件，再通过 SSE 追加到 Inspector</text>
+</svg>
