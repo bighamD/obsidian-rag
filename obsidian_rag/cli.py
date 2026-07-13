@@ -39,6 +39,10 @@ from obsidian_rag.v3_8_1.schemas import AgentAskRequest as Agent381AskRequest
 from obsidian_rag.v3_9.dependencies import default_agent_eval_memory_db_path
 from obsidian_rag.v3_9.evaluation.dataset import load_agent_eval_dataset
 from obsidian_rag.v3_9.evaluation.evaluator import AgentEvaluator, default_agent_eval_output_path
+from obsidian_rag.v3_10.dependencies import default_memory_db_path as default310_memory_db_path
+from obsidian_rag.v3_10.runtime.lifecycle import AgentRuntimeService
+from obsidian_rag.v3_10.runtime.store import InMemoryRunStore
+from obsidian_rag.v3_10.schemas import ProductionAskRequest
 from obsidian_rag.llm import OpenAIChatClient
 
 
@@ -195,6 +199,24 @@ def main() -> None:
     agent39_eval_parser.add_argument("--output", type=Path, help="Where to save the JSON evaluation report")
     agent39_eval_parser.add_argument("--no-save", action="store_true", help="Print the report summary without saving JSON")
     agent39_eval_parser.add_argument("--memory-db-path", type=Path, help="Isolated SQLite path used by evaluation Agent runs")
+
+    agent310_parser = subparsers.add_parser("agent-v3-10", help="Run V3.10 Production Core with lifecycle observation")
+    agent310_subparsers = agent310_parser.add_subparsers(dest="agent310_command", required=True)
+    agent310_ask_parser = agent310_subparsers.add_parser("ask", help="Run V3.8.1 Agent and print the V3.10 run summary")
+    agent310_ask_parser.add_argument("question")
+    agent310_ask_parser.add_argument("--conversation-id")
+    agent310_ask_parser.add_argument("--memory-window", type=int, default=3)
+    agent310_ask_parser.add_argument("--disable-memory-compaction", action="store_true")
+    agent310_ask_parser.add_argument("--memory-compaction-trigger-turns", type=int, default=4)
+    agent310_ask_parser.add_argument("--memory-compaction-trigger-tokens", type=int, default=3000)
+    agent310_ask_parser.add_argument("--top-k", type=int, default=5)
+    agent310_ask_parser.add_argument("--mode", choices=["dense", "keyword", "hybrid"], default="hybrid")
+    agent310_ask_parser.add_argument("--max-steps", type=int, default=4)
+    agent310_ask_parser.add_argument("--max-retries", type=int, default=1)
+    agent310_ask_parser.add_argument("--filter-path")
+    agent310_ask_parser.add_argument("--context-max-chunks", type=int, default=6)
+    agent310_ask_parser.add_argument("--context-token-budget", type=int, default=4000)
+    agent310_ask_parser.add_argument("--memory-db-path", type=Path, help="V3.10 SQLite Memory DB path")
 
     args = parser.parse_args()
     config = load_config()
@@ -368,6 +390,26 @@ def main() -> None:
             dataset_path=args.dataset,
             config=config,
             output_path=output_path,
+            memory_db_path=args.memory_db_path,
+        )
+        return
+
+    if args.command == "agent-v3-10" and args.agent310_command == "ask":
+        run_agent310_ask(
+            question=args.question,
+            conversation_id=args.conversation_id,
+            memory_window=args.memory_window,
+            memory_compaction_enabled=not args.disable_memory_compaction,
+            memory_compaction_trigger_turns=args.memory_compaction_trigger_turns,
+            memory_compaction_trigger_tokens=args.memory_compaction_trigger_tokens,
+            config=config,
+            top_k=args.top_k,
+            mode=args.mode,
+            max_steps=args.max_steps,
+            max_retries=args.max_retries,
+            filter_path=args.filter_path,
+            context_max_chunks=args.context_max_chunks,
+            context_token_budget=args.context_token_budget,
             memory_db_path=args.memory_db_path,
         )
         return
@@ -997,6 +1039,91 @@ def run_agent381_ask(
         if step.reason:
             parts.append(f"reason={step.reason}")
         print(" | ".join(parts))
+
+
+def run_agent310_ask(
+    question: str,
+    config: RagConfig,
+    conversation_id: str | None = None,
+    memory_window: int = 3,
+    memory_compaction_enabled: bool = True,
+    memory_compaction_trigger_turns: int = 4,
+    memory_compaction_trigger_tokens: int = 3000,
+    top_k: int = 5,
+    mode: SearchMode = "hybrid",
+    max_steps: int = 4,
+    max_retries: int = 1,
+    filter_path: str | None = None,
+    context_max_chunks: int = 6,
+    context_token_budget: int = 4000,
+    memory_db_path: Path | None = None,
+    retrieval_service=None,
+    chat_client=None,
+    agent_service=None,
+    runtime_service=None,
+) -> None:
+    """运行 V3.10 外壳并打印简洁的 Production Run 观察结果。"""
+
+    if runtime_service is None:
+        if agent_service is None:
+            service = retrieval_service or RetrievalService(config)
+            memory_store = SQLite381ConversationMemoryStore(memory_db_path or default310_memory_db_path())
+            agent = Agent381Service(
+                retrieval_service=service,
+                chat_client=chat_client,
+                chat_client_factory=lambda: OpenAIChatClient(
+                    api_key=config.api_key,
+                    base_url=config.base_url,
+                    model=config.chat_model,
+                ),
+                memory_store=memory_store,
+            )
+        else:
+            agent = agent_service
+        runtime = AgentRuntimeService(agent_service=agent, run_store=InMemoryRunStore())
+    else:
+        runtime = runtime_service
+
+    response = runtime.ask(
+        ProductionAskRequest(
+            question=question,
+            conversation_id=conversation_id,
+            memory_window=memory_window,
+            memory_compaction_enabled=memory_compaction_enabled,
+            memory_compaction_trigger_turns=memory_compaction_trigger_turns,
+            memory_compaction_trigger_tokens=memory_compaction_trigger_tokens,
+            top_k=top_k,
+            mode=mode,
+            filters=SearchFilters(path=filter_path) if filter_path else None,
+            max_steps=max_steps,
+            max_retries=max_retries,
+            context_max_chunks=context_max_chunks,
+            context_token_budget=context_token_budget,
+        )
+    )
+    run = response.run
+    print(f"Production run: {run.run_id}")
+    print(f"Status: {run.status}")
+    if run.agent_run_id:
+        print(f"Agent run: {run.agent_run_id}")
+    if run.timing.duration_ms is not None:
+        print(f"Duration: {run.timing.duration_ms} ms")
+    if run.metrics:
+        print(
+            f"Graph nodes: {run.metrics.graph_node_count} | Trace events: {run.metrics.trace_event_count} "
+            f"| Retrieval results: {run.metrics.retrieval_result_count}"
+        )
+        for tool in run.metrics.tool_summaries:
+            print(
+                f"Tool: {tool.tool_name} | calls={tool.call_count} | success={tool.success_count} "
+                f"| failed={tool.failed_count} | results={tool.result_count}"
+            )
+        estimate = run.metrics.token_estimate
+        print(f"Observed token estimate: {estimate.observed_total_tokens}")
+    if run.error:
+        print(f"Error: {run.error.error_type}: {run.error.message}")
+    if response.agent_response:
+        print(response.agent_response.answer.strip())
 
 
 def run_agent381_compact(
