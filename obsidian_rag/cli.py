@@ -36,6 +36,9 @@ from obsidian_rag.v3_8_1.compaction import ConversationCompactor as Conversation
 from obsidian_rag.v3_8_1.memory import SQLiteConversationMemoryStore as SQLite381ConversationMemoryStore
 from obsidian_rag.v3_8_1.memory import default_memory_db_path as default381_memory_db_path
 from obsidian_rag.v3_8_1.schemas import AgentAskRequest as Agent381AskRequest
+from obsidian_rag.v3_9.dependencies import default_agent_eval_memory_db_path
+from obsidian_rag.v3_9.evaluation.dataset import load_agent_eval_dataset
+from obsidian_rag.v3_9.evaluation.evaluator import AgentEvaluator, default_agent_eval_output_path
 from obsidian_rag.llm import OpenAIChatClient
 
 
@@ -184,6 +187,14 @@ def main() -> None:
     agent381_compact_parser.add_argument("--trigger-tokens", type=int, default=3000)
     agent381_compact_parser.add_argument("--no-force", action="store_true")
     agent381_compact_parser.add_argument("--memory-db-path", type=Path)
+
+    agent39_parser = subparsers.add_parser("agent-v3-9", help="Run V3.9 trace-aware Agent evaluation")
+    agent39_subparsers = agent39_parser.add_subparsers(dest="agent39_command", required=True)
+    agent39_eval_parser = agent39_subparsers.add_parser("eval", help="Evaluate V3.8.1 Agent behavior from a YAML case dataset")
+    agent39_eval_parser.add_argument("dataset", type=Path, help="YAML agent evaluation dataset path")
+    agent39_eval_parser.add_argument("--output", type=Path, help="Where to save the JSON evaluation report")
+    agent39_eval_parser.add_argument("--no-save", action="store_true", help="Print the report summary without saving JSON")
+    agent39_eval_parser.add_argument("--memory-db-path", type=Path, help="Isolated SQLite path used by evaluation Agent runs")
 
     args = parser.parse_args()
     config = load_config()
@@ -351,6 +362,16 @@ def main() -> None:
         )
         return
 
+    if args.command == "agent-v3-9" and args.agent39_command == "eval":
+        output_path = None if args.no_save else args.output or default_agent_eval_output_path()
+        run_agent39_eval(
+            dataset_path=args.dataset,
+            config=config,
+            output_path=output_path,
+            memory_db_path=args.memory_db_path,
+        )
+        return
+
 
 def run_retrieval_eval(
     dataset_path: Path,
@@ -370,6 +391,51 @@ def run_retrieval_eval(
     print(f"Hit rate@{top_k}: {report.summary.hit_rate_at_k:.4f}")
     print(f"MRR: {report.summary.mean_reciprocal_rank:.4f}")
     print(f"Source recall: {report.summary.mean_source_recall:.4f}")
+    if output_path is not None:
+        print(f"Saved report: {output_path}")
+
+
+def run_agent39_eval(
+    dataset_path: Path,
+    config: RagConfig | None = None,
+    output_path: Path | None = None,
+    memory_db_path: Path | None = None,
+    retrieval_service=None,
+    chat_client=None,
+    agent_service=None,
+) -> None:
+    """从 YAML 批量运行 V3.8.1 Agent，并输出 V3.9 行为评测摘要。"""
+
+    dataset = load_agent_eval_dataset(dataset_path)
+    if agent_service is None:
+        if config is None:
+            raise ValueError("config is required when agent_service is not provided")
+        service = retrieval_service or RetrievalService(config)
+        memory_store = SQLite381ConversationMemoryStore(memory_db_path or default_agent_eval_memory_db_path())
+        agent = Agent381Service(
+            retrieval_service=service,
+            chat_client=chat_client,
+            chat_client_factory=lambda: OpenAIChatClient(
+                api_key=config.api_key,
+                base_url=config.base_url,
+                model=config.chat_model,
+            ),
+            memory_store=memory_store,
+        )
+    else:
+        agent = agent_service
+
+    report = AgentEvaluator(agent).evaluate_dataset(dataset, output_path=output_path)
+    print(f"Cases: {report.summary.case_count}")
+    print(f"Passed: {report.summary.passed_count}")
+    print(f"Pass rate: {report.summary.pass_rate:.4f}")
+    print(f"Mean score: {report.summary.mean_score:.4f}")
+    for case in report.cases:
+        status = "PASS" if case.passed else "FAIL"
+        print(f"{status} | {case.case_id} | score={case.score:.4f}")
+        for check in case.checks:
+            if not check.passed:
+                print(f"  - {check.name}: {check.detail}")
     if output_path is not None:
         print(f"Saved report: {output_path}")
 

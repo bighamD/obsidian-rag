@@ -1,0 +1,51 @@
+cases:
+  - id: chicken-wash
+    request:
+      question: 生鸡肉要不要洗？
+      top_k: 5
+      mode: hybrid
+      max_steps: 4
+    expect:
+      should_retrieve: true
+      required_step_kinds: [search, synthesize]
+      expected_tools: [search_notes]
+      expected_chunk_ids: [KB-072]
+      expected_source_files: [rag_test_food_safety_kb_expanded.md]
+      evidence_sufficient: true
+      expected_answer_points: [不建议清洗生鸡肉, 交叉污染]
+
+  - id: weather-no-search
+    request:
+      question: 今天深圳天气怎么样？
+      top_k: 5
+      mode: hybrid
+      max_steps: 4
+    expect:
+      should_retrieve: false
+      required_step_kinds: [no_search]
+      expected_tools: []
+
+  - id: unclear-question
+    request:
+      question: 这个安全吗？
+      top_k: 5
+      mode: hybrid
+      max_steps: 4
+    expect:
+      should_retrieve: false
+      required_step_kinds: [clarify]
+      expected_tools: []
+
+  - id: chicken-wash-and-temperature
+    request:
+      question: 生鸡肉要不要洗，鸡翅烧烤时中心温度要多少才安全？
+      top_k: 5
+      mode: hybrid
+      max_steps: 4
+    expect:
+      should_retrieve: true
+      required_step_kinds: [search, synthesize]
+      expected_tools: [search_notes]
+      expected_chunk_ids: [KB-072, KB-044]
+      evidence_sufficient: true
+      expected_answer_points: [不建议清洗生鸡肉, 74°C]
