@@ -79,10 +79,11 @@ export function useAgentConsole() {
   }
 
   async function hydrateConversation(conversationId: string) {
+    const session = getSessionFrom(sessions.value, conversationId);
+    response.value = latestSessionRun(session);
     try {
       const conversation = await fetchConversation(conversationId, options.memoryWindow);
       memorySnapshot.value = conversation.memory_snapshot;
-      const session = getSessionFrom(sessions.value, conversationId);
       if (session && session.messages.length === 0) {
         session.messages = conversation.memory_snapshot.recent_turns.flatMap((turn) => [
           createMessage("user", turn.user_message, turn.created_at),
@@ -96,7 +97,6 @@ export function useAgentConsole() {
 
   async function selectConversation(conversationId: string) {
     activeConversationId.value = conversationId;
-    response.value = null;
     requestError.value = "";
     await hydrateConversation(conversationId);
   }
@@ -230,6 +230,13 @@ function appendMessage(session: ConsoleSession, message: ConsoleMessage) {
 
 function getSessionFrom(sessions: ConsoleSession[], conversationId: string): ConsoleSession | undefined {
   return sessions.find((session) => session.id === conversationId);
+}
+
+function latestSessionRun(session: ConsoleSession | undefined): ProductionAskResponse | null {
+  if (!session) {
+    return null;
+  }
+  return [...session.messages].reverse().find((message) => message.run)?.run ?? null;
 }
 
 function compactTitle(question: string): string {
