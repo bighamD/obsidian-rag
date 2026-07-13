@@ -8,6 +8,10 @@ from obsidian_rag.schema import SourceDocument, TextChunk
 
 
 CHUNK_METADATA_RE = re.compile(r"```ya?ml\s*\n(.*?)\n```", re.IGNORECASE | re.DOTALL)
+KB_SECTION_HEADING_RE = re.compile(
+    r"^##\s+(KB-[A-Za-z0-9][A-Za-z0-9_-]*)(?=\s|[:：]|$).*$",
+    re.MULTILINE,
+)
 
 
 def chunk_document(document: SourceDocument, max_chars: int = 1200, overlap_chars: int = 150) -> list[TextChunk]:
@@ -21,11 +25,17 @@ def chunk_document(document: SourceDocument, max_chars: int = 1200, overlap_char
         return []
 
     chunks: list[TextChunk] = []
-    for index, chunk_text in enumerate(_split_text(text, max_chars, overlap_chars)):
+    for section_text, section_chunk_id in _split_kb_sections(text):
         metadata = dict(document.metadata)
-        metadata["chunk_index"] = index
-        metadata.update(_extract_chunk_metadata(chunk_text, metadata))
-        chunks.append(TextChunk(text=chunk_text, metadata=metadata))
+        metadata.update(_extract_chunk_metadata(section_text, metadata))
+        if section_chunk_id is not None:
+            # KB 标题定义语义边界和稳定 ID；YAML 补充 topic、tags 等元数据。
+            metadata["chunk_id"] = section_chunk_id
+
+        for chunk_text in _split_text(section_text, max_chars, overlap_chars):
+            chunk_metadata = dict(metadata)
+            chunk_metadata["chunk_index"] = len(chunks)
+            chunks.append(TextChunk(text=chunk_text, metadata=chunk_metadata))
     return chunks
 
 
@@ -61,6 +71,26 @@ def _split_text(text: str, max_chars: int, overlap_chars: int) -> list[str]:
     if current:
         chunks.append(current.strip())
     return chunks
+
+
+def _split_kb_sections(text: str) -> list[tuple[str, str | None]]:
+    """按二级 KB 标题切分，避免相邻知识块共享或错配 metadata。"""
+
+    headings = list(KB_SECTION_HEADING_RE.finditer(text))
+    if not headings:
+        return [(text, None)]
+
+    sections: list[tuple[str, str | None]] = []
+    prefix = text[: headings[0].start()].strip()
+    if prefix:
+        sections.append((prefix, None))
+
+    for index, heading in enumerate(headings):
+        end = headings[index + 1].start() if index + 1 < len(headings) else len(text)
+        section = text[heading.start() : end].strip()
+        if section:
+            sections.append((section, heading.group(1)))
+    return sections
 
 
 def _split_long_paragraph(paragraph: str, max_chars: int, overlap_chars: int) -> list[str]:

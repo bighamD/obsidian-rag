@@ -41,6 +41,38 @@ source: WHO Food Safety Manual
     assert chunks[0].metadata["tags"] == ["vault", "food-safety", "chicken"]
 
 
+def test_chunk_document_keeps_kb_metadata_on_every_subchunk_in_a_kb_section():
+    document = SourceDocument(
+        text="""## KB-070：旧知识块
+
+```yaml
+chunk_id: KB-070
+topic: 旧主题
+```
+
+旧知识块内容。旧知识块内容。旧知识块内容。旧知识块内容。旧知识块内容。
+
+---
+
+## KB-072：鸡肉处理
+
+```yaml
+chunk_id: KB-072
+topic: 鸡肉处理
+```
+
+不建议清洗生鸡肉，因为水花可能造成交叉污染。处理鸡肉后要清洁水槽和台面。为了让正文被拆成多个子 chunk，这里继续补充足够长的说明文字。为了让正文被拆成多个子 chunk，这里继续补充足够长的说明文字。""",
+        metadata={"source": "food.md", "title": "食品安全", "tags": ["vault"]},
+    )
+
+    chunks = chunk_document(document, max_chars=100, overlap_chars=0)
+
+    chicken_chunks = [chunk for chunk in chunks if "鸡肉" in chunk.text or "交叉污染" in chunk.text]
+    assert len(chicken_chunks) >= 2
+    assert {chunk.metadata.get("chunk_id") for chunk in chicken_chunks} == {"KB-072"}
+    assert {chunk.metadata.get("topic") for chunk in chicken_chunks} == {"鸡肉处理"}
+
+
 def test_chunk_document_rejects_overlap_larger_than_chunk_size():
     document = SourceDocument(text="abc", metadata={"source": "a.md"})
 
