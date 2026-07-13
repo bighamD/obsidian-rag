@@ -46,6 +46,25 @@ from obsidian_rag.v3_10.schemas import ProductionAskRequest
 from obsidian_rag.llm import OpenAIChatClient
 
 
+def _add_production_ask_arguments(parser, memory_db_help: str) -> None:
+    """为 V3.10 及其 Console 层复用同一套 Agent 运行参数。"""
+
+    parser.add_argument("question")
+    parser.add_argument("--conversation-id")
+    parser.add_argument("--memory-window", type=int, default=3)
+    parser.add_argument("--disable-memory-compaction", action="store_true")
+    parser.add_argument("--memory-compaction-trigger-turns", type=int, default=4)
+    parser.add_argument("--memory-compaction-trigger-tokens", type=int, default=3000)
+    parser.add_argument("--top-k", type=int, default=5)
+    parser.add_argument("--mode", choices=["dense", "keyword", "hybrid"], default="hybrid")
+    parser.add_argument("--max-steps", type=int, default=4)
+    parser.add_argument("--max-retries", type=int, default=1)
+    parser.add_argument("--filter-path")
+    parser.add_argument("--context-max-chunks", type=int, default=6)
+    parser.add_argument("--context-token-budget", type=int, default=4000)
+    parser.add_argument("--memory-db-path", type=Path, help=memory_db_help)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(prog="obsidian-rag")
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -203,20 +222,12 @@ def main() -> None:
     agent310_parser = subparsers.add_parser("agent-v3-10", help="Run V3.10 Production Core with lifecycle observation")
     agent310_subparsers = agent310_parser.add_subparsers(dest="agent310_command", required=True)
     agent310_ask_parser = agent310_subparsers.add_parser("ask", help="Run V3.8.1 Agent and print the V3.10 run summary")
-    agent310_ask_parser.add_argument("question")
-    agent310_ask_parser.add_argument("--conversation-id")
-    agent310_ask_parser.add_argument("--memory-window", type=int, default=3)
-    agent310_ask_parser.add_argument("--disable-memory-compaction", action="store_true")
-    agent310_ask_parser.add_argument("--memory-compaction-trigger-turns", type=int, default=4)
-    agent310_ask_parser.add_argument("--memory-compaction-trigger-tokens", type=int, default=3000)
-    agent310_ask_parser.add_argument("--top-k", type=int, default=5)
-    agent310_ask_parser.add_argument("--mode", choices=["dense", "keyword", "hybrid"], default="hybrid")
-    agent310_ask_parser.add_argument("--max-steps", type=int, default=4)
-    agent310_ask_parser.add_argument("--max-retries", type=int, default=1)
-    agent310_ask_parser.add_argument("--filter-path")
-    agent310_ask_parser.add_argument("--context-max-chunks", type=int, default=6)
-    agent310_ask_parser.add_argument("--context-token-budget", type=int, default=4000)
-    agent310_ask_parser.add_argument("--memory-db-path", type=Path, help="V3.10 SQLite Memory DB path")
+    _add_production_ask_arguments(agent310_ask_parser, "V3.10 SQLite Memory DB path")
+
+    agent3101_parser = subparsers.add_parser("agent-v3-10-1", help="Run the V3.10.1 Agent Console JSON flow")
+    agent3101_subparsers = agent3101_parser.add_subparsers(dest="agent3101_command", required=True)
+    agent3101_ask_parser = agent3101_subparsers.add_parser("ask", help="Run the Console-backed JSON Agent request from CLI")
+    _add_production_ask_arguments(agent3101_ask_parser, "V3.10.1 Console SQLite Memory DB path")
 
     args = parser.parse_args()
     config = load_config()
@@ -396,6 +407,26 @@ def main() -> None:
 
     if args.command == "agent-v3-10" and args.agent310_command == "ask":
         run_agent310_ask(
+            question=args.question,
+            conversation_id=args.conversation_id,
+            memory_window=args.memory_window,
+            memory_compaction_enabled=not args.disable_memory_compaction,
+            memory_compaction_trigger_turns=args.memory_compaction_trigger_turns,
+            memory_compaction_trigger_tokens=args.memory_compaction_trigger_tokens,
+            config=config,
+            top_k=args.top_k,
+            mode=args.mode,
+            max_steps=args.max_steps,
+            max_retries=args.max_retries,
+            filter_path=args.filter_path,
+            context_max_chunks=args.context_max_chunks,
+            context_token_budget=args.context_token_budget,
+            memory_db_path=args.memory_db_path,
+        )
+        return
+
+    if args.command == "agent-v3-10-1" and args.agent3101_command == "ask":
+        run_agent3101_ask(
             question=args.question,
             conversation_id=args.conversation_id,
             memory_window=args.memory_window,
@@ -1124,6 +1155,13 @@ def run_agent310_ask(
         print(f"Error: {run.error.error_type}: {run.error.message}")
     if response.agent_response:
         print(response.agent_response.answer.strip())
+
+
+def run_agent3101_ask(*args, **kwargs) -> None:
+    """V3.10.1 的 CLI 调试入口；Agent 运行仍复用 V3.10 Production Runtime。"""
+
+    print("Agent Console JSON flow")
+    run_agent310_ask(*args, **kwargs)
 
 
 def run_agent381_compact(
