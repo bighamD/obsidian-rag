@@ -22,6 +22,7 @@ docs/harness-learning-roadmap.md
 
 - 独立目录，例如 `obsidian_rag/v3_5/`。
 - FastAPI app，Swagger 可测试 JSON 接口。
+- 新版本的 `schemas.py` 必须为 Pydantic 模型添加职责注释；输入、输出、Memory、Context、Trace 等对外关键字段必须使用 `Field(description=...)` 提供中文说明，使 Swagger/OpenAPI 可直接解释字段。涉及 LLM Context 时，必须明确区分原始 Turn、滚动摘要、知识库 chunk、实际 Prompt 字段与仅用于调试的响应字段。
 - CLI 调试入口，例如 `obsidian-rag agent-v3-5 ...`。
 - VS Code/Cursor `launch.json` 调试配置。
 - 单元测试，至少覆盖 service、API、CLI。
