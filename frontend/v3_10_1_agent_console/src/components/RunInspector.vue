@@ -2,6 +2,7 @@
 import {
   Activity,
   BrainCircuit,
+  ChevronDown,
   CheckCircle2,
   Clipboard,
   Clock3,
@@ -13,6 +14,7 @@ import {
 } from "lucide-vue-next";
 import { computed, ref } from "vue";
 
+import RetrievedChunkList from "@/components/RetrievedChunkList.vue";
 import type { MemorySnapshot, ProductionAskResponse, StepResult } from "@/types/production";
 import { formatDateTime, formatDuration, shortId, statusLabel } from "@/utils/format";
 
@@ -32,6 +34,12 @@ const allStepResults = computed<StepResult[]>(() => {
   }
   return [...agent.value.step_results, ...agent.value.retry_step_results];
 });
+const planItems = computed(() =>
+  (agent.value?.plan.steps ?? []).map((step) => ({
+    step,
+    result: allStepResults.value.find((result) => result.step_id === step.id),
+  })),
+);
 const timeline = computed(() => {
   if (!run.value) {
     return [];
@@ -61,8 +69,8 @@ async function copy(value: string | null | undefined) {
   await navigator.clipboard.writeText(value);
 }
 
-function stepResult(stepId: string) {
-  return allStepResults.value.find((result) => result.step_id === stepId);
+function toolCalls(toolName: string): StepResult[] {
+  return allStepResults.value.filter((result) => result.tool_name === toolName);
 }
 </script>
 
@@ -130,21 +138,32 @@ function stepResult(stepId: string) {
       <section v-else-if="activeTab === 'plan'" class="inspector-section">
         <div v-if="agent" class="plan-goal"><Route :size="17" /><span>{{ agent.plan.goal }}</span></div>
         <ol v-if="agent" class="plan-list">
-          <li v-for="step in agent.plan.steps" :key="step.id">
-            <span class="plan-index">{{ step.id }}</span>
+          <li v-for="item in planItems" :key="item.step.id">
+            <span class="plan-index">{{ item.step.id }}</span>
             <div>
-              <div class="plan-title"><strong>{{ step.kind }}</strong><span :class="['step-status', stepResult(step.id)?.status ?? 'skipped']">{{ stepResult(step.id)?.status ?? 'planned' }}</span></div>
-              <p>{{ step.query || step.instruction || step.reason || '无附加说明' }}</p>
-              <small v-if="stepResult(step.id)?.result_count">{{ stepResult(step.id)?.result_count }} 条结果</small>
-              <small v-if="stepResult(step.id)?.error" class="error-text">{{ stepResult(step.id)?.error }}</small>
+              <div class="plan-title"><strong>{{ item.step.kind }}</strong><span :class="['step-status', item.result?.status ?? 'skipped']">{{ item.result?.status ?? 'planned' }}</span></div>
+              <p>{{ item.step.query || item.step.instruction || item.step.reason || '无附加说明' }}</p>
+              <details v-if="item.result?.result_count" class="result-disclosure">
+                <summary><span><ChevronDown :size="14" />{{ item.result.result_count }} 条结果</span><small>查看检索明细</small></summary>
+                <RetrievedChunkList :hits="item.result.results" />
+              </details>
+              <small v-if="item.result?.error" class="error-text">{{ item.result.error }}</small>
             </div>
           </li>
         </ol>
         <div v-if="run.metrics?.tool_summaries.length" class="tool-summary">
           <p class="section-kicker">工具汇总</p>
-          <div v-for="tool in run.metrics.tool_summaries" :key="tool.tool_name" class="tool-row">
-            <Search :size="16" /><strong>{{ tool.tool_name }}</strong><span>{{ tool.call_count }} 次调用</span><span>{{ tool.result_count }} 条结果</span>
-          </div>
+          <details v-for="tool in run.metrics.tool_summaries" :key="tool.tool_name" class="tool-disclosure">
+            <summary class="tool-row">
+              <Search :size="16" /><strong>{{ tool.tool_name }}</strong><span>{{ tool.call_count }} 次调用</span><span>{{ tool.result_count }} 条结果<ChevronDown :size="14" /></span>
+            </summary>
+            <div class="tool-call-list">
+              <article v-for="call in toolCalls(tool.tool_name)" :key="call.step_id" class="tool-call-detail">
+                <div><strong>{{ call.step_id }}</strong><span>{{ call.query || call.instruction || call.reason || '无查询参数' }}</span></div>
+                <RetrievedChunkList :hits="call.results" :empty-text="call.error || '该次工具调用没有返回检索结果。'" />
+              </article>
+            </div>
+          </details>
         </div>
         <p v-else class="muted-text">本次没有工具调用</p>
       </section>
@@ -174,10 +193,15 @@ function stepResult(stepId: string) {
           <div><strong>Answer Context</strong><p>{{ agent.context_bundle.context_summary }}</p><small>预算 {{ agent.context_bundle.token_budget }} · 已选 {{ agent.context_bundle.included_chunks.length }} chunks · 排除 {{ agent.context_bundle.excluded_chunks.length }} chunks</small></div>
         </div>
         <div v-if="agent?.context_bundle.included_chunks.length" class="chunk-list">
-          <p class="section-kicker">选入的知识块</p>
-          <article v-for="chunk in agent.context_bundle.included_chunks" :key="`${chunk.chunk_id}-${chunk.source}`">
-            <FileSearch :size="15" /><div><strong>{{ chunk.chunk_id || chunk.source }}</strong><span>{{ chunk.source }}</span><p>{{ chunk.text_preview }}</p></div>
-          </article>
+          <p class="section-kicker">选入的知识块 · {{ agent.context_bundle.included_chunks.length }}</p>
+          <details v-for="chunk in agent.context_bundle.included_chunks" :key="`${chunk.step_id}-${chunk.chunk_id}-${chunk.source}`" class="chunk-disclosure">
+            <summary>
+              <FileSearch :size="15" />
+              <div><strong>{{ chunk.chunk_id || chunk.source }}</strong><span>{{ chunk.source }}</span><p>{{ chunk.text_preview }}</p></div>
+              <ChevronDown :size="16" />
+            </summary>
+            <RetrievedChunkList :hits="[chunk]" />
+          </details>
         </div>
       </section>
     </template>

@@ -47,6 +47,10 @@ class SearchHit(BaseModel):
     keyword_score: float | None = None
     hybrid_score: float | None = None
     text_preview: str
+    text: str | None = Field(
+        default=None,
+        description="命中的原始 chunk 全文；text_preview 是用于列表快速浏览的截断版本。",
+    )
     metadata: dict[str, Any]
 
 
@@ -86,6 +90,7 @@ def to_search_hit(result: SearchResult | RankedSearchResult) -> SearchHit:
         keyword_score=getattr(result, "keyword_score", None),
         hybrid_score=getattr(result, "hybrid_score", None),
         text_preview=_preview(result.chunk.text),
+        text=result.chunk.text,
         metadata=metadata,
     )
 

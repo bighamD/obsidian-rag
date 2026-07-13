@@ -76,7 +76,19 @@ export interface SearchHit {
   source: string;
   topic: string | null;
   score: number;
+  dense_rank: number | null;
+  keyword_rank: number | null;
+  dense_score: number | null;
+  keyword_score: number | null;
+  hybrid_score: number | null;
   text_preview: string;
+  text: string | null;
+  metadata: Record<string, unknown>;
+}
+
+export interface ContextChunk extends SearchHit {
+  step_id: string | null;
+  reason: string | null;
 }
 
 export interface StepResult {
@@ -151,8 +163,8 @@ export interface AgentResponse {
     reason: string;
   };
   context_bundle: {
-    included_chunks: SearchHit[];
-    excluded_chunks: SearchHit[];
+    included_chunks: ContextChunk[];
+    excluded_chunks: ContextChunk[];
     token_budget: number;
     context_summary: string;
   };

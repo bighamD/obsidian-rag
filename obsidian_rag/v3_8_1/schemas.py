@@ -133,7 +133,17 @@ class ContextChunk(BaseModel):
     source: str = Field(description="chunk 所属的知识库源文件。")
     topic: str | None = Field(default=None, description="chunk 的主题元数据。")
     score: float = Field(description="当前检索模式下用于排序的最终分数。")
-    text_preview: str = Field(description="送入 Answer prompt 的 chunk 文本内容或预览。")
+    dense_rank: int | None = Field(default=None, description="dense 检索中的名次；非 dense/hybrid 结果可能为空。")
+    keyword_rank: int | None = Field(default=None, description="keyword 检索中的名次；非 keyword/hybrid 结果可能为空。")
+    dense_score: float | None = Field(default=None, description="dense 检索分数，仅用于调试观察。")
+    keyword_score: float | None = Field(default=None, description="keyword 检索分数，仅用于调试观察。")
+    hybrid_score: float | None = Field(default=None, description="RRF 或 hybrid 融合后的分数，仅用于调试观察。")
+    text_preview: str = Field(description="实际送入 Answer prompt 的 chunk 文本预览。")
+    text: str | None = Field(
+        default=None,
+        description="命中的原始 chunk 全文，仅用于 API/Console 调试展示，不会自动进入 Answer prompt。",
+    )
+    metadata: dict[str, Any] = Field(default_factory=dict, description="原始检索 metadata，仅用于 API/Console 调试展示。")
     reason: str | None = Field(default=None, description="该 chunk 被选入或排除的原因。")
 
 
@@ -144,6 +154,8 @@ class ContextBundle(BaseModel):
     `question`、`plan`、`evidence_check`、`token_budget`、
     `conversation_summary`、`conversation_memory` 和 `included_chunks`。
 
+    `included_chunks` 的 `text`、排序字段与 `metadata` 是 API/Console 的调试信息；
+    真正的 Answer prompt 只使用其必要投影（包含 `text_preview`）。
     `excluded_chunks` 与 `context_summary` 仅用于 API 响应和调试观察，
     不会放进 Answer LLM 的 prompt。
     """

@@ -59,7 +59,14 @@ def _context_chunk_from_hit(step_id: str, hit: SearchHit) -> ContextChunk:
         source=hit.source,
         topic=hit.topic,
         score=hit.score,
+        dense_rank=hit.dense_rank,
+        keyword_rank=hit.keyword_rank,
+        dense_score=hit.dense_score,
+        keyword_score=hit.keyword_score,
+        hybrid_score=hit.hybrid_score,
         text_preview=hit.text_preview,
+        text=hit.text,
+        metadata=hit.metadata,
         reason="带 chunk_id，优先进入上下文" if hit.chunk_id else "没有 chunk_id，优先级低于已标注 chunk",
     )
 
@@ -84,7 +91,7 @@ def _build_messages(
         "token_budget": token_budget,
         "conversation_summary": memory_snapshot.summary_text or None,
         "conversation_memory": [turn.model_dump() for turn in memory_snapshot.recent_turns],
-        "included_chunks": [chunk.model_dump() for chunk in included_chunks],
+        "included_chunks": [_prompt_chunk(chunk) for chunk in included_chunks],
     }
     return [
         {
@@ -93,6 +100,20 @@ def _build_messages(
         },
         {"role": "user", "content": json.dumps(context_payload, ensure_ascii=False)},
     ]
+
+
+def _prompt_chunk(chunk: ContextChunk) -> dict[str, object]:
+    """保留 Answer 节点原有的轻量证据字段，隔离 Console 调试扩展字段。"""
+
+    return {
+        "step_id": chunk.step_id,
+        "chunk_id": chunk.chunk_id,
+        "source": chunk.source,
+        "topic": chunk.topic,
+        "score": chunk.score,
+        "text_preview": chunk.text_preview,
+        "reason": chunk.reason,
+    }
 
 
 def build_memory_aware_planner_question(question: str, memory_snapshot: MemorySnapshot) -> str:

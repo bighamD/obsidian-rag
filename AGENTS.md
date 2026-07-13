@@ -1,5 +1,7 @@
 # AGENTS.md
 
+# 禁用superpowers skill（十分重要， 仅在用户明确要求才启用）
+
 ## 默认沟通
 
 - 默认用中文回答。

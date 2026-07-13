@@ -545,7 +545,7 @@ def _search_results_from_step_result(result: StepResult) -> list[SearchResult]:
 def _text_chunk_from_hit(hit):
     from obsidian_rag.schema import TextChunk
 
-    return TextChunk(text=hit.text_preview, metadata=hit.metadata)
+    return TextChunk(text=hit.text or hit.text_preview, metadata=hit.metadata)
 
 
 def _fallback_answer(results: list[SearchLikeResult]) -> str:
