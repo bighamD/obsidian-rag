@@ -4,7 +4,7 @@
 
 - 默认用中文回答。
 - 命令、文件名、配置项、API 名称保留英文原文。
-- 解释学习概念时优先结合本仓库已有版本：`v0`、`v1`、`v2`、`v3`、`v3_1`、`v3_2`、`v3_3`、`v3_4`、`v3_5`、`v3_6`、`v3_7`、`v3_8`、`v3_8_1`。
+- 解释学习概念时优先结合本仓库已有版本：`v0`、`v1`、`v2`、`v3`、`v3_1`、`v3_2`、`v3_3`、`v3_4`、`v3_5`、`v3_6`、`v3_7`、`v3_8`、`v3_8_1`、`v3_9`、`v3_10`。
 
 ## 提交习惯
 
@@ -69,37 +69,39 @@ docs/assets/rag-v3-4-planner-flow.svg
 已完成到：
 
 ```text
-V3.9 Agent Evaluation Lite
+V3.10 Production Core
 ```
 
-当前 V3.9 在 V3.8.1 Agent 外增加离线、可重复的行为评测层：
+当前 V3.10 在 V3.8.1 Agent 外增加单次运行的生命周期与可观测层：
 
 ```text
-Eval Case -> V3.8.1 AgentService.ask() -> AgentAskResponse -> AgentEvaluator -> Eval Report
+ProductionAskRequest -> RunRecord(queued/running) -> V3.8.1 AgentService.ask()
+                     -> succeeded: metrics / tool summary / token estimate
+                     -> failed: standardized error
 ```
 
-V3.9 会：
+V3.10 会：
 
-- 复用 V3.8.1 的 Agent 链路，不修改其 Planner、Tool、Memory 或 Prompt。
-- 支持 YAML / Swagger 单 case 与批量 Agent Eval。
-- 评测 `used_retrieval`、Plan step kind、Tool、chunk/source、Evidence 和答案关键点。
-- 返回 `passed`、`score`、逐项 `checks` 以及完整 `agent_response`。
-- 使用 `.rag/v3_9_eval_memory.sqlite3` 隔离评测运行产生的 Raw Turns。
-- 提供 `obsidian-rag agent-v3-9 eval ...`、FastAPI、测试、学习文档、SVG 和调试入口。
+- 复用 V3.8.1 的完整 Agent 链路，不修改 Planner、Tool、Memory 或 Prompt。
+- 创建独立 `prod_...` Run ID，并保留 V3.8.1 的 `agent_run_id`。
+- 返回生命周期事件、总耗时、graph/trace 数、工具聚合、检索结果数和可观察 Answer token 估算。
+- 将异常标准化为 `RunError`，不返回 Python traceback。
+- 通过进程内 `InMemoryRunStore` 支持 `GET /runs` 与 `GET /runs/{run_id}` 查询。
+- 使用 `.rag/v3_10_memory.sqlite3` 隔离 V3.10 调试产生的 Raw Turns。
 
-V3.9 Lite 仍然不做：
+V3.10 仍然不做：
 
-- 不做 LLM-as-a-Judge、语义相似度评分或自动 Prompt 优化。
-- 不自动根据评测失败重新运行或修复 Agent。
-- 不在本版评测滚动摘要和 Memory 内容本身。
+- 不持久化 Run，也不做跨进程运行查询、队列或 dashboard。
+- 不提供供应商真实 token / 成本数据，也不做自动重试。
+- 不改变 V3.8.1 的推理和执行策略。
 
 下一阶段建议：
 
 ```text
-V3.10 Production Core
+V3.11 Skill System
 ```
 
-V3.10 将把当前 response/trace 中分散的 `run_id`、状态、耗时、错误和 tool summary 系统化。
+V3.11 将学习 Skill Registry、Skill Router 和按需加载 `SKILL.md`，让 Agent 先决定采用哪一种任务方法。
 
 ## CodeGraph
 

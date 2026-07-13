@@ -2,6 +2,68 @@
 	"version": "0.2.0",
 	"configurations": [
 		{
+			"name": "V3.10 API server: production core",
+			"type": "debugpy",
+			"request": "launch",
+			"module": "uvicorn",
+			"console": "integratedTerminal",
+			"cwd": "${workspaceFolder}",
+			"python": "${workspaceFolder}/.venv/bin/python",
+			"envFile": "${workspaceFolder}/.env",
+			"args": [
+				"obsidian_rag.v3_10.app:app",
+				"--host",
+				"127.0.0.1",
+				"--port",
+				"8012"
+			],
+			"justMyCode": true
+		},
+		{
+			"name": "V3.10 production: first turn",
+			"type": "debugpy",
+			"request": "launch",
+			"module": "obsidian_rag.cli",
+			"console": "integratedTerminal",
+			"cwd": "${workspaceFolder}",
+			"python": "${workspaceFolder}/.venv/bin/python",
+			"envFile": "${workspaceFolder}/.env",
+			"args": [
+				"agent-v3-10",
+				"ask",
+				"生鸡肉要不要洗？",
+				"--conversation-id",
+				"conv_v310_debug",
+				"--memory-window",
+				"3",
+				"--mode",
+				"hybrid"
+			],
+			"justMyCode": true
+		},
+		{
+			"name": "V3.10 production: follow-up turn",
+			"type": "debugpy",
+			"request": "launch",
+			"module": "obsidian_rag.cli",
+			"console": "integratedTerminal",
+			"cwd": "${workspaceFolder}",
+			"python": "${workspaceFolder}/.venv/bin/python",
+			"envFile": "${workspaceFolder}/.env",
+			"args": [
+				"agent-v3-10",
+				"ask",
+				"那处理完厨房怎么清洁？",
+				"--conversation-id",
+				"conv_v310_debug",
+				"--memory-window",
+				"3",
+				"--mode",
+				"hybrid"
+			],
+			"justMyCode": true
+		},
+		{
 			"name": "V3.9 API server: agent evaluation",
 			"type": "debugpy",
 			"request": "launch",

@@ -1,0 +1,70 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1180" height="680" viewBox="0 0 1180 680" role="img" aria-labelledby="title desc">
+  <title id="title">V3.10 Production Core flow</title>
+  <desc id="desc">V3.10 wraps the existing V3.8.1 Agent with a production run lifecycle. It creates a run record, calls the agent, then records timing, tool summary, token estimates, and either success or standardized error.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#475569"/>
+    </marker>
+    <marker id="soft-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#94a3b8"/>
+    </marker>
+  </defs>
+
+  <rect width="1180" height="680" fill="#f8fafc"/>
+  <text x="590" y="48" text-anchor="middle" font-family="Arial, sans-serif" font-size="28" font-weight="700" fill="#0f172a">V3.10 Production Core 流程</text>
+  <text x="590" y="78" text-anchor="middle" font-family="Arial, sans-serif" font-size="15" fill="#475569">在已有 V3.8.1 Agent 外增加 Run 生命周期和可观测摘要，不改变 Planner、RAG、Memory 的行为</text>
+
+  <rect x="48" y="142" width="228" height="346" rx="8" fill="#ffffff" stroke="#bfdbfe" stroke-width="2"/>
+  <rect x="48" y="142" width="228" height="54" rx="8" fill="#eff6ff" stroke="#bfdbfe" stroke-width="2"/>
+  <text x="162" y="176" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" font-weight="700" fill="#1d4ed8">请求</text>
+  <text x="76" y="238" font-family="Arial, sans-serif" font-size="16" font-weight="700" fill="#0f172a">ProductionAskRequest</text>
+  <text x="76" y="278" font-family="Arial, sans-serif" font-size="14" fill="#334155">question</text>
+  <text x="76" y="308" font-family="Arial, sans-serif" font-size="14" fill="#334155">RAG / Planner 配置</text>
+  <text x="76" y="338" font-family="Arial, sans-serif" font-size="14" fill="#334155">Context / Memory 配置</text>
+  <text x="76" y="392" font-family="Arial, sans-serif" font-size="13" fill="#64748b">字段完全复用 V3.8.1</text>
+  <text x="76" y="420" font-family="Arial, sans-serif" font-size="13" fill="#64748b">但响应多了 Production Run</text>
+
+  <rect x="348" y="112" width="484" height="410" rx="8" fill="#ffffff" stroke="#bbf7d0" stroke-width="2"/>
+  <rect x="348" y="112" width="484" height="54" rx="8" fill="#f0fdf4" stroke="#bbf7d0" stroke-width="2"/>
+  <text x="590" y="146" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" font-weight="700" fill="#047857">V3.10 AgentRuntimeService</text>
+
+  <circle cx="408" cy="224" r="22" fill="#dcfce7" stroke="#22c55e" stroke-width="2"/>
+  <text x="408" y="231" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="700" fill="#166534">1</text>
+  <rect x="446" y="192" width="324" height="64" rx="8" fill="#ffffff" stroke="#86efac" stroke-width="2"/>
+  <text x="470" y="218" font-family="Arial, sans-serif" font-size="16" font-weight="700" fill="#166534">创建 Production Run</text>
+  <text x="470" y="242" font-family="Arial, sans-serif" font-size="13" fill="#475569">queued -&gt; running，写入 InMemoryRunStore</text>
+
+  <circle cx="408" cy="316" r="22" fill="#fef9c3" stroke="#eab308" stroke-width="2"/>
+  <text x="408" y="323" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="700" fill="#854d0e">2</text>
+  <rect x="446" y="284" width="324" height="64" rx="8" fill="#ffffff" stroke="#fde047" stroke-width="2"/>
+  <text x="470" y="310" font-family="Arial, sans-serif" font-size="16" font-weight="700" fill="#854d0e">调用 V3.8.1 AgentService.ask</text>
+  <text x="470" y="334" font-family="Arial, sans-serif" font-size="13" fill="#475569">原有 LangGraph、RAG、Context、Memory 原样执行</text>
+
+  <circle cx="408" cy="408" r="22" fill="#ffedd5" stroke="#fb923c" stroke-width="2"/>
+  <text x="408" y="415" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="700" fill="#9a3412">3</text>
+  <rect x="446" y="376" width="324" height="64" rx="8" fill="#ffffff" stroke="#fdba74" stroke-width="2"/>
+  <text x="470" y="402" font-family="Arial, sans-serif" font-size="16" font-weight="700" fill="#9a3412">提炼可观察指标</text>
+  <text x="470" y="426" font-family="Arial, sans-serif" font-size="13" fill="#475569">耗时、graph/trace 数、工具摘要、token 估算</text>
+
+  <path d="M408 246 L408 286" stroke="#475569" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+  <path d="M408 338 L408 378" stroke="#475569" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+
+  <rect x="902" y="142" width="230" height="346" rx="8" fill="#ffffff" stroke="#cbd5e1" stroke-width="2"/>
+  <rect x="902" y="142" width="230" height="54" rx="8" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="2"/>
+  <text x="1017" y="176" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" font-weight="700" fill="#334155">JSON 响应</text>
+  <text x="930" y="236" font-family="Arial, sans-serif" font-size="16" font-weight="700" fill="#0f172a">ProductionAskResponse</text>
+  <text x="930" y="276" font-family="Arial, sans-serif" font-size="14" fill="#334155">run</text>
+  <text x="950" y="304" font-family="Arial, sans-serif" font-size="13" fill="#64748b">run_id / agent_run_id</text>
+  <text x="950" y="328" font-family="Arial, sans-serif" font-size="13" fill="#64748b">status / events / timing</text>
+  <text x="950" y="352" font-family="Arial, sans-serif" font-size="13" fill="#64748b">metrics / error</text>
+  <text x="930" y="400" font-family="Arial, sans-serif" font-size="14" fill="#334155">agent_response</text>
+  <text x="950" y="426" font-family="Arial, sans-serif" font-size="13" fill="#64748b">原始 V3.8.1 响应</text>
+
+  <path d="M276 316 L348 316" stroke="#475569" stroke-width="2.5" fill="none" marker-end="url(#arrow)"/>
+  <path d="M832 316 L902 316" stroke="#475569" stroke-width="2.5" fill="none" marker-end="url(#arrow)"/>
+
+  <path d="M770 316 C846 320 848 520 920 548" stroke="#e11d48" stroke-width="2" fill="none" stroke-dasharray="7 6" marker-end="url(#soft-arrow)"/>
+  <rect x="210" y="562" width="760" height="76" rx="8" fill="#fff1f2" stroke="#fda4af" stroke-width="2" stroke-dasharray="7 6"/>
+  <text x="590" y="592" text-anchor="middle" font-family="Arial, sans-serif" font-size="17" font-weight="700" fill="#be123c">异常分支：Agent 抛出异常</text>
+  <text x="590" y="620" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#475569">run.status=failed，agent_response=null，返回截断错误摘要；不会返回 Python traceback，也不会自动重试</text>
+</svg>

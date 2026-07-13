@@ -18,6 +18,7 @@ V3.7  ：Context Builder，选择、裁剪并格式化本轮上下文
 V3.8  ：Conversation Memory，SQLite 持久化并加载最近对话窗口
 V3.8.1：Conversation Compaction，旧 Turns 滚动摘要 + 最近 Turns 原文
 V3.9  ：Agent Evaluation Lite，运行 Agent 并用结构化契约评测行为
+V3.10 ：Production Core，为单次 Agent Run 提供生命周期、观测和错误摘要
 ```
 
 当前工程已经包含 intent router 能力：
@@ -25,7 +26,7 @@ V3.9  ：Agent Evaluation Lite，运行 Agent 并用结构化契约评测行为
 - V3.1 是显式 router：模型输出 `RouterDecision JSON`。
 - V3.2/V3.3 是隐式 router：模型通过 `tool_calls` 选择 `search_notes`、`no_search`、`clarify`。
 
-V3.9 已建立 Agent 行为回归基线，接下来可以进入 Production Core，系统化补足运行生命周期与观测。
+V3.9 已建立 Agent 行为回归基线；V3.10 已把运行生命周期、观测和错误摘要系统化。下一步可以进入 Skill System。
 
 ## 总体学习路线
 
@@ -59,7 +60,7 @@ AI Agent = LLM + Harness
 | --- | --- | --- |
 | Context / 上下文 | V3.7、V3.8.1 | V3.7 独立 `ContextBuilder`；V3.8.1 加入滚动摘要和最近对话。 |
 | Tool Calling / 工具调用 | V3.2、V3.3、V3.5 | 已覆盖：模型选择工具、LangGraph 编排、`ToolRegistry` 执行工具。 |
-| Skills / 技能系统 | V3.11 | 后续补：Skill Registry、LLM Skill Router、按需加载 `SKILL.md`。 |
+| Skills / 技能系统 | V3.11 | 下一步补：Skill Registry、LLM Skill Router、按需加载 `SKILL.md`。 |
 | MCP / 外部工具协议 | V3.12 | 后续补：MCP Client、MCP Tool Adapter，以及把本地 RAG 暴露为 MCP Server。 |
 | File I/O / 文件读写 | V0、V1 | 已覆盖基础：Markdown/PDF loader、chunk、ingest。后续不作为 agent 主线重点。 |
 | Shell Execution / 终端执行 | V3.14 Sandbox Execution | 后期只在隔离 Sandbox 中开放，不直接把宿主机 Shell 暴露给模型。 |
@@ -67,7 +68,7 @@ AI Agent = LLM + Harness
 | Memory & State / 记忆状态 | V3.3、V3.5、V3.8、V3.8.1 | 已有 AgentState、SQLite Raw Turns、最近窗口和滚动摘要。 |
 | Orchestrator / 任务编排 | V3.3、V3.4、V3.5、V3.6 | 已用 LangGraph 表达 node/edge；V3.6 会加入 evidence/retry 分支。 |
 | Verification / 测试验证 | V2、V3.6、V3.9 | V2 是 retrieval/answer eval；V3.6 是运行时 evidence check；V3.9 Lite 用 case contract 评测 routing、plan、tool、retrieval、evidence 和 answer。 |
-| Observation / 返回观察 | V3.5、V3.6、V3.10 | 已有 `trace`、`step_results`；后续补 latency、tool summary、error summary。 |
+| Observation / 返回观察 | V3.5、V3.6、V3.10 | 已有 `trace`、`step_results`；V3.10 已补 `RunRecord`、latency、tool summary、token estimate 和 error summary。 |
 | Reporter / 汇总输出 | V3.5、V3.7 | 已有 `synthesize_answer`；V3.7 会把上下文构建从 reporter 中拆出去。 |
 | Checkpoint / 恢复 | V3.15 | 后续补节点恢复、interrupt/resume、幂等和 Human-in-the-loop。 |
 
@@ -102,7 +103,7 @@ V3.7 Context Builder：系统知道把什么上下文交给模型
 V3.8 Conversation Memory：系统能处理多轮状态
 V3.8.1 Conversation Compaction：系统能压缩旧历史并保留最近原文
 V3.9 Agent Evaluation：系统能评估 agent 行为
-V3.10 Production Core：系统具备 run、观测、配置和稳定性基础
+V3.10 Production Core：系统具备 run、观测、配置和稳定性基础（已完成）
 V3.11 Skill System：系统能选择并渐进式加载任务方法
 V3.12 MCP Integration：系统能接入标准化外部工具并对外提供 RAG 工具
 V3.13 Permission Policy：系统能在执行前判断 allow / confirm / deny
@@ -127,8 +128,8 @@ Checkpoint / Recovery：节点失败、重试、恢复、中间结果保存
 
 1. `V3.8.1` 先控制 Context Window，否则长对话会让后续评测结果受上下文膨胀影响。
 2. `V3.9` 先建立 Agent Evaluation，后续增加 Skill、MCP 和 Sandbox 时才能做行为回归。
-3. `V3.10` 先补 Run Lifecycle 和观测，因为外部工具越多，越需要统一的 latency、token、error 和 tool summary。
-4. `V3.11` 先学习 Skill Router，再接 MCP。两者技术上没有强制依赖，但 Skill 负责“采用什么工作方法”，MCP 负责“通过什么协议调用外部能力”，按这个顺序更容易区分职责。
+3. `V3.10` 已补 Run Lifecycle 和观测，因为外部工具越多，越需要统一的 latency、token、error 和 tool summary。
+4. `V3.11` 将学习 Skill Router，再接 MCP。两者技术上没有强制依赖，但 Skill 负责“采用什么工作方法”，MCP 负责“通过什么协议调用外部能力”，按这个顺序更容易区分职责。
 5. `V3.12` 先让普通低风险 MCP 工具接入统一 `ToolRegistry`，验证协议适配和错误边界。
 6. `V3.13` 必须在开放文件写入和 Shell 前完成。所有本地工具和 MCP 工具都统一经过 allow / confirm / deny 策略。
 7. `V3.14` 只在 Sandbox 中执行高风险工具，不允许模型直接获得宿主机任意 Shell 权限。
@@ -595,18 +596,19 @@ examples:
 
 ## Phase 7：Production Core
 
-建议版本：`V3.10 Production Core`
+实现版本：`V3.10 Production Core`
 
 目标：在继续增加工具类型之前，先建立统一的 Run Lifecycle、配置、观测和失败边界。
 
-建议实现：
+本次已实现的最小 Production Core：
 
-- `run_id`、`request_id`、`status`、`started_at`、`ended_at`、`latency_ms`。
-- LLM、Tool、Retrieval 分层耗时。
-- token usage、模型调用次数、工具调用次数。
-- timeout、retry、fallback 和结构化 error summary。
-- prompt version、schema version 和解析失败降级。
-- 不同模型、工具开关、知识库 scope 的配置入口。
+- V3.10 `prod_...` run ID、`queued -> running -> succeeded/failed` 状态和生命周期事件。
+- UTC 开始/结束时间与总 `duration_ms`。
+- `graph_node_count`、`trace_event_count`、检索结果数与按工具名聚合的调用摘要。
+- Answer prompt / 最终 answer 的启发式 token estimate，并明确不是供应商 usage。
+- 标准化 `RunError`、安全的 `/runtime/config` 和进程内 `/runs` 查询。
+
+本版刻意延后：请求 ID、LLM/Tool/Retrieval 分层耗时、真实 token usage、timeout/自动 retry/fallback、prompt/schema version、持久化或分布式 Run Store。这些能力需要先在 LLM Client、Tool Registry 和部署边界引入稳定的埋点，不能仅靠在响应外再包一层完成。
 
 完成标准：
 
@@ -728,9 +730,9 @@ examples:
 后续保持“一个版本解决一个主要问题”的节奏：
 
 ```text
-V3.8.1：先完成 Context Compaction 学习和复盘
-V3.9  ：建立 Agent Evaluation 基线
-V3.10 ：补 Run Lifecycle、观测和错误边界
+V3.8.1：已完成 Context Compaction 学习和复盘
+V3.9  ：已建立 Agent Evaluation 基线
+V3.10 ：已补最小 Run Lifecycle、观测和错误边界
 V3.11 ：实现 Skill Registry、Skill Router 和渐进式加载
 V3.12 ：先作为 MCP Client 调工具，再把 RAG 暴露为 MCP Server
 V3.13 ：建立工具风险分级和人工审批
@@ -742,12 +744,12 @@ V3.15 ：补 Checkpoint、恢复和 Human-in-the-loop
 
 ## 下一步建议
 
-V3.9 已完成后，下一步进入 V3.10 Production Core，重点学习统一 Run Lifecycle 与观测。进入前应能解释：
+V3.10 已完成最小 Production Core，下一步进入 V3.11 Skill System。进入前应能解释：
 
-- V3.9 为什么不改变 Agent，而是复用 `AgentAskResponse` 做评分。
-- runtime Evidence Checker 和 offline Agent Evaluation 的区别。
-- Eval Case 的 `expect` 为什么是行为契约。
-- `expected_tools: []` 与字段不写的区别。
-- 为什么失败 case 要长期留在 `eval_sets` 作为回归测试。
+- V3.9 的离线行为评分和 V3.10 的单次在线 Run 观察有什么区别。
+- 为什么 `prod_...` 和 V3.8.1 的 `run_...` 不能混为一个 ID。
+- 为什么 `InMemoryRunStore` 与 SQLite Conversation Memory 不是同一类存储。
+- 为什么 `token_estimate` 不能当作供应商真实 usage 或成本。
+- 为什么需要先有统一 Run 观察，再让 Skill Router、MCP 和高风险工具扩展运行链路。
 
-V3.9 会成为后续 Skill、MCP、Permission 和 Sandbox 版本的回归基线。
+V3.9 会继续作为行为回归基线，V3.10 会为后续 Skill、MCP、Permission 和 Sandbox 提供运行观察基线。
