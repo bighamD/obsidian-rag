@@ -2,6 +2,41 @@
 	"version": "0.2.0",
 	"configurations": [
 		{
+			"name": "V3.9 API server: agent evaluation",
+			"type": "debugpy",
+			"request": "launch",
+			"module": "uvicorn",
+			"console": "integratedTerminal",
+			"cwd": "${workspaceFolder}",
+			"python": "${workspaceFolder}/.venv/bin/python",
+			"envFile": "${workspaceFolder}/.env",
+			"args": [
+				"obsidian_rag.v3_9.app:app",
+				"--host",
+				"127.0.0.1",
+				"--port",
+				"8001"
+			],
+			"justMyCode": true
+		},
+		{
+			"name": "V3.9 eval: food safety dataset",
+			"type": "debugpy",
+			"request": "launch",
+			"module": "obsidian_rag.cli",
+			"console": "integratedTerminal",
+			"cwd": "${workspaceFolder}",
+			"python": "${workspaceFolder}/.venv/bin/python",
+			"envFile": "${workspaceFolder}/.env",
+			"args": [
+				"agent-v3-9",
+				"eval",
+				"eval_sets/agent-food-safety.yaml",
+				"--no-save"
+			],
+			"justMyCode": true
+		},
+		{
 			"name": "V3.8.1 API server: context compaction",
 			"type": "debugpy",
 			"request": "launch",

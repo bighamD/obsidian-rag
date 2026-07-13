@@ -1,0 +1,67 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1180" height="620" viewBox="0 0 1180 620" role="img" aria-labelledby="title desc">
+  <title id="title">V3.9 Agent Evaluation flow</title>
+  <desc id="desc">V3.9 runs the existing V3.8.1 agent against an evaluation case, observes the structured response, scores deterministic checks, and returns an explainable report without changing the agent policy.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="#475569"/>
+    </marker>
+  </defs>
+
+  <rect width="1180" height="620" fill="#f8fafc"/>
+  <text x="590" y="48" text-anchor="middle" font-family="Arial, sans-serif" font-size="28" font-weight="700" fill="#0f172a">V3.9 Agent Evaluation 流程</text>
+  <text x="590" y="78" text-anchor="middle" font-family="Arial, sans-serif" font-size="15" fill="#475569">把一次 Agent 运行拆成可重复、可解释的行为检查；V3.9 观察和评分，不改写 Agent 决策</text>
+
+  <rect x="42" y="120" width="254" height="330" rx="8" fill="#ffffff" stroke="#bfdbfe" stroke-width="2"/>
+  <rect x="42" y="120" width="254" height="54" rx="8" fill="#eff6ff" stroke="#bfdbfe" stroke-width="2"/>
+  <text x="169" y="154" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" font-weight="700" fill="#1d4ed8">Eval Case</text>
+  <text x="70" y="212" font-family="Arial, sans-serif" font-size="16" font-weight="700" fill="#0f172a">YAML / Swagger JSON</text>
+  <text x="70" y="252" font-family="Arial, sans-serif" font-size="14" fill="#334155">request.question</text>
+  <text x="70" y="282" font-family="Arial, sans-serif" font-size="14" fill="#334155">expect.should_retrieve</text>
+  <text x="70" y="312" font-family="Arial, sans-serif" font-size="14" fill="#334155">expect.expected_tools</text>
+  <text x="70" y="342" font-family="Arial, sans-serif" font-size="14" fill="#334155">expect.expected_chunk_ids</text>
+  <text x="70" y="372" font-family="Arial, sans-serif" font-size="14" fill="#334155">expect.expected_answer_points</text>
+  <text x="70" y="418" font-family="Arial, sans-serif" font-size="13" fill="#64748b">期望行为是可执行测试契约</text>
+
+  <rect x="354" y="120" width="306" height="330" rx="8" fill="#ffffff" stroke="#bbf7d0" stroke-width="2"/>
+  <rect x="354" y="120" width="306" height="54" rx="8" fill="#f0fdf4" stroke="#bbf7d0" stroke-width="2"/>
+  <text x="507" y="154" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" font-weight="700" fill="#047857">复用 V3.8.1 Agent</text>
+  <circle cx="404" cy="228" r="21" fill="#dcfce7" stroke="#22c55e" stroke-width="2"/>
+  <text x="404" y="235" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="700" fill="#166534">1</text>
+  <text x="444" y="234" font-family="Arial, sans-serif" font-size="16" font-weight="700" fill="#166534">AgentService.ask()</text>
+  <circle cx="404" cy="304" r="21" fill="#fef9c3" stroke="#eab308" stroke-width="2"/>
+  <text x="404" y="311" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="700" fill="#854d0e">2</text>
+  <text x="444" y="310" font-family="Arial, sans-serif" font-size="15" fill="#854d0e">获得 AgentAskResponse</text>
+  <text x="444" y="338" font-family="Arial, sans-serif" font-size="13" fill="#475569">plan / step_results / evidence</text>
+  <text x="444" y="360" font-family="Arial, sans-serif" font-size="13" fill="#475569">answer / trace / memory</text>
+  <text x="386" y="418" font-family="Arial, sans-serif" font-size="13" fill="#64748b">独立 SQLite，避免污染日常对话</text>
+  <path d="M404 250 L404 283" stroke="#475569" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+
+  <rect x="718" y="120" width="218" height="330" rx="8" fill="#ffffff" stroke="#fde68a" stroke-width="2"/>
+  <rect x="718" y="120" width="218" height="54" rx="8" fill="#fffbeb" stroke="#fde68a" stroke-width="2"/>
+  <text x="827" y="154" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" font-weight="700" fill="#a16207">AgentEvaluator</text>
+  <text x="746" y="214" font-family="Arial, sans-serif" font-size="14" fill="#334155">routing</text>
+  <text x="746" y="246" font-family="Arial, sans-serif" font-size="14" fill="#334155">plan</text>
+  <text x="746" y="278" font-family="Arial, sans-serif" font-size="14" fill="#334155">tools</text>
+  <text x="746" y="310" font-family="Arial, sans-serif" font-size="14" fill="#334155">retrieval chunks / sources</text>
+  <text x="746" y="342" font-family="Arial, sans-serif" font-size="14" fill="#334155">evidence</text>
+  <text x="746" y="374" font-family="Arial, sans-serif" font-size="14" fill="#334155">answer points</text>
+  <text x="746" y="418" font-family="Arial, sans-serif" font-size="13" fill="#64748b">确定性结构化断言</text>
+
+  <rect x="994" y="120" width="144" height="330" rx="8" fill="#ffffff" stroke="#cbd5e1" stroke-width="2"/>
+  <rect x="994" y="120" width="144" height="54" rx="8" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="2"/>
+  <text x="1066" y="154" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" font-weight="700" fill="#334155">Report</text>
+  <text x="1018" y="220" font-family="Arial, sans-serif" font-size="14" fill="#334155">passed</text>
+  <text x="1018" y="252" font-family="Arial, sans-serif" font-size="14" fill="#334155">score</text>
+  <text x="1018" y="284" font-family="Arial, sans-serif" font-size="14" fill="#334155">checks[]</text>
+  <text x="1018" y="316" font-family="Arial, sans-serif" font-size="14" fill="#334155">actual values</text>
+  <text x="1018" y="348" font-family="Arial, sans-serif" font-size="14" fill="#334155">failure detail</text>
+  <text x="1018" y="418" font-family="Arial, sans-serif" font-size="13" fill="#64748b">定位失败节点</text>
+
+  <path d="M296 285 L354 285" stroke="#475569" stroke-width="2.5" fill="none" marker-end="url(#arrow)"/>
+  <path d="M660 285 L718 285" stroke="#475569" stroke-width="2.5" fill="none" marker-end="url(#arrow)"/>
+  <path d="M936 285 L994 285" stroke="#475569" stroke-width="2.5" fill="none" marker-end="url(#arrow)"/>
+
+  <rect x="150" y="504" width="880" height="66" rx="8" fill="#fff1f2" stroke="#fda4af" stroke-width="2" stroke-dasharray="7 6"/>
+  <text x="590" y="532" text-anchor="middle" font-family="Arial, sans-serif" font-size="17" font-weight="700" fill="#be123c">V3.9 Lite 的边界</text>
+  <text x="590" y="555" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#475569">不做 LLM-as-a-Judge，不自动修改 Prompt 或 Agent 策略；失败 case 留在数据集，成为后续版本的回归测试</text>
+</svg>

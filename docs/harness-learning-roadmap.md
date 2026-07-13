@@ -17,6 +17,7 @@ V3.6  ：Evidence Checker，检查证据覆盖并触发一次补搜
 V3.7  ：Context Builder，选择、裁剪并格式化本轮上下文
 V3.8  ：Conversation Memory，SQLite 持久化并加载最近对话窗口
 V3.8.1：Conversation Compaction，旧 Turns 滚动摘要 + 最近 Turns 原文
+V3.9  ：Agent Evaluation Lite，运行 Agent 并用结构化契约评测行为
 ```
 
 当前工程已经包含 intent router 能力：
@@ -24,7 +25,7 @@ V3.8.1：Conversation Compaction，旧 Turns 滚动摘要 + 最近 Turns 原文
 - V3.1 是显式 router：模型输出 `RouterDecision JSON`。
 - V3.2/V3.3 是隐式 router：模型通过 `tool_calls` 选择 `search_notes`、`no_search`、`clarify`。
 
-所以 V3.8.1 之后可以继续学习 harness 的其它核心章节，尤其是 Agent Evaluation。
+V3.9 已建立 Agent 行为回归基线，接下来可以进入 Production Core，系统化补足运行生命周期与观测。
 
 ## 总体学习路线
 
@@ -65,7 +66,7 @@ AI Agent = LLM + Harness
 | Permissions / 权限审批 | V3.13 Permission Policy | 在 Sandbox 前补工具白名单、风险等级、参数校验、scope 和人工审批。 |
 | Memory & State / 记忆状态 | V3.3、V3.5、V3.8、V3.8.1 | 已有 AgentState、SQLite Raw Turns、最近窗口和滚动摘要。 |
 | Orchestrator / 任务编排 | V3.3、V3.4、V3.5、V3.6 | 已用 LangGraph 表达 node/edge；V3.6 会加入 evidence/retry 分支。 |
-| Verification / 测试验证 | V2、V3.6、V3.9 | V2 是 retrieval/answer eval；V3.6 是运行时 evidence check；V3.9 做 agent eval。 |
+| Verification / 测试验证 | V2、V3.6、V3.9 | V2 是 retrieval/answer eval；V3.6 是运行时 evidence check；V3.9 Lite 用 case contract 评测 routing、plan、tool、retrieval、evidence 和 answer。 |
 | Observation / 返回观察 | V3.5、V3.6、V3.10 | 已有 `trace`、`step_results`；后续补 latency、tool summary、error summary。 |
 | Reporter / 汇总输出 | V3.5、V3.7 | 已有 `synthesize_answer`；V3.7 会把上下文构建从 reporter 中拆出去。 |
 | Checkpoint / 恢复 | V3.15 | 后续补节点恢复、interrupt/resume、幂等和 Human-in-the-loop。 |
@@ -75,16 +76,16 @@ AI Agent = LLM + Harness
 - 主线必学：`Context`、`Tool Calling`、`Memory & State`、`Orchestrator`、`Verification`、`Observation`、`Reporter`。
 - 后期或可选：`Permissions`、`Shell Execution`、更完整的 `File I/O`。这些更偏生产安全和通用 agent 平台，不适合太早压进当前 RAG 学习线。
 
-当前到 V3.8.1 为止，项目已经覆盖了：
+当前到 V3.9 为止，项目已经覆盖了：
 
 ```text
 Memory Reader -> Planner -> Orchestrator -> Tool Executor -> Evidence Checker -> Context Builder -> Reporter -> Memory Writer
+                                                              -> Agent Evaluation
 ```
 
 还缺的关键层是：
 
 ```text
-Agent Evaluation
 Production Core
 Skill System
 MCP Integration
@@ -741,12 +742,12 @@ V3.15 ：补 Checkpoint、恢复和 Human-in-the-loop
 
 ## 下一步建议
 
-当前先完成 V3.8.1 Conversation Compaction 的代码走读和断点复盘，确认能解释：
+V3.9 已完成后，下一步进入 V3.10 Production Core，重点学习统一 Run Lifecycle 与观测。进入前应能解释：
 
-- 为什么 Raw Turns 不能删除。
-- 为什么 Summary 和 Recent Turns 要同时存在。
-- 什么条件触发自动压缩。
-- 滚动摘要如何避免每次重扫全部历史。
-- 摘要失败时为什么不能阻断 RAG 主流程。
+- V3.9 为什么不改变 Agent，而是复用 `AgentAskResponse` 做评分。
+- runtime Evidence Checker 和 offline Agent Evaluation 的区别。
+- Eval Case 的 `expect` 为什么是行为契约。
+- `expected_tools: []` 与字段不写的区别。
+- 为什么失败 case 要长期留在 `eval_sets` 作为回归测试。
 
-完成这部分学习后，再进入 V3.9 Agent Evaluation。V3.9 会成为后续 Skill、MCP、Permission 和 Sandbox 版本的回归基线。
+V3.9 会成为后续 Skill、MCP、Permission 和 Sandbox 版本的回归基线。

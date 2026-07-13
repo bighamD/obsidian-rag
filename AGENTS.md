@@ -65,39 +65,37 @@ docs/assets/rag-v3-4-planner-flow.svg
 已完成到：
 
 ```text
-V3.8.1 Conversation Compaction
+V3.9 Agent Evaluation Lite
 ```
 
-当前 V3.8.1 在 V3.8 的 Memory read/write 中间增加滚动摘要：
+当前 V3.9 在 V3.8.1 Agent 外增加离线、可重复的行为评测层：
 
 ```text
-load_memory -> compact_memory -> planner -> execute_steps -> evidence_check -> retry_search -> evidence_check -> build_context -> synthesize_answer -> save_memory
+Eval Case -> V3.8.1 AgentService.ask() -> AgentAskResponse -> AgentEvaluator -> Eval Report
 ```
 
-V3.8.1 会执行 RAG：
+V3.9 会：
 
-- 调用 `RetrievalService.search()`。
-- 支持 dense / keyword / hybrid retrieval。
-- 返回 `conversation_id`、`memory_snapshot`、`memory_compaction`、`memory_write`、`context_bundle`、`trace`。
-- 当某个 search step 没有证据时，最多按 `max_retries` 补搜。
-- SQLite 保存完整原始 turns，并额外保存滚动 `summary_text` 和摘要截止 Turn。
-- ContextBuilder 注入滚动摘要和最近 `memory_window` 轮原文。
-- 旧 Turn 数量或估算 token 达到阈值时自动压缩，也支持 Swagger/CLI 手动压缩。
-- 摘要失败时降级使用已有摘要和最近 Turns，不阻断 RAG。
+- 复用 V3.8.1 的 Agent 链路，不修改其 Planner、Tool、Memory 或 Prompt。
+- 支持 YAML / Swagger 单 case 与批量 Agent Eval。
+- 评测 `used_retrieval`、Plan step kind、Tool、chunk/source、Evidence 和答案关键点。
+- 返回 `passed`、`score`、逐项 `checks` 以及完整 `agent_response`。
+- 使用 `.rag/v3_9_eval_memory.sqlite3` 隔离评测运行产生的 Raw Turns。
+- 提供 `obsidian-rag agent-v3-9 eval ...`、FastAPI、测试、学习文档、SVG 和调试入口。
 
-V3.8.1 仍然不做：
+V3.9 Lite 仍然不做：
 
-- 不做向量化 Memory 检索和跨 conversation 用户画像。
-- 不做异步事实提取、事实置信度、过期检查和 Memory consolidation。
-- 不做生产级权限审批和 shell execution。
+- 不做 LLM-as-a-Judge、语义相似度评分或自动 Prompt 优化。
+- 不自动根据评测失败重新运行或修复 Agent。
+- 不在本版评测滚动摘要和 Memory 内容本身。
 
 下一阶段建议：
 
 ```text
-V3.9 Agent Evaluation
+V3.10 Production Core
 ```
 
-V3.9 再评估 Router、Planner、Tool、Memory、Evidence 和 Answer 的行为是否符合预期。
+V3.10 将把当前 response/trace 中分散的 `run_id`、状态、耗时、错误和 tool summary 系统化。
 
 ## CodeGraph
 
