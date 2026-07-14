@@ -1,7 +1,8 @@
 import { computed, onMounted, reactive, ref, watch } from "vue";
 
-import { askAgent, fetchConversation, fetchHealth, fetchRuns } from "@/api/production-client";
+import { fetchConversation, fetchHealth, fetchRuns, streamAgent } from "@/api/production-client";
 import type {
+  AgentStreamEvent,
   AgentAskPayload,
   AgentOptions,
   ConsoleMessage,
@@ -128,7 +129,10 @@ export function useAgentConsole() {
     requestError.value = "";
 
     try {
-      const result = await askAgent(toPayload(trimmedQuestion, activeConversationId.value, options));
+      const result = await streamAgent(
+        toPayload(trimmedQuestion, activeConversationId.value, options),
+        (event) => applyStreamEvent(event),
+      );
       response.value = result;
       const assistant = result.agent_response;
       if (assistant) {
@@ -151,6 +155,18 @@ export function useAgentConsole() {
     } finally {
       isRunning.value = false;
       session.updatedAt = new Date().toISOString();
+    }
+  }
+
+  function applyStreamEvent(event: AgentStreamEvent) {
+    if (event.data.run) {
+      response.value = {
+        run: event.data.run,
+        agent_response: response.value?.agent_response ?? null,
+      };
+    }
+    if (event.data.response) {
+      response.value = event.data.response;
     }
   }
 

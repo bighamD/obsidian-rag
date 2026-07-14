@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="720" viewBox="0 0 1200 720" role="img" aria-labelledby="title desc">
+  <title id="title">V3.10.2 Run Event Streaming flow</title>
+  <desc id="desc">A JSON request enters the V3.10.2 FastAPI endpoint, creates a run and event bus, executes the V3.8.1 LangGraph Agent in a background thread, and streams observable events through SSE to the reused Vue Agent Console.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L9,3 z" fill="#64748b" />
+    </marker>
+    <style>
+      .title { font: 700 26px Arial, sans-serif; fill: #0f172a; }
+      .subtitle { font: 15px Arial, sans-serif; fill: #475569; }
+      .label { font: 700 16px Arial, sans-serif; fill: #0f172a; }
+      .body { font: 14px Arial, sans-serif; fill: #475569; }
+      .small { font: 13px Arial, sans-serif; fill: #64748b; }
+      .box { stroke-width: 2; rx: 10; }
+      .arrow { stroke: #64748b; stroke-width: 2.2; fill: none; marker-end: url(#arrow); }
+      .dashed { stroke-dasharray: 7 6; }
+    </style>
+  </defs>
+
+  <rect width="1200" height="720" fill="#f8fafc" />
+  <text x="600" y="52" text-anchor="middle" class="title">V3.10.2 Run Event Streaming</text>
+  <text x="600" y="82" text-anchor="middle" class="subtitle">复用 V3.10.1 Agent Console，用 SSE 增量呈现可观察运行事实</text>
+
+  <rect x="55" y="145" width="205" height="120" class="box" fill="#e0f2fe" stroke="#0284c7" />
+  <text x="157" y="180" text-anchor="middle" class="label">浏览器 Console</text>
+  <text x="157" y="208" text-anchor="middle" class="body">fetch POST stream</text>
+  <text x="157" y="232" text-anchor="middle" class="body">ReadableStream 解析 SSE</text>
+
+  <rect x="330" y="145" width="220" height="120" class="box" fill="#dcfce7" stroke="#16a34a" />
+  <text x="440" y="180" text-anchor="middle" class="label">FastAPI V3.10.2</text>
+  <text x="440" y="208" text-anchor="middle" class="body">POST /agent/ask/stream</text>
+  <text x="440" y="232" text-anchor="middle" class="body">创建 Production Run</text>
+
+  <rect x="620" y="145" width="220" height="120" class="box" fill="#fef3c7" stroke="#d97706" />
+  <text x="730" y="180" text-anchor="middle" class="label">RunEventBus</text>
+  <text x="730" y="208" text-anchor="middle" class="body">线程安全 Queue</text>
+  <text x="730" y="232" text-anchor="middle" class="body">事件编号与 SSE 编码</text>
+
+  <rect x="910" y="145" width="235" height="120" class="box" fill="#ede9fe" stroke="#7c3aed" />
+  <text x="1027" y="180" text-anchor="middle" class="label">后台 Agent Thread</text>
+  <text x="1027" y="208" text-anchor="middle" class="body">V3.8.1 LangGraph</text>
+  <text x="1027" y="232" text-anchor="middle" class="body">ask_with_events()</text>
+
+  <path d="M260 205 H330" class="arrow" />
+  <path d="M550 205 H620" class="arrow" />
+  <path d="M840 205 H910" class="arrow" />
+
+  <rect x="170" y="355" width="860" height="170" class="box" fill="#ffffff" stroke="#cbd5e1" />
+  <text x="600" y="390" text-anchor="middle" class="label">增量事件事实</text>
+  <text x="600" y="423" text-anchor="middle" class="body">run_queued → run_started → node_finished → trace_event/tool_result</text>
+  <text x="600" y="451" text-anchor="middle" class="body">planner → execute_steps → evidence_check → build_context → synthesize_answer</text>
+  <text x="600" y="479" text-anchor="middle" class="body">run_succeeded.data.response 携带最终 ProductionAskResponse</text>
+
+  <path d="M1027 265 V325 H600 V355" class="arrow dashed" />
+  <path d="M600 525 V585 H157 V265" class="arrow dashed" />
+  <text x="785" y="314" class="small">发布事实事件</text>
+  <text x="238" y="575" class="small">SSE 实时更新 Run Inspector</text>
+
+  <rect x="250" y="625" width="700" height="54" class="box" fill="#fff1f2" stroke="#e11d48" />
+  <text x="600" y="658" text-anchor="middle" class="label" fill="#9f1239">不展示 chain-of-thought，不做 token-by-token 输出</text>
+</svg>

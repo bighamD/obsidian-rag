@@ -37,6 +37,31 @@ export interface RunEvent {
   detail: string;
 }
 
+export interface AgentStreamEvent {
+  event_id: number;
+  run_id: string;
+  name: string;
+  status: RunStatus;
+  occurred_at: string;
+  detail: string;
+  data: {
+    run?: RunRecord;
+    response?: ProductionAskResponse;
+    agent?: {
+      node_name?: string;
+      step_type?: string;
+      step_id?: string | null;
+      tool_name?: string | null;
+      query?: string | null;
+      result_count?: number | null;
+      reason?: string | null;
+      started_at?: string | null;
+      finished_at?: string | null;
+      duration_ms?: number | null;
+    };
+  };
+}
+
 export interface ToolRunSummary {
   tool_name: string;
   call_count: number;
@@ -56,8 +81,16 @@ export interface RunMetrics {
   };
   graph_node_count: number;
   trace_event_count: number;
+  node_timings: AgentNodeTiming[];
   retrieval_result_count: number;
   tool_summaries: ToolRunSummary[];
+}
+
+export interface AgentNodeTiming {
+  node_name: string;
+  started_at: string;
+  finished_at: string;
+  duration_ms: number;
 }
 
 export interface RunRecord {

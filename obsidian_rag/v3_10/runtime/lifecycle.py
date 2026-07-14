@@ -104,6 +104,7 @@ def _build_metrics(response, timing: RunTiming) -> RunMetrics:
         ),
         graph_node_count=len(response.graph_path),
         trace_event_count=len(response.trace),
+        node_timings=response.node_timings,
         retrieval_result_count=sum(result.result_count for result in step_results),
         tool_summaries=_tool_summaries(step_results),
     )

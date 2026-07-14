@@ -20,6 +20,7 @@ V3.8.1：Conversation Compaction，旧 Turns 滚动摘要 + 最近 Turns 原文
 V3.9  ：Agent Evaluation Lite，运行 Agent 并用结构化契约评测行为
 V3.10 ：Production Core，为单次 Agent Run 提供生命周期、观测和错误摘要
 V3.10.1：Agent Console，Vite + Vue 3 消费 JSON Run / Agent Response
+V3.10.2：Run Event Streaming，复用 Agent Console 消费 SSE 运行事件
 ```
 
 当前工程已经包含 intent router 能力：
@@ -72,7 +73,7 @@ AI Agent = LLM + Harness
 | Orchestrator / 任务编排 | V3.3、V3.4、V3.5、V3.6 | 已用 LangGraph 表达 node/edge；V3.6 会加入 evidence/retry 分支。 |
 | Verification / 测试验证 | V2、V3.6、V3.9 | V2 是 retrieval/answer eval；V3.6 是运行时 evidence check；V3.9 Lite 用 case contract 评测 routing、plan、tool、retrieval、evidence 和 answer。 |
 | Observation / 返回观察 | V3.5、V3.6、V3.10 | 已有 `trace`、`step_results`；V3.10 已补 `RunRecord`、latency、tool summary、token estimate 和 error summary。 |
-| Agent Console / 前端观察 | V3.10.1、V3.10.2 | V3.10.1 已消费 JSON 响应展示会话与运行详情；V3.10.2 将通过 SSE 接收运行中事件。 |
+| Agent Console / 前端观察 | V3.10.1、V3.10.2 | V3.10.1 消费 JSON 响应；V3.10.2 已通过 SSE 接收运行中事件。 |
 | Reporter / 汇总输出 | V3.5、V3.7 | 已有 `synthesize_answer`；V3.7 会把上下文构建从 reporter 中拆出去。 |
 | Checkpoint / 恢复 | V3.15 | 后续补节点恢复、interrupt/resume、幂等和 Human-in-the-loop。 |
 
@@ -109,7 +110,7 @@ V3.8.1 Conversation Compaction：系统能压缩旧历史并保留最近原文
 V3.9 Agent Evaluation：系统能评估 agent 行为
 V3.10 Production Core：系统具备 run、观测、配置和稳定性基础（已完成）
 V3.10.1 Agent Console：用户能以会话界面查看答案、来源、Plan 和 Run 详情（已完成）
-V3.10.2 Run Event Streaming：前端能实时接收节点和工具事件，不展示 chain-of-thought
+V3.10.2 Run Event Streaming：前端能实时接收节点和工具事件，不展示 chain-of-thought（已完成）
 V3.11 Skill System：系统能选择并渐进式加载任务方法
 V3.12 MCP Integration：系统能接入标准化外部工具并对外提供 RAG 工具
 V3.13 Permission Policy：系统能在执行前判断 allow / confirm / deny
@@ -788,7 +789,7 @@ V3.8.1：已完成 Context Compaction 学习和复盘
 V3.9  ：已建立 Agent Evaluation 基线
 V3.10 ：已补最小 Run Lifecycle、观测和错误边界
 V3.10.1：已用 Vue Agent Console 消费 JSON Run / Agent Response
-V3.10.2：用 SSE 推送真实运行事件
+V3.10.2：用 SSE 推送真实运行事件（已完成）
 V3.11 ：实现 Skill Registry、Skill Router 和渐进式加载
 V3.12 ：先作为 MCP Client 调工具，再把 RAG 暴露为 MCP Server
 V3.13 ：建立工具风险分级和人工审批
@@ -798,16 +799,16 @@ V3.15 ：补 Checkpoint、恢复和 Human-in-the-loop
 
 不要把 V3.10～V3.15 合并成一个“大而全”的 Production Harness。它们分别解决观测、方法选择、协议适配、安全策略、隔离执行和恢复问题，合并实现会掩盖这些模块之间的职责边界。
 
-## 下一步建议
+## V3.10.2 完成复盘
 
-V3.10.1 已完成 Agent Console，下一步进入 V3.10.2 Run Event Streaming。进入前应能解释：
+V3.10.2 已在复用的 Agent Console 上接入 Run Event Streaming。进入 V3.11 前应能解释：
 
 - V3.9 的离线行为评分和 V3.10 的单次在线 Run 观察有什么区别。
 - 为什么 `prod_...` 和 V3.8.1 的 `run_...` 不能混为一个 ID。
 - 为什么 `InMemoryRunStore` 与 SQLite Conversation Memory 不是同一类存储。
 - 为什么 `token_estimate` 不能当作供应商真实 usage 或成本。
-- 为什么 UI 在当前 JSON 模式下只能知道“请求中 / 已完成”，不能真实显示节点实时进度。
+- 为什么 V3.10.1 的 JSON UI 只能知道“请求中 / 已完成”，而 V3.10.2 可以真实显示节点实时进度。
 - 为什么 `trace` 是可观察执行事实，而不是 chain-of-thought。
 - 为什么 SSE 应保留 JSON 接口作为 Swagger、CLI 和测试的稳定契约。
 
-V3.9 会继续作为行为回归基线，V3.10 / V3.10.1 会为后续 SSE、Skill、MCP、Permission 和 Sandbox 提供运行观察与用户界面基线。
+V3.9 会继续作为行为回归基线，V3.10～V3.10.2 会为后续 Skill、MCP、Permission 和 Sandbox 提供运行观察与用户界面基线。

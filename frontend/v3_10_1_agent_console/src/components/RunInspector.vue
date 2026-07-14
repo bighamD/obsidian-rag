@@ -123,6 +123,13 @@ function toolCalls(toolName: string): StepResult[] {
           <div><span>开始时间</span><strong>{{ formatDateTime(run.timing.started_at) }}</strong></div>
         </div>
 
+        <div v-if="run.metrics?.node_timings.length" class="node-timing-list">
+          <p class="section-kicker">Graph 节点耗时</p>
+          <div v-for="timing in run.metrics.node_timings" :key="`${timing.node_name}-${timing.started_at}`" class="node-timing-row">
+            <code>{{ timing.node_name }}</code><strong>{{ timing.duration_ms }} ms</strong>
+          </div>
+        </div>
+
         <div class="timeline-wrap">
           <p class="section-kicker">执行时间线</p>
           <ol class="timeline">

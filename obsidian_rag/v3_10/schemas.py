@@ -4,7 +4,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
-from obsidian_rag.v3_8_1.schemas import AgentAskRequest, AgentAskResponse
+from obsidian_rag.v3_8_1.schemas import AgentAskRequest, AgentAskResponse, AgentNodeTiming
 
 
 # V3.10 只描述运行外壳的生命周期，不改变 V3.8.1 Agent 图内的节点状态。
@@ -63,6 +63,7 @@ class RunMetrics(BaseModel):
     token_estimate: TokenEstimate = Field(description="Answer prompt 与最终回答的启发式 token 摘要。")
     graph_node_count: int = Field(description="V3.8.1 实际经过的 LangGraph 节点数量。")
     trace_event_count: int = Field(description="V3.8.1 trace 中的可观察事件数量。")
+    node_timings: list[AgentNodeTiming] = Field(description="每个 graph_path 节点的开始时间、结束时间和耗时。")
     retrieval_result_count: int = Field(description="初始检索和补搜步骤产出的结果总数。")
     tool_summaries: list[ToolRunSummary] = Field(description="按工具名聚合的调用成功率和结果数量。")
 

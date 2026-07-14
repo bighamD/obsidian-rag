@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 import argparse
+import json
 from pathlib import Path
+
+import httpx
 
 from obsidian_rag.config import RagConfig
 from obsidian_rag.config import load_config, resolve_ingest_path
@@ -229,6 +232,12 @@ def main() -> None:
     agent3101_ask_parser = agent3101_subparsers.add_parser("ask", help="Run the Console-backed JSON Agent request from CLI")
     _add_production_ask_arguments(agent3101_ask_parser, "V3.10.1 Console SQLite Memory DB path")
 
+    agent3102_parser = subparsers.add_parser("agent-v3-10-2", help="Stream V3.10.2 Agent events over SSE")
+    agent3102_subparsers = agent3102_parser.add_subparsers(dest="agent3102_command", required=True)
+    agent3102_ask_parser = agent3102_subparsers.add_parser("ask", help="Call the V3.10.2 SSE endpoint and print events")
+    _add_production_ask_arguments(agent3102_ask_parser, "V3.10.2 SSE SQLite Memory DB path")
+    agent3102_ask_parser.add_argument("--api-base", default="http://127.0.0.1:8014", help="V3.10.2 API base URL")
+
     args = parser.parse_args()
     config = load_config()
 
@@ -442,6 +451,26 @@ def main() -> None:
             context_max_chunks=args.context_max_chunks,
             context_token_budget=args.context_token_budget,
             memory_db_path=args.memory_db_path,
+        )
+        return
+
+    if args.command == "agent-v3-10-2" and args.agent3102_command == "ask":
+        run_agent3102_stream(
+            question=args.question,
+            conversation_id=args.conversation_id,
+            memory_window=args.memory_window,
+            memory_compaction_enabled=not args.disable_memory_compaction,
+            memory_compaction_trigger_turns=args.memory_compaction_trigger_turns,
+            memory_compaction_trigger_tokens=args.memory_compaction_trigger_tokens,
+            config=config,
+            top_k=args.top_k,
+            mode=args.mode,
+            max_steps=args.max_steps,
+            max_retries=args.max_retries,
+            filter_path=args.filter_path,
+            context_max_chunks=args.context_max_chunks,
+            context_token_budget=args.context_token_budget,
+            api_base=args.api_base,
         )
         return
 
@@ -1162,6 +1191,66 @@ def run_agent3101_ask(*args, **kwargs) -> None:
 
     print("Agent Console JSON flow")
     run_agent310_ask(*args, **kwargs)
+
+
+def run_agent3102_stream(
+    question: str,
+    config: RagConfig,
+    conversation_id: str | None = None,
+    memory_window: int = 3,
+    memory_compaction_enabled: bool = True,
+    memory_compaction_trigger_turns: int = 4,
+    memory_compaction_trigger_tokens: int = 3000,
+    top_k: int = 5,
+    mode: SearchMode = "hybrid",
+    max_steps: int = 4,
+    max_retries: int = 1,
+    filter_path: str | None = None,
+    context_max_chunks: int = 6,
+    context_token_budget: int = 4000,
+    api_base: str = "http://127.0.0.1:8014",
+) -> None:
+    """调用 V3.10.2 HTTP SSE 接口，打印事实事件和最终答案。"""
+
+    payload = {
+        "question": question,
+        "conversation_id": conversation_id,
+        "memory_window": memory_window,
+        "memory_compaction_enabled": memory_compaction_enabled,
+        "memory_compaction_trigger_turns": memory_compaction_trigger_turns,
+        "memory_compaction_trigger_tokens": memory_compaction_trigger_tokens,
+        "top_k": top_k,
+        "mode": mode,
+        "filters": {"path": filter_path} if filter_path else None,
+        "max_steps": max_steps,
+        "max_retries": max_retries,
+        "context_max_chunks": context_max_chunks,
+        "context_token_budget": context_token_budget,
+    }
+    current_event = "message"
+    with httpx.stream(
+        "POST",
+        f"{api_base.rstrip('/')}/agent/ask/stream",
+        json=payload,
+        headers={"Accept": "text/event-stream"},
+        timeout=None,
+    ) as response:
+        response.raise_for_status()
+        print("V3.10.2 SSE events")
+        for line in response.iter_lines():
+            if line.startswith("event:"):
+                current_event = line.split(":", 1)[1].strip()
+                continue
+            if not line.startswith("data:"):
+                continue
+            event = json.loads(line.split(":", 1)[1].strip())
+            detail = event.get("detail", "")
+            print(f"- {current_event}: {detail}")
+            if current_event == "run_succeeded":
+                final_response = event.get("data", {}).get("response", {}).get("agent_response")
+                if final_response:
+                    print("\nAnswer:")
+                    print(final_response.get("answer", "").strip())
 
 
 def run_agent381_compact(

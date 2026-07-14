@@ -33,7 +33,7 @@ function updateOptions(value: AgentOptions) {
 <template>
   <div class="console-shell">
     <header class="app-header">
-      <div class="brand-lockup"><span class="brand-mark"><Bot :size="20" /></span><div><strong>Obsidian RAG</strong><span>Agent Console · V3.10.1</span></div></div>
+      <div class="brand-lockup"><span class="brand-mark"><Bot :size="20" /></span><div><strong>Obsidian RAG</strong><span>Agent Console · V3.10.2 SSE</span></div></div>
       <div class="header-actions">
         <button class="header-icon-button desktop-hidden" title="打开运行检查器" aria-label="打开运行检查器" @click="mobileInspectorOpen = true"><PanelRightOpen :size="19" /></button>
         <button class="header-icon-button" title="刷新工作区" aria-label="刷新工作区" @click="consoleState.refreshWorkspace"><RefreshCw :size="18" /></button>

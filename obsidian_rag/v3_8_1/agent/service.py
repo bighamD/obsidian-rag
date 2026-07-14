@@ -1,6 +1,9 @@
 from __future__ import annotations
 
 import uuid
+from collections.abc import Callable
+from datetime import datetime, timezone
+from time import perf_counter
 from typing import Any, TypedDict
 
 from langgraph.graph import END, START, StateGraph
@@ -17,6 +20,7 @@ from obsidian_rag.v3_8_1.memory import SQLiteConversationMemoryStore, default_me
 from obsidian_rag.v3_8_1.schemas import (
     AgentAskRequest,
     AgentAskResponse,
+    AgentNodeTiming,
     AgentTraceStep,
     ContextBundle,
     EvidenceCheckResult,
@@ -51,6 +55,7 @@ class AgentState(TypedDict, total=False):
     attempted_queries: list[str]
     graph_path: list[str]
     trace: list[AgentTraceStep]
+    node_timings: list[AgentNodeTiming]
 
 
 class AgentService:
@@ -76,7 +81,66 @@ class AgentService:
         self.graph = self._build_graph()
 
     def ask(self, request: AgentAskRequest) -> AgentAskResponse:
-        initial_state: AgentState = {
+        final_state = self.graph.invoke(self._initial_state(request))
+        return self._response_from_state(final_state, request)
+
+    def ask_with_events(
+        self,
+        request: AgentAskRequest,
+        event_sink: Callable[[str, dict[str, Any]], None] | None = None,
+    ) -> AgentAskResponse:
+        """以 LangGraph values stream 执行，并向可选 sink 发布可观察事实事件。
+
+        事件只包含节点、工具、结果数量和原因，不包含模型内部推理过程。
+        未提供 sink 时行为等同于普通 `ask()`，便于旧版本继续复用 AgentService。
+        """
+
+        final_state: AgentState | None = None
+        trace_cursor = 0
+        for state in self.graph.stream(self._initial_state(request), stream_mode="values"):
+            final_state = state
+            graph_path = state.get("graph_path", [])
+            node_name = graph_path[-1] if graph_path else None
+            if node_name:
+                node_timing = next(
+                    (timing for timing in reversed(state.get("node_timings", [])) if timing.node_name == node_name),
+                    None,
+                )
+                _emit_agent_event(
+                    event_sink,
+                    "node_finished",
+                    {
+                        "node_name": node_name,
+                        "graph_path": list(graph_path),
+                        "started_at": node_timing.started_at if node_timing else None,
+                        "finished_at": node_timing.finished_at if node_timing else None,
+                        "duration_ms": node_timing.duration_ms if node_timing else None,
+                    },
+                )
+
+            traces = state.get("trace", [])
+            for trace in traces[trace_cursor:]:
+                _emit_agent_event(
+                    event_sink,
+                    "trace_event",
+                    {
+                        "node_name": trace.node_name,
+                        "step_type": trace.step_type,
+                        "step_id": trace.step_id,
+                        "tool_name": trace.tool_name,
+                        "query": trace.query,
+                        "result_count": trace.result_count,
+                        "reason": trace.reason,
+                    },
+                )
+            trace_cursor = len(traces)
+
+        if final_state is None:
+            raise RuntimeError("Agent graph 没有产生最终状态。")
+        return self._response_from_state(final_state, request)
+
+    def _initial_state(self, request: AgentAskRequest) -> AgentState:
+        return {
             "run_id": f"run_{uuid.uuid4().hex[:12]}",
             "conversation_id": request.conversation_id or f"conv_{uuid.uuid4().hex[:12]}",
             "request": request,
@@ -90,8 +154,10 @@ class AgentService:
             "attempted_queries": [],
             "graph_path": [],
             "trace": [],
+            "node_timings": [],
         }
-        final_state = self.graph.invoke(initial_state)
+
+    def _response_from_state(self, final_state: AgentState, request: AgentAskRequest) -> AgentAskResponse:
         return AgentAskResponse(
             run_id=final_state["run_id"],
             conversation_id=final_state["conversation_id"],
@@ -116,19 +182,20 @@ class AgentService:
             ),
             graph_path=final_state.get("graph_path", []),
             trace=final_state.get("trace", []),
+            node_timings=final_state.get("node_timings", []),
         )
 
     def _build_graph(self):
         graph = StateGraph(AgentState)
-        graph.add_node("load_memory", self._load_memory_node)
-        graph.add_node("compact_memory", self._compact_memory_node)
-        graph.add_node("planner", self._planner_node)
-        graph.add_node("execute_steps", self._execute_steps_node)
-        graph.add_node("evidence_check", self._evidence_check_node)
-        graph.add_node("retry_search", self._retry_search_node)
-        graph.add_node("build_context", self._build_context_node)
-        graph.add_node("synthesize_answer", self._synthesize_answer_node)
-        graph.add_node("save_memory", self._save_memory_node)
+        graph.add_node("load_memory", self._timed_node("load_memory", self._load_memory_node))
+        graph.add_node("compact_memory", self._timed_node("compact_memory", self._compact_memory_node))
+        graph.add_node("planner", self._timed_node("planner", self._planner_node))
+        graph.add_node("execute_steps", self._timed_node("execute_steps", self._execute_steps_node))
+        graph.add_node("evidence_check", self._timed_node("evidence_check", self._evidence_check_node))
+        graph.add_node("retry_search", self._timed_node("retry_search", self._retry_search_node))
+        graph.add_node("build_context", self._timed_node("build_context", self._build_context_node))
+        graph.add_node("synthesize_answer", self._timed_node("synthesize_answer", self._synthesize_answer_node))
+        graph.add_node("save_memory", self._timed_node("save_memory", self._save_memory_node))
 
         graph.add_edge(START, "load_memory")
         graph.add_edge("load_memory", "compact_memory")
@@ -145,6 +212,26 @@ class AgentService:
         graph.add_edge("synthesize_answer", "save_memory")
         graph.add_edge("save_memory", END)
         return graph.compile()
+
+    def _timed_node(self, node_name: str, handler):
+        def run(state: AgentState) -> AgentState:
+            started_at = _now()
+            started = perf_counter()
+            result = handler(state)
+            finished_at = _now()
+            timings = list(result.get("node_timings", []))
+            timings.append(
+                AgentNodeTiming(
+                    node_name=node_name,
+                    started_at=started_at,
+                    finished_at=finished_at,
+                    duration_ms=max(0, round((perf_counter() - started) * 1000)),
+                )
+            )
+            result["node_timings"] = timings
+            return result
+
+        return run
 
     def _load_memory_node(self, state: AgentState) -> AgentState:
         state = _copy_state(state)
@@ -510,7 +597,26 @@ def _copy_state(state: AgentState) -> AgentState:
     copied["attempted_queries"] = list(state.get("attempted_queries", []))
     copied["graph_path"] = list(state.get("graph_path", []))
     copied["trace"] = list(state.get("trace", []))
+    copied["node_timings"] = list(state.get("node_timings", []))
     return copied
+
+
+def _emit_agent_event(
+    event_sink: Callable[[str, dict[str, Any]], None] | None,
+    name: str,
+    payload: dict[str, Any],
+) -> None:
+    if event_sink is None:
+        return
+    try:
+        event_sink(name, payload)
+    except Exception:
+        # 可观测事件不能改变 Agent 主流程；断开的 SSE 客户端不应导致 Agent 失败。
+        return
+
+
+def _now() -> str:
+    return datetime.now(timezone.utc).isoformat()
 
 
 def _non_search_step_result(step: PlanStep) -> StepResult:

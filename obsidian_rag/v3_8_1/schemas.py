@@ -105,6 +105,15 @@ class AgentTraceStep(BaseModel):
     metadata: dict[str, Any] = Field(default_factory=dict, description="节点特有的调试元数据。")
 
 
+class AgentNodeTiming(BaseModel):
+    """一次 LangGraph 节点执行的墙钟耗时。"""
+
+    node_name: str = Field(description="graph_path 中的 LangGraph 节点名称。")
+    started_at: str = Field(description="节点开始时间，UTC ISO 8601 格式。")
+    finished_at: str = Field(description="节点结束时间，UTC ISO 8601 格式。")
+    duration_ms: int = Field(ge=0, description="节点执行耗时，单位毫秒。")
+
+
 class EvidenceCheckResult(BaseModel):
     """Evidence Checker 对检索覆盖情况的判断结果。
 
@@ -293,3 +302,7 @@ class AgentAskResponse(BaseModel):
     memory_write: MemoryWriteResult = Field(description="当前问答原始 Turn 的 SQLite 写入结果。")
     graph_path: list[str] = Field(description="本次实际经过的 LangGraph 节点顺序。")
     trace: list[AgentTraceStep] = Field(description="节点和工具的结构化执行轨迹。")
+    node_timings: list[AgentNodeTiming] = Field(
+        default_factory=list,
+        description="按 graph_path 顺序记录每个 LangGraph 节点的开始时间、结束时间和耗时。",
+    )
