@@ -1,0 +1,143 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="1020" viewBox="0 0 1440 1020" role="img" aria-labelledby="title desc">
+  <title id="title">V3.10.3 LangGraph Advanced Patterns flow</title>
+  <desc id="desc">The graph loads memory, runs a planner subgraph, routes with Command, fans search tasks out with Send, joins at evidence check, optionally performs a business retry, streams answer messages, saves memory, and stores state history.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#475569"/>
+    </marker>
+    <marker id="blue-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#2563eb"/>
+    </marker>
+    <marker id="amber-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#d97706"/>
+    </marker>
+  </defs>
+
+  <rect width="1440" height="1020" fill="#f8fafc"/>
+  <text x="720" y="46" text-anchor="middle" font-family="Arial, sans-serif" font-size="28" font-weight="700" fill="#0f172a">V3.10.3 LangGraph Advanced Patterns</text>
+  <text x="720" y="76" text-anchor="middle" font-family="Arial, sans-serif" font-size="15" fill="#475569">Subgraph 拆边界，Send 做并行，Command 做路由，RetryPolicy 处理临时异常，Checkpointer 保存 State History</text>
+
+  <rect x="38" y="112" width="186" height="126" rx="8" fill="#ffffff" stroke="#93c5fd" stroke-width="2"/>
+  <rect x="38" y="112" width="186" height="40" rx="8" fill="#eff6ff" stroke="#93c5fd" stroke-width="2"/>
+  <text x="131" y="138" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="700" fill="#1d4ed8">Memory</text>
+  <text x="131" y="180" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="700" fill="#0f172a">load_memory</text>
+  <text x="131" y="207" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" fill="#475569">compact_memory</text>
+
+  <rect x="276" y="100" width="356" height="154" rx="8" fill="#ffffff" stroke="#86efac" stroke-width="2"/>
+  <rect x="276" y="100" width="356" height="42" rx="8" fill="#f0fdf4" stroke="#86efac" stroke-width="2"/>
+  <text x="454" y="127" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="700" fill="#047857">Planner Subgraph</text>
+  <rect x="300" y="166" width="142" height="60" rx="8" fill="#ffffff" stroke="#bbf7d0" stroke-width="2"/>
+  <text x="371" y="190" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" font-weight="700" fill="#166534">prepare input</text>
+  <text x="371" y="211" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#64748b">Memory + question</text>
+  <rect x="466" y="166" width="142" height="60" rx="8" fill="#ffffff" stroke="#bbf7d0" stroke-width="2"/>
+  <text x="537" y="190" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" font-weight="700" fill="#166534">call planner</text>
+  <text x="537" y="211" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#64748b">Plan + SearchTask[]</text>
+  <path d="M442 196 L466 196" stroke="#475569" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+
+  <rect x="686" y="125" width="190" height="104" rx="8" fill="#ffffff" stroke="#fbbf24" stroke-width="2"/>
+  <rect x="686" y="125" width="190" height="40" rx="8" fill="#fffbeb" stroke="#fbbf24" stroke-width="2"/>
+  <text x="781" y="151" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="700" fill="#b45309">Command</text>
+  <text x="781" y="190" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="700" fill="#92400e">route_plan</text>
+  <text x="781" y="214" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#64748b">search / no_search</text>
+
+  <path d="M224 177 L276 177" stroke="#475569" stroke-width="2.5" fill="none" marker-end="url(#arrow)"/>
+  <path d="M632 177 L686 177" stroke="#475569" stroke-width="2.5" fill="none" marker-end="url(#arrow)"/>
+
+  <rect x="686" y="310" width="190" height="100" rx="8" fill="#ffffff" stroke="#67e8f9" stroke-width="2"/>
+  <rect x="686" y="310" width="190" height="40" rx="8" fill="#ecfeff" stroke="#67e8f9" stroke-width="2"/>
+  <text x="781" y="336" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="700" fill="#0e7490">Send fan-out</text>
+  <text x="781" y="376" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="700" fill="#155e75">dispatch_search</text>
+  <text x="781" y="398" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#64748b">one Send per task</text>
+
+  <path d="M781 229 L781 310" stroke="#2563eb" stroke-width="2.5" fill="none" marker-end="url(#blue-arrow)"/>
+  <text x="795" y="274" font-family="Arial, sans-serif" font-size="12" fill="#1d4ed8">has search</text>
+
+  <rect x="354" y="482" width="218" height="112" rx="8" fill="#ffffff" stroke="#a5b4fc" stroke-width="2"/>
+  <text x="463" y="512" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="700" fill="#4338ca">search_worker:s1</text>
+  <text x="463" y="539" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#475569">RetrievalService.search</text>
+  <text x="463" y="565" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#7c3aed">RetryPolicy: transient error</text>
+
+  <rect x="672" y="482" width="218" height="112" rx="8" fill="#ffffff" stroke="#a5b4fc" stroke-width="2"/>
+  <text x="781" y="512" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="700" fill="#4338ca">search_worker:s2</text>
+  <text x="781" y="539" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#475569">RetrievalService.search</text>
+  <text x="781" y="565" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#7c3aed">RetryPolicy: transient error</text>
+
+  <rect x="990" y="482" width="218" height="112" rx="8" fill="#ffffff" stroke="#a5b4fc" stroke-width="2"/>
+  <text x="1099" y="512" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="700" fill="#4338ca">search_worker:s3</text>
+  <text x="1099" y="539" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#475569">RetrievalService.search</text>
+  <text x="1099" y="565" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#7c3aed">RetryPolicy: transient error</text>
+
+  <path d="M781 410 C700 438 560 444 463 482" stroke="#2563eb" stroke-width="2" fill="none" marker-end="url(#blue-arrow)"/>
+  <path d="M781 410 L781 482" stroke="#2563eb" stroke-width="2" fill="none" marker-end="url(#blue-arrow)"/>
+  <path d="M781 410 C862 438 1002 444 1099 482" stroke="#2563eb" stroke-width="2" fill="none" marker-end="url(#blue-arrow)"/>
+
+  <rect x="672" y="650" width="218" height="102" rx="8" fill="#ffffff" stroke="#fda4af" stroke-width="2"/>
+  <rect x="672" y="650" width="218" height="40" rx="8" fill="#fff1f2" stroke="#fda4af" stroke-width="2"/>
+  <text x="781" y="676" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="700" fill="#be123c">fan-in</text>
+  <text x="781" y="716" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="700" fill="#9f1239">evidence_check</text>
+  <text x="781" y="739" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#64748b">reducers merge StepResult[]</text>
+
+  <path d="M463 594 C500 626 610 632 672 691" stroke="#475569" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+  <path d="M781 594 L781 650" stroke="#475569" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+  <path d="M1099 594 C1062 626 952 632 890 691" stroke="#475569" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+
+  <rect x="672" y="798" width="218" height="96" rx="8" fill="#ffffff" stroke="#fbbf24" stroke-width="2"/>
+  <text x="781" y="828" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="700" fill="#92400e">route_evidence</text>
+  <text x="781" y="854" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#64748b">Command: retry / context</text>
+  <text x="781" y="878" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#64748b">business retry is not RetryPolicy</text>
+  <path d="M781 752 L781 798" stroke="#475569" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+
+  <rect x="352" y="798" width="230" height="96" rx="8" fill="#ffffff" stroke="#fdba74" stroke-width="2"/>
+  <text x="467" y="829" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="700" fill="#c2410c">dispatch_retry</text>
+  <text x="467" y="854" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#475569">Send missing tasks only</text>
+  <text x="467" y="878" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#475569">rewrite query, then fan-in again</text>
+  <path d="M672 846 L582 846" stroke="#d97706" stroke-width="2" fill="none" marker-end="url(#amber-arrow)"/>
+  <path d="M467 798 C390 732 420 654 520 594" stroke="#d97706" stroke-width="2" stroke-dasharray="7 6" fill="none" marker-end="url(#amber-arrow)"/>
+
+  <rect x="978" y="798" width="190" height="96" rx="8" fill="#ffffff" stroke="#86efac" stroke-width="2"/>
+  <text x="1073" y="830" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="700" fill="#166534">build_context</text>
+  <text x="1073" y="856" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#475569">Memory + Plan + chunks</text>
+  <text x="1073" y="880" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#475569">actual Answer messages</text>
+  <path d="M890 846 L978 846" stroke="#475569" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+
+  <rect x="1216" y="798" width="184" height="96" rx="8" fill="#ffffff" stroke="#c4b5fd" stroke-width="2"/>
+  <text x="1308" y="829" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="700" fill="#6d28d9">answer</text>
+  <text x="1308" y="854" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#475569">messages stream</text>
+  <text x="1308" y="878" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#475569">answer_delta SSE</text>
+  <path d="M1168 846 L1216 846" stroke="#475569" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+
+  <rect x="1216" y="918" width="184" height="66" rx="8" fill="#ffffff" stroke="#93c5fd" stroke-width="2"/>
+  <text x="1308" y="946" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="700" fill="#1d4ed8">save_memory</text>
+  <text x="1308" y="969" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#475569">MySQL raw Turn</text>
+  <path d="M1308 894 L1308 918" stroke="#475569" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+
+  <path d="M876 177 C1100 177 1073 650 1073 798" stroke="#94a3b8" stroke-width="2" stroke-dasharray="7 6" fill="none" marker-end="url(#arrow)"/>
+  <text x="1042" y="204" font-family="Arial, sans-serif" font-size="12" fill="#64748b">no_search / clarify</text>
+
+  <rect x="38" y="314" width="250" height="154" rx="8" fill="#ffffff" stroke="#cbd5e1" stroke-width="2"/>
+  <rect x="38" y="314" width="250" height="42" rx="8" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="2"/>
+  <text x="163" y="341" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="700" fill="#334155">State History</text>
+  <text x="62" y="385" font-family="Arial, sans-serif" font-size="13" font-weight="700" fill="#0f172a">InMemorySaver</text>
+  <text x="62" y="412" font-family="Arial, sans-serif" font-size="12" fill="#475569">thread_id -> checkpoints</text>
+  <text x="62" y="437" font-family="Arial, sans-serif" font-size="12" fill="#475569">GET /advanced/history/{id}</text>
+  <text x="62" y="459" font-family="Arial, sans-serif" font-size="11" fill="#64748b">进程重启后清空，不等于 durable resume</text>
+
+  <rect x="38" y="514" width="250" height="170" rx="8" fill="#ffffff" stroke="#cbd5e1" stroke-width="2"/>
+  <rect x="38" y="514" width="250" height="42" rx="8" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="2"/>
+  <text x="163" y="541" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="700" fill="#334155">LangGraph streams</text>
+  <circle cx="66" cy="584" r="7" fill="#2563eb"/>
+  <text x="84" y="589" font-family="Arial, sans-serif" font-size="12" fill="#334155">updates -> graph_update</text>
+  <circle cx="66" cy="619" r="7" fill="#7c3aed"/>
+  <text x="84" y="624" font-family="Arial, sans-serif" font-size="12" fill="#334155">messages -> answer_delta</text>
+  <circle cx="66" cy="654" r="7" fill="#d97706"/>
+  <text x="84" y="659" font-family="Arial, sans-serif" font-size="12" fill="#334155">custom -> retry_policy</text>
+
+  <rect x="38" y="738" width="250" height="156" rx="8" fill="#fff1f2" stroke="#fda4af" stroke-width="2" stroke-dasharray="7 6"/>
+  <text x="163" y="770" text-anchor="middle" font-family="Arial, sans-serif" font-size="15" font-weight="700" fill="#be123c">边界</text>
+  <text x="62" y="806" font-family="Arial, sans-serif" font-size="12" fill="#475569">不展示 chain-of-thought</text>
+  <text x="62" y="833" font-family="Arial, sans-serif" font-size="12" fill="#475569">不接 MCP / Permission / Sandbox</text>
+  <text x="62" y="860" font-family="Arial, sans-serif" font-size="12" fill="#475569">不做跨进程消息与持久恢复</text>
+
+  <path d="M288 391 C430 391 550 300 686 350" stroke="#94a3b8" stroke-width="1.8" stroke-dasharray="6 6" fill="none"/>
+  <path d="M288 599 C430 599 510 700 672 700" stroke="#94a3b8" stroke-width="1.8" stroke-dasharray="6 6" fill="none"/>
+</svg>
