@@ -143,11 +143,6 @@ function toolCalls(toolName: string): StepResult[] {
             <div>
               <div class="plan-title"><strong>{{ item.step.kind }}</strong><span :class="['step-status', item.result?.status ?? 'skipped']">{{ item.result?.status ?? 'planned' }}</span></div>
               <p>{{ item.step.query || item.step.instruction || item.step.reason || '无附加说明' }}</p>
-              <details v-if="item.result?.result_count" class="result-disclosure">
-                <summary><span><ChevronDown :size="14" />{{ item.result.result_count }} 条结果</span><small>查看检索明细</small></summary>
-                <RetrievedChunkList :hits="item.result.results" />
-              </details>
-              <small v-if="item.result?.error" class="error-text">{{ item.result.error }}</small>
             </div>
           </li>
         </ol>

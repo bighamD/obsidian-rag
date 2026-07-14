@@ -27,6 +27,7 @@ SQLite 全部原始 Turns
 - 支持 Swagger 和 CLI 手动强制压缩。
 - Planner 和 Answer Context 同时接收 `summary_text` 与最近原始 Turns。
 - 摘要失败时保留现有摘要和最近 Turns，不阻断本轮 RAG。
+- `no_search` / `clarify` 不再直接把 Planner 的 `instruction` 当最终答案；在有 LLM 时会继续进入 Answer 节点，由通用 LLM 回答或发起澄清。
 
 ## 流程图
 
@@ -63,6 +64,16 @@ conversation_summary
 + current_question
 + retrieval_chunks
 ```
+
+当计划是 `no_search` 或 `clarify` 时，`retrieval_chunks` 可以为空，但 Answer LLM 仍然会被调用：
+
+```text
+普通编程/知识问题 -> 通用回答，不添加知识库来源
+实时天气/新闻问题 -> 说明当前没有外部实时工具，不编造事实
+指代不明问题 -> 生成澄清问题
+```
+
+`used_retrieval=false` 只表示本轮没有调用 RAG，不表示本轮没有生成答案。
 
 压缩不会删除 `turns`。摘要是可重新生成的派生数据，原始 Turn 才是事实来源。
 
@@ -213,7 +224,7 @@ V3.8.1 compaction: force compact
 | 6 | `memory.py:152` `save_summary()` | summary_text 和摘要截止 Turn 如何持久化。 |
 | 7 | `context.py:98` `build_memory_aware_planner_question()` | summary + recent Turns 如何进入 Planner。 |
 | 8 | `context.py:72` `_build_messages()` | summary + recent Turns + chunks 如何进入 Answer Context。 |
-| 9 | `agent/service.py:403` `_synthesize_answer_node()` | 最终 messages 和 answer。 |
+| 9 | `agent/service.py:403` `_synthesize_answer_node()` | 无论是否检索都观察 Answer LLM；无 LLM 时才观察非检索降级答案。 |
 | 10 | `agent/service.py:434` `_save_memory_node()` | 当前原始问答仍然独立写入 turns。 |
 
 关键分支：

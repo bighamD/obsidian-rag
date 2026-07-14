@@ -403,29 +403,25 @@ class AgentService:
     def _synthesize_answer_node(self, state: AgentState) -> AgentState:
         state = _copy_state(state)
         state["graph_path"].append("synthesize_answer")
-        if not state.get("used_retrieval"):
-            state["answer"] = _direct_non_retrieval_answer(state.get("step_results", []))
-            state["trace"].append(
-                AgentTraceStep(
-                    node_name="synthesize_answer",
-                    step_type="synthesize",
-                    reason="没有执行检索，直接返回 no_search/clarify 计划中的说明。",
-                )
-            )
-            return state
-
         chat_client = self._chat_client()
         context_bundle = state.get("context_bundle") or _empty_context_bundle(state["request"])
         answer = "" if chat_client is None else chat_client.complete(context_bundle.messages).strip()
         if not answer:
-            answer = _fallback_answer(state["search_results"])
+            if state.get("used_retrieval"):
+                answer = _fallback_answer(state["search_results"])
+            else:
+                answer = _direct_non_retrieval_answer(state.get("step_results", []))
         state["answer"] = answer
         state["trace"].append(
             AgentTraceStep(
                 node_name="synthesize_answer",
                 step_type="synthesize",
                 result_count=len(state.get("search_results", [])),
-                reason="综合多个 step result 生成最终答案。",
+                reason=(
+                    "基于检索证据综合生成最终答案。"
+                    if state.get("used_retrieval")
+                    else "未执行检索，交由通用 Answer LLM 回答 no_search/clarify 请求。"
+                ),
             )
         )
         _mark_synthesize_steps_success(state["step_results"])
