@@ -46,6 +46,9 @@ from obsidian_rag.v3_10.runtime.lifecycle import AgentRuntimeService
 from obsidian_rag.v3_10.runtime.store import InMemoryRunStore
 from obsidian_rag.v3_10.schemas import ProductionAskRequest
 from obsidian_rag.llm import OpenAIChatClient
+from obsidian_rag.v3_11.agent.service import SkillAgentService
+from obsidian_rag.v3_11.schemas import SkillAskRequest
+from obsidian_rag.v3_11.skills.registry import SkillRegistry
 
 
 def _add_production_ask_arguments(parser, memory_db_help: str) -> None:

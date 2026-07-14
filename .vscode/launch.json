@@ -20,6 +20,81 @@
 			"justMyCode": true
 		},
 		{
+			"name": "V3.11 API server: Skill System",
+			"type": "debugpy",
+			"request": "launch",
+			"module": "uvicorn",
+			"console": "integratedTerminal",
+			"cwd": "${workspaceFolder}",
+			"python": "${workspaceFolder}/.venv/bin/python",
+			"envFile": "${workspaceFolder}/.env",
+			"args": [
+				"obsidian_rag.v3_11.app:app",
+				"--host",
+				"127.0.0.1",
+				"--port",
+				"8016"
+			],
+			"justMyCode": true
+		},
+		{
+			"name": "V3.11 CLI: selected Skill",
+			"type": "debugpy",
+			"request": "launch",
+			"module": "obsidian_rag.cli",
+			"console": "integratedTerminal",
+			"cwd": "${workspaceFolder}",
+			"python": "${workspaceFolder}/.venv/bin/python",
+			"envFile": "${workspaceFolder}/.env",
+			"args": [
+				"agent-v3-11",
+				"ask",
+				"生鸡肉要不要洗？",
+				"--conversation-id",
+				"conv_v311_skill",
+				"--skill-name",
+				"food-safety",
+				"--mode",
+				"hybrid"
+			],
+			"justMyCode": true
+		},
+		{
+			"name": "V3.11 CLI: no Skill branch",
+			"type": "debugpy",
+			"request": "launch",
+			"module": "obsidian_rag.cli",
+			"console": "integratedTerminal",
+			"cwd": "${workspaceFolder}",
+			"python": "${workspaceFolder}/.venv/bin/python",
+			"envFile": "${workspaceFolder}/.env",
+			"args": [
+				"agent-v3-11",
+				"ask",
+				"帮我写一个两数之和函数",
+				"--conversation-id",
+				"conv_v311_no_skill",
+				"--disable-skill-router"
+			],
+			"justMyCode": true
+		},
+		{
+			"name": "V3.11 CLI: list Skills",
+			"type": "debugpy",
+			"request": "launch",
+			"module": "obsidian_rag.cli",
+			"console": "integratedTerminal",
+			"cwd": "${workspaceFolder}",
+			"python": "${workspaceFolder}/.venv/bin/python",
+			"envFile": "${workspaceFolder}/.env",
+			"args": [
+				"agent-v3-11",
+				"skills",
+				"list"
+			],
+			"justMyCode": true
+		},
+		{
 			"name": "V3.10.2 UI: Vite Agent Console SSE",
 			"type": "node-terminal",
 			"request": "launch",

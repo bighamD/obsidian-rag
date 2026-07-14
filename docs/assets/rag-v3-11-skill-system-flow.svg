@@ -1,0 +1,75 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1180" height="700" viewBox="0 0 1180 700" role="img" aria-labelledby="title desc">
+  <title id="title">V3.11 Skill System flow</title>
+  <desc id="desc">V3.11 discovers Skill metadata, uses an LLM router to select zero or one skill, lazy-loads the selected SKILL.md, injects the method into Planner, and reuses the V3.8.1 Agentic RAG flow.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#475569"/>
+    </marker>
+    <marker id="soft-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#94a3b8"/>
+    </marker>
+  </defs>
+
+  <rect width="1180" height="700" fill="#f8fafc"/>
+  <text x="590" y="44" text-anchor="middle" font-family="Arial, sans-serif" font-size="28" font-weight="700" fill="#0f172a">V3.11 Skill System 流程</text>
+  <text x="590" y="72" text-anchor="middle" font-family="Arial, sans-serif" font-size="15" fill="#475569">Skill 负责方法选择，Tool 负责动作执行；未命中 Skill 时仍可复用旧 Agent 流程</text>
+
+  <rect x="42" y="112" width="220" height="390" rx="8" fill="#ffffff" stroke="#bfdbfe" stroke-width="2"/>
+  <rect x="42" y="112" width="220" height="54" rx="8" fill="#eff6ff" stroke="#bfdbfe" stroke-width="2"/>
+  <text x="152" y="146" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" font-weight="700" fill="#1d4ed8">输入</text>
+  <text x="70" y="206" font-family="Arial, sans-serif" font-size="16" font-weight="700" fill="#0f172a">SkillAskRequest</text>
+  <text x="70" y="240" font-family="Arial, sans-serif" font-size="14" fill="#334155">question</text>
+  <text x="70" y="270" font-family="Arial, sans-serif" font-size="14" fill="#334155">skill_name?</text>
+  <text x="70" y="300" font-family="Arial, sans-serif" font-size="14" fill="#334155">skill_router_enabled</text>
+  <text x="70" y="330" font-family="Arial, sans-serif" font-size="14" fill="#334155">Memory / RAG 参数</text>
+  <text x="70" y="390" font-family="Arial, sans-serif" font-size="13" fill="#64748b">skill_name 只用于确定性调试</text>
+  <text x="70" y="418" font-family="Arial, sans-serif" font-size="13" fill="#64748b">正常产品请求保持 null</text>
+
+  <rect x="312" y="112" width="390" height="390" rx="8" fill="#ffffff" stroke="#bbf7d0" stroke-width="2"/>
+  <rect x="312" y="112" width="390" height="54" rx="8" fill="#f0fdf4" stroke="#bbf7d0" stroke-width="2"/>
+  <text x="507" y="146" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" font-weight="700" fill="#047857">Skill Layer</text>
+
+  <circle cx="368" cy="210" r="21" fill="#dcfce7" stroke="#22c55e" stroke-width="2"/>
+  <text x="368" y="217" text-anchor="middle" font-family="Arial, sans-serif" font-size="15" font-weight="700" fill="#166534">1</text>
+  <rect x="404" y="180" width="250" height="60" rx="8" fill="#ffffff" stroke="#86efac" stroke-width="2"/>
+  <text x="424" y="205" font-family="Arial, sans-serif" font-size="16" font-weight="700" fill="#166534">discover_skills</text>
+  <text x="424" y="226" font-family="Arial, sans-serif" font-size="13" fill="#475569">只读 front matter，不读正文</text>
+
+  <circle cx="368" cy="300" r="21" fill="#fef9c3" stroke="#eab308" stroke-width="2"/>
+  <text x="368" y="307" text-anchor="middle" font-family="Arial, sans-serif" font-size="15" font-weight="700" fill="#854d0e">2</text>
+  <rect x="404" y="270" width="250" height="60" rx="8" fill="#ffffff" stroke="#fde047" stroke-width="2"/>
+  <text x="424" y="295" font-family="Arial, sans-serif" font-size="16" font-weight="700" fill="#854d0e">skill_router</text>
+  <text x="424" y="316" font-family="Arial, sans-serif" font-size="13" fill="#475569">LLM 返回零个或一个 Skill JSON</text>
+
+  <circle cx="368" cy="390" r="21" fill="#ffedd5" stroke="#fb923c" stroke-width="2"/>
+  <text x="368" y="397" text-anchor="middle" font-family="Arial, sans-serif" font-size="15" font-weight="700" fill="#9a3412">3</text>
+  <rect x="404" y="360" width="250" height="60" rx="8" fill="#ffffff" stroke="#fdba74" stroke-width="2"/>
+  <text x="424" y="385" font-family="Arial, sans-serif" font-size="16" font-weight="700" fill="#9a3412">load_skill / skip_skill</text>
+  <text x="424" y="406" font-family="Arial, sans-serif" font-size="13" fill="#475569">只加载最终选中的 SKILL.md</text>
+
+  <path d="M368 232 L368 278" stroke="#475569" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+  <path d="M368 322 L368 368" stroke="#475569" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+  <text x="507" y="458" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" fill="#64748b">graph_path: discover_skills -> skill_router -> load_skill / skip_skill</text>
+
+  <rect x="752" y="112" width="386" height="390" rx="8" fill="#ffffff" stroke="#cbd5e1" stroke-width="2"/>
+  <rect x="752" y="112" width="386" height="54" rx="8" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="2"/>
+  <text x="945" y="146" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" font-weight="700" fill="#334155">复用 V3.8.1 Agent</text>
+  <text x="780" y="208" font-family="Arial, sans-serif" font-size="16" font-weight="700" fill="#0f172a">SkillAwarePlannerService</text>
+  <text x="780" y="240" font-family="Arial, sans-serif" font-size="14" fill="#334155">Skill Context 注入 Planner.question</text>
+  <text x="780" y="285" font-family="Arial, sans-serif" font-size="14" fill="#334155">load_memory -> compact_memory</text>
+  <text x="780" y="315" font-family="Arial, sans-serif" font-size="14" fill="#334155">planner -> execute_steps</text>
+  <text x="780" y="345" font-family="Arial, sans-serif" font-size="14" fill="#334155">evidence_check -> retry_search?</text>
+  <text x="780" y="375" font-family="Arial, sans-serif" font-size="14" fill="#334155">build_context -> synthesize_answer</text>
+  <text x="780" y="405" font-family="Arial, sans-serif" font-size="14" fill="#334155">save_memory</text>
+  <text x="780" y="460" font-family="Arial, sans-serif" font-size="13" fill="#64748b">Skill 不执行 Tool；search_notes 仍由旧 ToolRegistry 调用</text>
+
+  <path d="M262 300 L312 300" stroke="#475569" stroke-width="2.5" fill="none" marker-end="url(#arrow)"/>
+  <path d="M702 300 L752 300" stroke="#475569" stroke-width="2.5" fill="none" marker-end="url(#arrow)"/>
+
+  <rect x="124" y="556" width="932" height="78" rx="8" fill="#fff1f2" stroke="#fda4af" stroke-width="2" stroke-dasharray="7 6"/>
+  <text x="590" y="586" text-anchor="middle" font-family="Arial, sans-serif" font-size="17" font-weight="700" fill="#be123c">V3.11 的边界</text>
+  <text x="590" y="613" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#475569">不接 MCP、Permission、Sandbox 或 Shell；不展示 chain-of-thought；Skill 只提供方法上下文</text>
+
+  <path d="M654 390 C730 520 840 540 1028 556" stroke="#94a3b8" stroke-width="2" fill="none" stroke-dasharray="6 6" marker-end="url(#soft-arrow)"/>
+  <text x="828" y="525" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#64748b">no_skill / router_error 也会继续旧 Agent</text>
+</svg>
