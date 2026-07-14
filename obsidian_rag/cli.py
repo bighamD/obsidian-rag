@@ -37,12 +37,11 @@ from obsidian_rag.v3_8.schemas import AgentAskRequest as Agent38AskRequest
 from obsidian_rag.v3_8_1.agent.service import AgentService as Agent381Service
 from obsidian_rag.v3_8_1.compaction import ConversationCompactor as Conversation381Compactor
 from obsidian_rag.v3_8_1.memory import SQLiteConversationMemoryStore as SQLite381ConversationMemoryStore
-from obsidian_rag.v3_8_1.memory import default_memory_db_path as default381_memory_db_path
+from obsidian_rag.v3_8_1.mysql_memory import MySQLConversationMemoryStore
 from obsidian_rag.v3_8_1.schemas import AgentAskRequest as Agent381AskRequest
 from obsidian_rag.v3_9.dependencies import default_agent_eval_memory_db_path
 from obsidian_rag.v3_9.evaluation.dataset import load_agent_eval_dataset
 from obsidian_rag.v3_9.evaluation.evaluator import AgentEvaluator, default_agent_eval_output_path
-from obsidian_rag.v3_10.dependencies import default_memory_db_path as default310_memory_db_path
 from obsidian_rag.v3_10.runtime.lifecycle import AgentRuntimeService
 from obsidian_rag.v3_10.runtime.store import InMemoryRunStore
 from obsidian_rag.v3_10.schemas import ProductionAskRequest
@@ -1033,7 +1032,7 @@ def run_agent381_ask(
 ) -> None:
     if agent_service is None:
         service = retrieval_service or RetrievalService(config)
-        memory_store = SQLite381ConversationMemoryStore(memory_db_path or default381_memory_db_path())
+        memory_store = MySQLConversationMemoryStore()
         agent = Agent381Service(
             retrieval_service=service,
             chat_client=chat_client,
@@ -1127,7 +1126,7 @@ def run_agent310_ask(
     if runtime_service is None:
         if agent_service is None:
             service = retrieval_service or RetrievalService(config)
-            memory_store = SQLite381ConversationMemoryStore(memory_db_path or default310_memory_db_path())
+            memory_store = MySQLConversationMemoryStore()
             agent = Agent381Service(
                 retrieval_service=service,
                 chat_client=chat_client,
@@ -1264,7 +1263,7 @@ def run_agent381_compact(
     memory_store=None,
     chat_client=None,
 ) -> None:
-    store = memory_store or SQLite381ConversationMemoryStore(memory_db_path or default381_memory_db_path())
+    store = memory_store or MySQLConversationMemoryStore()
     client = chat_client or OpenAIChatClient(
         api_key=config.api_key,
         base_url=config.base_url,

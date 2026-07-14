@@ -114,7 +114,7 @@ answer_prompt_tokens + answer_output_tokens = observed_total_tokens
 - `GET /runtime/config`：查看 Run Store 上限和 token 估算边界，不会暴露 `.env` 的密钥。
 - `GET /health`：健康检查。
 
-`InMemoryRunStore` 不持久化：服务重启后 `/runs` 会清空。这和 V3.8.1 的 SQLite Conversation Memory 是两类数据，前者是运行观测，后者是对话内容。
+`InMemoryRunStore` 不持久化：服务重启后 `/runs` 会清空。这和 V3.8.1 的 MySQL Conversation Memory 是两类数据，前者是运行观测，后者是对话内容。
 
 ## CLI
 
@@ -124,7 +124,7 @@ answer_prompt_tokens + answer_output_tokens = observed_total_tokens
   --mode hybrid
 ```
 
-CLI 会打印 Production Run ID、状态、耗时、工具汇总、估算 token 和最终答案。`--memory-db-path` 可单独指定 V3.10 的 SQLite Memory 文件；默认是 `.rag/v3_10_memory.sqlite3`。
+CLI 会打印 Production Run ID、状态、耗时、工具汇总、估算 token 和最终答案。Conversation Memory 使用 `.env` 中的 MySQL 配置；`.rag/v3_10_memory.sqlite3` 仅作为历史迁移源保留。
 
 ## 文件职责
 

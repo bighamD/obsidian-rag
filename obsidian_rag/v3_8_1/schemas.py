@@ -185,13 +185,13 @@ class ContextBundle(BaseModel):
 
 
 class MemoryTurn(BaseModel):
-    """SQLite 中保存的一轮原始对话，用作 `conversation_memory`。
+    """MySQL 中保存的一轮原始对话，用作 `conversation_memory`。
 
     它保存原始用户问题和原始回答；旧 Turn 的压缩结果不在这里，
     而是保存在 `MemorySnapshot.summary_text`。
     """
 
-    turn_id: str = Field(description="SQLite 原始 Turn 的唯一标识。")
+    turn_id: str = Field(description="MySQL 原始 Turn 的唯一标识。")
     conversation_id: str = Field(description="该 Turn 所属的会话标识。")
     user_message: str = Field(description="该轮原始用户问题。")
     assistant_message: str = Field(description="该轮最终回答；不是压缩摘要。")
@@ -223,7 +223,7 @@ class MemorySnapshot(BaseModel):
     conversation_id: str = Field(description="正在读取的会话标识。")
     window: int = Field(description="读取最近原始 Turn 时使用的 memory_window。")
     recent_turns: list[MemoryTurn] = Field(default_factory=list, description="实际放入 Planner 与 Answer 上下文的最近原始 Turns。")
-    total_turn_count: int = Field(default=0, description="SQLite 中该会话保存的全部原始 Turn 数。")
+    total_turn_count: int = Field(default=0, description="MySQL 中该会话保存的全部原始 Turn 数。")
     loaded_turn_count: int = Field(default=0, description="本次快照实际读取的 recent_turns 数量。")
     omitted_turn_count: int = Field(default=0, description="未进入 recent_turns 的原始 Turn 数量。")
     summary_text: str = Field(default="", description="已压缩旧 Turn 的滚动摘要；为空表示尚未生成摘要。")
@@ -271,11 +271,11 @@ class MemoryCompactResponse(BaseModel):
 
 
 class MemoryWriteResult(BaseModel):
-    """本次 `/agent/ask` 完成时，当前原始问答 Turn 的 SQLite 写入结果。"""
+    """本次 `/agent/ask` 完成时，当前原始问答 Turn 的 MySQL 写入结果。"""
 
     conversation_id: str = Field(description="写入目标会话标识。")
     turn_id: str | None = Field(default=None, description="成功写入时生成的原始 Turn 标识。")
-    saved: bool = Field(description="当前问答是否已成功写入 SQLite。")
+    saved: bool = Field(description="当前问答是否已成功写入 MySQL。")
     reason: str | None = Field(default=None, description="写入失败时的原因。")
 
 
@@ -299,7 +299,7 @@ class AgentAskResponse(BaseModel):
     context_bundle: ContextBundle = Field(description="Answer 节点实际构造的上下文与调试信息。")
     memory_snapshot: MemorySnapshot = Field(description="Planner/Answer 使用的压缩后会话快照，不含当前新 Turn。")
     memory_compaction: MemoryCompactionResult = Field(description="本轮对旧会话记忆进行压缩的结果。")
-    memory_write: MemoryWriteResult = Field(description="当前问答原始 Turn 的 SQLite 写入结果。")
+    memory_write: MemoryWriteResult = Field(description="当前问答原始 Turn 的 MySQL 写入结果。")
     graph_path: list[str] = Field(description="本次实际经过的 LangGraph 节点顺序。")
     trace: list[AgentTraceStep] = Field(description="节点和工具的结构化执行轨迹。")
     node_timings: list[AgentNodeTiming] = Field(

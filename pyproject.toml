@@ -10,6 +10,7 @@ dependencies = [
     "langgraph>=0.2.0",
     "openai>=1.90.0",
     "pypdf>=5.0.0",
+    "pymysql>=1.1.1",
     "python-dotenv>=1.0.1",
     "pyyaml>=6.0.2",
     "qdrant-client>=1.14.0",

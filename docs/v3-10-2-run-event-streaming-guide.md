@@ -126,7 +126,7 @@ obsidian_rag/v3_10_2/
   runtime/event_bus.py         线程安全的 Run 队列和 SSE 编码
   runtime/lifecycle.py         后台线程、Run 状态、事件发布和最终响应
   routes/agent.py              POST /agent/ask 与 POST /agent/ask/stream
-  routes/console.py            Console 配置和 SQLite 会话快照
+  routes/console.py            Console 配置和 MySQL 会话快照
   routes/health.py             V3.10.2 健康检查
 
 obsidian_rag/v3_8_1/agent/service.py
@@ -171,6 +171,7 @@ v3_8_1/agent/service.py:_timed_node()
 - EventBus 是进程内存结构，服务重启后事件消失，不适合多进程生产部署。
 - 当前使用后台线程执行同步 Agent；后续可学习任务队列和分布式事件总线。
 - JSON `/agent/ask` 保持不变，SSE 不会替代 Swagger 和 CLI 的稳定契约。
+- Conversation Memory 已迁移到 MySQL；Run Store 仍然是进程内存结构。
 - 不发送 chain-of-thought，不发送模型隐藏推理，不做 token-by-token LLM streaming。
 - SSE 客户端断开不会让 Agent 失败；事件 sink 异常会被隔离。
 

@@ -1,8 +1,6 @@
 from __future__ import annotations
 
-import os
 from functools import lru_cache
-from pathlib import Path
 
 from obsidian_rag.config import RagConfig, load_config
 from obsidian_rag.llm import OpenAIChatClient
@@ -15,10 +13,6 @@ from obsidian_rag.v3_10_2.runtime.lifecycle import StreamingAgentRuntimeService
 
 def get_config() -> RagConfig:
     return load_config()
-
-
-def default_memory_db_path() -> Path:
-    return Path(os.getenv("RAG_V3_10_MEMORY_DB_PATH", ".rag/v3_10_memory.sqlite3"))
 
 
 def build_agent() -> AgentService:
@@ -41,4 +35,3 @@ def get_runtime_service() -> StreamingAgentRuntimeService:
 @lru_cache(maxsize=1)
 def get_event_bus() -> RunEventBus:
     return RunEventBus()
-

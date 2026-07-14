@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 
-from obsidian_rag.v3_8_1.memory import SQLiteConversationMemoryStore
+from obsidian_rag.v3_8_1.mysql_memory import MySQLConversationMemoryStore
 from obsidian_rag.v3_8_1.schemas import MemoryCompactionResult, MemoryTurn
 
 
@@ -15,7 +15,7 @@ SUMMARY_SYSTEM_PROMPT = """你是 Conversation Memory 压缩器。
 class ConversationCompactor:
     def __init__(
         self,
-        memory_store: SQLiteConversationMemoryStore,
+        memory_store: MySQLConversationMemoryStore,
         chat_client=None,
         chat_client_factory=None,
     ):

@@ -21,6 +21,7 @@ V3.9  ：Agent Evaluation Lite，运行 Agent 并用结构化契约评测行为
 V3.10 ：Production Core，为单次 Agent Run 提供生命周期、观测和错误摘要
 V3.10.1：Agent Console，Vite + Vue 3 消费 JSON Run / Agent Response
 V3.10.2：Run Event Streaming，复用 Agent Console 消费 SSE 运行事件
+V3.10.3：LangGraph Advanced Patterns，学习子图、并行、恢复与消息流
 ```
 
 当前工程已经包含 intent router 能力：
@@ -43,6 +44,7 @@ Phase 6：Agent Evaluation，评估 router/tool/planner/answer
 Phase 7：Production Core，Run Lifecycle、配置、观测和稳定性
 Phase 7.1：Agent Console，消费 JSON Run / Agent Response 的会话与运行详情界面
 Phase 7.2：Run Event Streaming，SSE 推送真实节点、工具和最终完成事件
+Phase 7.3：LangGraph Advanced Patterns，子图、并行执行、恢复和消息流
 Phase 8：Skill System，Skill Registry、Skill Router 和渐进式加载
 Phase 9：MCP Integration，连接外部 MCP 并暴露本地 RAG 能力
 Phase 10：Permission Policy，工具风险分级、参数校验和人工审批
@@ -70,7 +72,7 @@ AI Agent = LLM + Harness
 | Shell Execution / 终端执行 | V3.14 Sandbox Execution | 后期只在隔离 Sandbox 中开放，不直接把宿主机 Shell 暴露给模型。 |
 | Permissions / 权限审批 | V3.13 Permission Policy | 在 Sandbox 前补工具白名单、风险等级、参数校验、scope 和人工审批。 |
 | Memory & State / 记忆状态 | V3.3、V3.5、V3.8、V3.8.1 | 已有 AgentState、SQLite Raw Turns、最近窗口和滚动摘要。 |
-| Orchestrator / 任务编排 | V3.3、V3.4、V3.5、V3.6 | 已用 LangGraph 表达 node/edge；V3.6 会加入 evidence/retry 分支。 |
+| Orchestrator / 任务编排 | V3.3、V3.4、V3.5、V3.6、V3.10.3 | V3.3-V3.6 学习基础 node/edge 和条件分支；V3.10.3 补充子图、并行、动态路由和恢复模式。 |
 | Verification / 测试验证 | V2、V3.6、V3.9 | V2 是 retrieval/answer eval；V3.6 是运行时 evidence check；V3.9 Lite 用 case contract 评测 routing、plan、tool、retrieval、evidence 和 answer。 |
 | Observation / 返回观察 | V3.5、V3.6、V3.10 | 已有 `trace`、`step_results`；V3.10 已补 `RunRecord`、latency、tool summary、token estimate 和 error summary。 |
 | Agent Console / 前端观察 | V3.10.1、V3.10.2 | V3.10.1 消费 JSON 响应；V3.10.2 已通过 SSE 接收运行中事件。 |
@@ -111,6 +113,7 @@ V3.9 Agent Evaluation：系统能评估 agent 行为
 V3.10 Production Core：系统具备 run、观测、配置和稳定性基础（已完成）
 V3.10.1 Agent Console：用户能以会话界面查看答案、来源、Plan 和 Run 详情（已完成）
 V3.10.2 Run Event Streaming：前端能实时接收节点和工具事件，不展示 chain-of-thought（已完成）
+V3.10.3 LangGraph Advanced Patterns：系统能组合子图、并行步骤、动态路由、原生重试和消息流
 V3.11 Skill System：系统能选择并渐进式加载任务方法
 V3.12 MCP Integration：系统能接入标准化外部工具并对外提供 RAG 工具
 V3.13 Permission Policy：系统能在执行前判断 allow / confirm / deny
@@ -671,6 +674,68 @@ examples:
 - SSE 不是展示模型内部思考的接口。
 - 不因为改用 SSE 删除 JSON `/agent/ask`；JSON 继续保留给 Swagger、CLI、测试和非流式调用方。
 
+## Phase 7.3：LangGraph Advanced Patterns
+
+学习版本：`V3.10.3 LangGraph Advanced Patterns`
+
+目标：在已经理解 LangGraph 基础节点编排和 SSE 事件流之后，学习 LangGraph 如何支撑更复杂、更可恢复的 Harness 工作流。
+
+### 主要学习内容
+
+```text
+Subgraph：把 RAG、审批、文件处理等流程封装成子图
+Parallel / Send：并行执行多个主题检索，再汇总结果
+Command：节点同时更新 State 并动态决定下一条路径
+Retry Policy：区分业务 retry 和 LangGraph 节点级 retry
+State History：查看每一步 State 变化，理解恢复和调试
+messages Streaming：让 LLM 消息或答案增量进入现有 SSE
+```
+
+### 计划中的示例链路
+
+```text
+用户问题
+  -> planner 子图
+  -> Send 并行执行多个 search 子图
+  -> evidence 汇总节点
+  -> Command 动态路由 retry / context
+  -> answer messages 流
+  -> save memory
+```
+
+### 与已完成版本的边界
+
+| 版本 | 重点 |
+| --- | --- |
+| V3.10.2 | Agent 节点完成后，通过 EventBus 和 SSE 发送运行事实。 |
+| V3.10.3 | 学习 LangGraph 内部的子图、并行、动态路由、状态历史和消息流。 |
+| V3.11 | 在稳定的执行编排之上学习 Skill Registry 和 Skill Router。 |
+
+V3.10.3 不引入 MCP、Permission、Sandbox 或新的业务知识库；重点是 LangGraph 执行模型本身。
+
+### 计划新增能力
+
+- `SubState` 和子图输入输出边界。
+- `Send` 或等价 Map-Reduce 并行检索。
+- `Command` 动态跳转和状态更新。
+- 节点级 retry policy 与现有 Evidence retry 的对比。
+- LangGraph Checkpointer 的最小实验和 State History 查看。
+- 将 `messages` 流式输出接入现有 `answer_delta` SSE 设计，但不展示隐藏推理。
+
+### 完成标准
+
+- 能画出主图和子图的边界，并解释 State 如何进出子图。
+- 能调试串行、并行、retry 和动态路由四条路径。
+- 能查看某一步 State 的历史变化，并从中断位置恢复实验 Run。
+- 能区分 `node_finished` 事件、`messages` 流和 token-by-token 最终答案。
+- 能说明为什么 LangGraph 负责执行编排，而 Redis/NATS/Kafka 负责跨进程消息传输。
+
+### 版本边界
+
+- 本阶段不开放任意 Shell、文件写入和外部 MCP 工具。
+- 不把模型隐藏推理或 chain-of-thought 推送到前端。
+- 不把当前 V3.10.2 的 InMemory EventBus 直接宣称为生产级消息系统。
+
 ## Phase 8：Skill System
 
 建议版本：`V3.11 Skill System`
@@ -810,5 +875,12 @@ V3.10.2 已在复用的 Agent Console 上接入 Run Event Streaming。进入 V3.
 - 为什么 V3.10.1 的 JSON UI 只能知道“请求中 / 已完成”，而 V3.10.2 可以真实显示节点实时进度。
 - 为什么 `trace` 是可观察执行事实，而不是 chain-of-thought。
 - 为什么 SSE 应保留 JSON 接口作为 Swagger、CLI 和测试的稳定契约。
+
+V3.10.3 开始前，还应能解释：
+
+- `graph.stream(values)` 和 `messages` 流分别传递什么。
+- 为什么节点计时事件和 LLM token 增量事件属于两种不同的观察粒度。
+- 为什么复杂流程需要 Subgraph 和并行，而不是继续把所有逻辑堆进一个 AgentState。
+- 为什么业务补搜 retry 和 LangGraph 节点 retry policy 需要分开设计。
 
 V3.9 会继续作为行为回归基线，V3.10～V3.10.2 会为后续 Skill、MCP、Permission 和 Sandbox 提供运行观察与用户界面基线。

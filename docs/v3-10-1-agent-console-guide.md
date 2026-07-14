@@ -54,7 +54,7 @@ frontend/v3_10_1_agent_console/
 | 数据 | 存放位置 | 作用 |
 | --- | --- | --- |
 | 浏览器近期会话与轻量消息 | `localStorage` | 让侧栏在刷新后保留当前会话入口和短历史。 |
-| 原始 Turn / 滚动摘要 | `.rag/v3_10_memory.sqlite3` | V3.8.1 Planner/Answer 实际使用的会话记忆。 |
+| 原始 Turn / 滚动摘要 | MySQL `obsidian_rag` | V3.8.1 Planner/Answer 实际使用的会话记忆。 |
 | 单次 Agent Run | `InMemoryRunStore` | 当前 FastAPI 进程中的 `prod_...` 状态、metrics、error；重启会丢失。 |
 
 刷新页面时，UI 会调用：
@@ -63,7 +63,7 @@ frontend/v3_10_1_agent_console/
 GET /console/conversations/{conversation_id}?window=3
 ```
 
-读取 SQLite 最近 Turns；它不是把所有历史 Turn 都塞给前端，更不是浏览器的唯一消息真相。
+读取 MySQL 最近 Turns；它不是把所有历史 Turn 都塞给前端，更不是浏览器的唯一消息真相。
 
 ## 页面布局
 
@@ -157,7 +157,7 @@ VITE_API_TARGET=http://127.0.0.1:8012 npm run dev
 ### Console 专用接口
 
 - `GET /console/config`：返回当前是 JSON 模式、尚未支持 SSE，以及 UI 默认值。
-- `GET /console/conversations/{conversation_id}?window=3`：读取 V3.10 SQLite Memory 快照。
+- `GET /console/conversations/{conversation_id}?window=3`：读取 V3.10 MySQL Memory 快照。
 - `GET /runs`、`GET /runs/{run_id}`：复用 V3.10 进程内 Run Store。
 
 ## CLI
@@ -181,7 +181,7 @@ CLI 输出仍来自 V3.10 Runtime，只是在开头标注 `Agent Console JSON fl
 | 3 | `frontend/v3_10_1_agent_console/src/api/production-client.ts:20`，`askAgent()` | `AgentAskPayload` 和 `/api/agent/ask`；Vite proxy 如何替换 `/api` 前缀。 |
 | 4 | `obsidian_rag/v3_10/routes/agent.py:12`，`ask_agent()` | 从 V3.10.1 复用的 `/agent/ask` 路由，继续进入 Runtime。 |
 | 5 | `obsidian_rag/v3_10/runtime/lifecycle.py:29`，`AgentRuntimeService.ask()` | `prod_...`、`run.status`、`agent_response`；观察 V3.10.1 没有复制 Agent 逻辑。 |
-| 6 | `obsidian_rag/v3_10_1/routes/console.py:21`，`get_conversation()` | `conversation_id`、`window`、`memory_snapshot`；区分 SQLite Memory 与浏览器侧会话。 |
+| 6 | `obsidian_rag/v3_10_1/routes/console.py:21`，`get_conversation()` | `conversation_id`、`window`、`memory_snapshot`；区分 MySQL Memory 与浏览器侧会话。 |
 | 7 | `frontend/v3_10_1_agent_console/src/components/RunInspector.vue:35`，`timeline` | `run.events` 和 `agent.trace` 如何合成界面时间线；它发生在完整响应到达后。 |
 
 `launch.json` 中的调试顺序：先启动 `V3.10.1 API server: Agent Console`，再启动 `V3.10.1 UI: Vite Agent Console`；`V3.10.1 Console: first turn` 和 `follow-up turn` 可用于同一 `conversation_id` 的 Memory 对照。

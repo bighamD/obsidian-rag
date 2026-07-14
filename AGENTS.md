@@ -71,38 +71,38 @@ docs/assets/rag-v3-4-planner-flow.svg
 已完成到：
 
 ```text
-V3.10.1 Agent Console (JSON First)
+V3.10.2 Run Event Streaming
 ```
 
-当前 V3.10.1 将 V3.10 的 JSON Run / Agent Response 做成 Vite + Vue 3 会话工作台：
+当前 V3.10.2 在复用的 V3.10.1 Vue 3 会话工作台上增加 SSE 运行事件：
 
 ```text
-Vue Agent Console -> /api proxy -> V3.10.1 FastAPI
-                  -> V3.10 Production Runtime -> V3.8.1 AgentService.ask()
+Vue Agent Console -> /api proxy -> V3.10.2 FastAPI
+                  -> EventBus / SSE -> V3.8.1 AgentService.ask_with_events()
                   -> ProductionAskResponse -> Chat / Run Inspector
 ```
 
-V3.10.1 会：
+V3.10.2 会：
 
-- 在 `frontend/v3_10_1_agent_console/` 提供 Vite + Vue 3 + TypeScript 的 Agent Console。
-- 用会话侧栏、对话主区、Run Inspector 消费 `ProductionAskResponse` 的 answer、sources、Run、Plan、Tool、Evidence、Context、Memory 与 trace。
+- 复用 `frontend/v3_10_1_agent_console/` 的 Vite + Vue 3 + TypeScript Agent Console。
+- 用 SSE 实时消费 Run、节点、工具和 trace 事实，并在终态事件中接收完整 `ProductionAskResponse`。
 - 通过 `localStorage` 保存浏览器近期会话，并通过 `/console/conversations/{conversation_id}` 读取 SQLite Memory 快照。
-- 保留 Swagger JSON、CLI 和 V3.10 Runtime；不改 Planner、Tool、Memory 或 Prompt。
-- 使用 Vite `/api` proxy 指向 `127.0.0.1:8013`，开发环境不需要新增 CORS。
+- 保留 Swagger JSON、CLI 和 V3.10 Runtime；不改 Planner、Tool、Memory 或 Prompt 策略。
+- 使用 Vite `/api` proxy 指向 `127.0.0.1:8014`，开发环境不需要新增 CORS。
 
-V3.10.1 仍然不做：
+V3.10.2 仍然不做：
 
-- 不通过 SSE 实时显示节点或工具进度；运行中状态只是前端本地 loading。
-- 不展示 chain-of-thought，不做 token-by-token 生成。
+- 不展示 chain-of-thought，不展示模型隐藏推理。
+- 当前只做节点级事件流，不做 LLM token-by-token 生成。
 - 不做多用户会话管理、Run 持久化或新的 Agent 推理策略。
 
 下一阶段建议：
 
 ```text
-V3.10.2 Run Event Streaming
+V3.10.3 LangGraph Advanced Patterns
 ```
 
-V3.10.2 将在节点与工具边界增加 EventSink / SSE，令现有 Run Inspector 真正实时更新；JSON 接口继续保留。
+V3.10.3 将学习 Subgraph、Parallel/Send、Command、Retry Policy、State History 和 messages 流；JSON 与 SSE 接口继续保留。
 
 ## CodeGraph
 

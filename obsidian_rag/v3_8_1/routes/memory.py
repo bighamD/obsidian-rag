@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, Query
 
 from obsidian_rag.v3_8_1.compaction import ConversationCompactor
 from obsidian_rag.v3_8_1.dependencies import get_memory_compactor, get_memory_store
-from obsidian_rag.v3_8_1.memory import SQLiteConversationMemoryStore
+from obsidian_rag.v3_8_1.mysql_memory import MySQLConversationMemoryStore
 from obsidian_rag.v3_8_1.schemas import MemoryCompactRequest, MemoryCompactResponse, MemorySnapshot
 
 router = APIRouter()
@@ -14,7 +14,7 @@ router = APIRouter()
 def get_conversation_memory(
     conversation_id: str,
     window: int = Query(default=20, ge=0, le=100),
-    memory_store: SQLiteConversationMemoryStore = Depends(get_memory_store),
+    memory_store: MySQLConversationMemoryStore = Depends(get_memory_store),
 ) -> MemorySnapshot:
     return memory_store.load_snapshot(conversation_id, window=window)
 
@@ -24,7 +24,7 @@ def compact_conversation_memory(
     conversation_id: str,
     request: MemoryCompactRequest,
     compactor: ConversationCompactor = Depends(get_memory_compactor),
-    memory_store: SQLiteConversationMemoryStore = Depends(get_memory_store),
+    memory_store: MySQLConversationMemoryStore = Depends(get_memory_store),
 ) -> MemoryCompactResponse:
     result = compactor.compact(
         conversation_id=conversation_id,

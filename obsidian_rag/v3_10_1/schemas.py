@@ -8,12 +8,12 @@ from obsidian_rag.v3_8_1.schemas import MemorySnapshot
 class ConsoleConversationResponse(BaseModel):
     """Agent Console 读取一个会话时使用的 JSON 响应。
 
-    `memory_snapshot` 是 SQLite 中的已持久化对话记忆，不是浏览器临时消息列表；
+    `memory_snapshot` 是 MySQL 中的已持久化对话记忆，不是浏览器临时消息列表；
     当前问题和本轮回答仍需通过 `/agent/ask` 的 `agent_response.memory_write` 判断是否落盘。
     """
 
     conversation_id: str = Field(description="浏览器正在查看的会话标识。")
-    memory_snapshot: MemorySnapshot = Field(description="从 V3.10 独立 SQLite Memory DB 读取到的会话快照。")
+    memory_snapshot: MemorySnapshot = Field(description="从 V3.10 MySQL Memory 数据库读取到的会话快照。")
 
 
 class ConsoleConfigResponse(BaseModel):

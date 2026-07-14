@@ -7,7 +7,7 @@ from obsidian_rag.llm import OpenAIChatClient
 from obsidian_rag.v1.services.retrieval_service import RetrievalService
 from obsidian_rag.v3_8_1.agent.service import AgentService
 from obsidian_rag.v3_8_1.compaction import ConversationCompactor
-from obsidian_rag.v3_8_1.memory import SQLiteConversationMemoryStore, default_memory_db_path
+from obsidian_rag.v3_8_1.mysql_memory import MySQLConversationMemoryStore
 
 
 def get_config() -> RagConfig:
@@ -19,8 +19,8 @@ def build_chat_client(config: RagConfig) -> OpenAIChatClient:
 
 
 @lru_cache(maxsize=1)
-def get_memory_store() -> SQLiteConversationMemoryStore:
-    return SQLiteConversationMemoryStore(default_memory_db_path())
+def get_memory_store() -> MySQLConversationMemoryStore:
+    return MySQLConversationMemoryStore()
 
 
 def get_agent_service() -> AgentService:

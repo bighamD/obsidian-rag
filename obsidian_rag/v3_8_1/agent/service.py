@@ -16,7 +16,7 @@ from obsidian_rag.v3_4.planner.service import PlannerService
 from obsidian_rag.v3_4.schemas import Plan, PlanRequest, PlanStep
 from obsidian_rag.v3_8_1.compaction import ConversationCompactor
 from obsidian_rag.v3_8_1.context import ContextBuilder, build_memory_aware_planner_question
-from obsidian_rag.v3_8_1.memory import SQLiteConversationMemoryStore, default_memory_db_path
+from obsidian_rag.v3_8_1.mysql_memory import MySQLConversationMemoryStore
 from obsidian_rag.v3_8_1.schemas import (
     AgentAskRequest,
     AgentAskResponse,
@@ -67,7 +67,7 @@ class AgentService:
         chat_client_factory=None,
         tool_registry: ToolRegistry | None = None,
         context_builder: ContextBuilder | None = None,
-        memory_store: SQLiteConversationMemoryStore | None = None,
+        memory_store: MySQLConversationMemoryStore | None = None,
         memory_compactor: ConversationCompactor | None = None,
     ):
         self.retrieval_service = retrieval_service
@@ -76,7 +76,7 @@ class AgentService:
         self.chat_client_factory = chat_client_factory
         self.tool_registry = tool_registry or build_search_tool_registry(retrieval_service)
         self.context_builder = context_builder
-        self.memory_store = memory_store or SQLiteConversationMemoryStore(default_memory_db_path())
+        self.memory_store = memory_store or MySQLConversationMemoryStore()
         self.memory_compactor = memory_compactor
         self.graph = self._build_graph()
 
