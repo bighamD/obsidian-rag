@@ -213,9 +213,18 @@ export interface AgentResponse {
   trace: AgentTraceStep[];
 }
 
+export interface SkillAgentResult {
+  agent_response: AgentResponse;
+  skill_selection: Record<string, unknown>;
+  loaded_skill: Record<string, unknown> | null;
+  graph_path: string[];
+  trace: Record<string, unknown>[];
+}
+
 export interface ProductionAskResponse {
   run: RunRecord;
   agent_response: AgentResponse | null;
+  skill_result?: SkillAgentResult | null;
 }
 
 export interface ConsoleConversationResponse {

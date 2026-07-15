@@ -1,6 +1,12 @@
 import { computed, onMounted, reactive, ref, watch } from "vue";
 
-import { fetchConversation, fetchHealth, fetchRuns, streamAgent } from "@/api/production-client";
+import {
+  fetchConversation,
+  fetchHealth,
+  fetchRuns,
+  normalizeProductionResponse,
+  streamAgent,
+} from "@/api/production-client";
 import type {
   AgentStreamEvent,
   AgentAskPayload,
@@ -163,10 +169,11 @@ export function useAgentConsole() {
       response.value = {
         run: event.data.run,
         agent_response: response.value?.agent_response ?? null,
+        skill_result: response.value?.skill_result ?? null,
       };
     }
     if (event.data.response) {
-      response.value = event.data.response;
+      response.value = normalizeProductionResponse(event.data.response);
     }
   }
 
@@ -252,7 +259,8 @@ function latestSessionRun(session: ConsoleSession | undefined): ProductionAskRes
   if (!session) {
     return null;
   }
-  return [...session.messages].reverse().find((message) => message.run)?.run ?? null;
+  const run = [...session.messages].reverse().find((message) => message.run)?.run;
+  return run ? normalizeProductionResponse(run) : null;
 }
 
 function compactTitle(question: string): string {
