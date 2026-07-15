@@ -19,10 +19,11 @@ export class ApiError extends Error {
 }
 
 export async function askAgent(payload: AgentAskPayload): Promise<ProductionAskResponse> {
-  return request<ProductionAskResponse>("/agent/ask", {
+  const response = await request<ProductionAskResponse>("/agent/ask", {
     method: "POST",
     body: JSON.stringify(payload),
   });
+  return normalizeProductionResponse(response);
 }
 
 export async function streamAgent(
@@ -64,6 +65,9 @@ export async function streamAgent(
     if (eventName) {
       event.name = eventName;
     }
+    if (event.data.response) {
+      event.data.response = normalizeProductionResponse(event.data.response);
+    }
     onEvent(event);
     if (event.data.response) {
       finalResponse = event.data.response;
@@ -89,6 +93,13 @@ export async function streamAgent(
     throw new Error("SSE 流结束时没有收到最终 Agent 响应。");
   }
   return finalResponse;
+}
+
+export function normalizeProductionResponse(response: ProductionAskResponse): ProductionAskResponse {
+  return {
+    ...response,
+    agent_response: response.agent_response ?? response.skill_result?.agent_response ?? null,
+  };
 }
 
 export async function fetchHealth(): Promise<{ status: string; version: string }> {

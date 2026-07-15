@@ -140,7 +140,7 @@
 				"--host",
 				"127.0.0.1",
 				"--port",
-				"8016"
+				"8001"
 			],
 			"justMyCode": true
 		},
@@ -194,11 +194,7 @@
 			"cwd": "${workspaceFolder}",
 			"python": "${workspaceFolder}/.venv/bin/python",
 			"envFile": "${workspaceFolder}/.env",
-			"args": [
-				"agent-v3-11",
-				"skills",
-				"list"
-			],
+			"args": ["agent-v3-11", "skills", "list"],
 			"justMyCode": true
 		},
 		{
@@ -515,314 +511,7 @@
 			"justMyCode": true
 		},
 		{
-			"name": "V3.7 agent ask: context builder",
-			"type": "debugpy",
-			"request": "launch",
-			"module": "obsidian_rag.cli",
-			"console": "integratedTerminal",
-			"cwd": "${workspaceFolder}",
-			"python": "${workspaceFolder}/.venv/bin/python",
-			"envFile": "${workspaceFolder}/.env",
-			"env": {
-				"RAG_DEBUG_BREAKPOINTS": "search.after_query_embedding,qdrant.after_search,search.after_retrieval,prompting.messages_built"
-			},
-			"args": [
-				"agent-v3-7",
-				"ask",
-				// "帮我总结生鸡肉处理、厨房清洁、剩菜保存三类食品安全建议",
-				"剩菜可以保存多少天？",
-				"--top-k",
-				"5",
-				"--mode",
-				"hybrid",
-				"--max-steps",
-				"4",
-				"--max-retries",
-				"1",
-				"--context-max-chunks",
-				"4",
-				"--context-token-budget",
-				"4000"
-			],
-			"justMyCode": true
-		},
-		{
-			"name": "V3.6 agent ask: evidence checker",
-			"type": "debugpy",
-			"request": "launch",
-			"module": "obsidian_rag.cli",
-			"console": "integratedTerminal",
-			"cwd": "${workspaceFolder}",
-			"python": "${workspaceFolder}/.venv/bin/python",
-			"envFile": "${workspaceFolder}/.env",
-			"env": {
-				"RAG_DEBUG_BREAKPOINTS": "search.after_query_embedding,qdrant.after_search,search.after_retrieval,prompting.messages_built"
-			},
-			"args": [
-				"agent-v3-6",
-				"ask",
-				"帮我总结生鸡肉处理、厨房清洁、剩菜保存三类食品安全建议",
-				"--top-k",
-				"5",
-				"--mode",
-				"hybrid",
-				"--max-steps",
-				"4",
-				"--max-retries",
-				"1"
-			],
-			"justMyCode": true
-		},
-		{
-			"name": "V3.6 agent ask: evidence insufficient",
-			"type": "debugpy",
-			"request": "launch",
-			"module": "obsidian_rag.cli",
-			"console": "integratedTerminal",
-			"cwd": "${workspaceFolder}",
-			"python": "${workspaceFolder}/.venv/bin/python",
-			"envFile": "${workspaceFolder}/.env",
-			"env": {
-				"RAG_DEBUG_BREAKPOINTS": "search.after_query_embedding,qdrant.after_search,search.after_retrieval,prompting.messages_built"
-			},
-			"args": [
-				"agent-v3-6",
-				"ask",
-				"请从我的知识库里总结生鸡肉清洗的食品安全建议",
-				"--top-k",
-				"5",
-				"--mode",
-				"hybrid",
-				"--max-steps",
-				"4",
-				"--max-retries",
-				"1",
-				"--filter-path",
-				"__not_exists__.md"
-			],
-			"justMyCode": true
-		},
-		{
-			"name": "V3.5 agent ask: planner executor",
-			"type": "debugpy",
-			"request": "launch",
-			"module": "obsidian_rag.cli",
-			"console": "integratedTerminal",
-			"cwd": "${workspaceFolder}",
-			"python": "${workspaceFolder}/.venv/bin/python",
-			"envFile": "${workspaceFolder}/.env",
-			"env": {
-				"RAG_DEBUG_BREAKPOINTS": "search.after_query_embedding,qdrant.after_search,search.after_retrieval,prompting.messages_built"
-			},
-			"args": [
-				"agent-v3-5",
-				"ask",
-				"帮我总结生鸡肉处理、厨房清洁、剩菜保存三类食品安全建议",
-				"--top-k",
-				"5",
-				"--mode",
-				"hybrid",
-				"--max-steps",
-				"4"
-			],
-			"justMyCode": true
-		},
-		{
-			"name": "V3.4 planner: structured plan",
-			"type": "debugpy",
-			"request": "launch",
-			"module": "obsidian_rag.cli",
-			"console": "integratedTerminal",
-			"cwd": "${workspaceFolder}",
-			"python": "${workspaceFolder}/.venv/bin/python",
-			"envFile": "${workspaceFolder}/.env",
-			"args": [
-				"agent-v3-4",
-				"plan",
-				"帮我总结生鸡肉处理、厨房清洁、剩菜保存三类食品安全建议",
-				"--top-k",
-				"5",
-				"--mode",
-				"hybrid",
-				"--max-steps",
-				"7"
-			],
-			"justMyCode": true
-		},
-		{
-			"name": "V3.3 agent ask: LangGraph loop",
-			"type": "debugpy",
-			"request": "launch",
-			"module": "obsidian_rag.cli",
-			"console": "integratedTerminal",
-			"cwd": "${workspaceFolder}",
-			"python": "${workspaceFolder}/.venv/bin/python",
-			"envFile": "${workspaceFolder}/.env",
-			"env": {
-				"RAG_DEBUG_BREAKPOINTS": "search.after_query_embedding,qdrant.after_search,search.after_retrieval,prompting.messages_built"
-			},
-			"args": [
-				"agent-v3-3",
-				"ask",
-				"然后呢？",
-				"--top-k",
-				"5",
-				"--mode",
-				"hybrid",
-				"--max-steps",
-				"1"
-			],
-			"justMyCode": true
-		},
-		{
-			"name": "V3.2 agent ask: tool calling loop",
-			"type": "debugpy",
-			"request": "launch",
-			"module": "obsidian_rag.cli",
-			"console": "integratedTerminal",
-			"cwd": "${workspaceFolder}",
-			"python": "${workspaceFolder}/.venv/bin/python",
-			"envFile": "${workspaceFolder}/.env",
-			"env": {
-				"RAG_DEBUG_BREAKPOINTS": "search.after_query_embedding,qdrant.after_search,search.after_retrieval,prompting.messages_built"
-			},
-			"args": [
-				"agent-v3-2",
-				"ask",
-				"who are you",
-				"--top-k",
-				"5",
-				"--mode",
-				"hybrid",
-				"--max-steps",
-				"1"
-			],
-			"justMyCode": true
-		},
-		{
-			"name": "V3.1 agent ask: LLM router loop",
-			"type": "debugpy",
-			"request": "launch",
-			"module": "obsidian_rag.cli",
-			"console": "integratedTerminal",
-			"cwd": "${workspaceFolder}",
-			"python": "${workspaceFolder}/.venv/bin/python",
-			"envFile": "${workspaceFolder}/.env",
-			"env": {
-				"RAG_DEBUG_BREAKPOINTS": "search.after_query_embedding,qdrant.after_search,search.after_retrieval,prompting.messages_built"
-			},
-			"args": [
-				"agent-v3-1",
-				"ask",
-				"生鸡肉需要清洗吗",
-				"--top-k",
-				"5",
-				"--mode",
-				"hybrid",
-				"--max-steps",
-				"1"
-			],
-			"justMyCode": true
-		},
-		{
-			"name": "V3 agent ask: lightweight agent loop",
-			"type": "debugpy",
-			"request": "launch",
-			"module": "obsidian_rag.cli",
-			"console": "integratedTerminal",
-			"cwd": "${workspaceFolder}",
-			"python": "${workspaceFolder}/.venv/bin/python",
-			"envFile": "${workspaceFolder}/.env",
-			"env": {
-				"RAG_DEBUG_BREAKPOINTS": "search.after_query_embedding,qdrant.after_search,search.after_retrieval,prompting.messages_built"
-			},
-			"args": [
-				"agent",
-				"ask",
-				"生鸡肉还需要清洗下锅吗？处理完后厨房怎么清洁？",
-				"--top-k",
-				"5",
-				"--mode",
-				"hybrid",
-				"--max-steps",
-				"2"
-			],
-			"justMyCode": true
-		},
-		{
-			"name": "RAG ask: harness architecture",
-			"type": "debugpy",
-			"request": "launch",
-			"module": "obsidian_rag.cli",
-			"console": "integratedTerminal",
-			"cwd": "${workspaceFolder}",
-			"python": "${workspaceFolder}/.venv/bin/python",
-			"envFile": "${workspaceFolder}/.env",
-			"env": {
-				"RAG_DEBUG_BREAKPOINTS": "ask.after_retrieval,prompting.messages_built,ask.before_llm,ask.after_llm"
-			},
-			"args": ["ask", "剩菜需要加热到100°再吃吗？", "--top-k", "5"],
-			"justMyCode": true
-		},
-		{
-			"name": "RAG search: harness architecture",
-			"type": "debugpy",
-			"request": "launch",
-			"module": "obsidian_rag.cli",
-			"console": "integratedTerminal",
-			"cwd": "${workspaceFolder}",
-			"python": "${workspaceFolder}/.venv/bin/python",
-			"envFile": "${workspaceFolder}/.env",
-			"env": {
-				"RAG_DEBUG_BREAKPOINTS": "search.after_query_embedding,qdrant.after_search,search.after_retrieval"
-			},
-			"args": ["search", "今天深圳天气怎么样", "--top-k", "5"],
-			"justMyCode": true
-		},
-		{
-			"name": "RAG ingest current vault",
-			"type": "debugpy",
-			"request": "launch",
-			"module": "obsidian_rag.cli",
-			"console": "integratedTerminal",
-			"cwd": "${workspaceFolder}",
-			"python": "${workspaceFolder}/.venv/bin/python",
-			"envFile": "${workspaceFolder}/.env",
-			"env": {
-				"RAG_DEBUG_BREAKPOINTS": "ingest.after_load,ingest.after_chunks,ingest.after_embeddings,qdrant.before_upsert,ingest.after_upsert"
-			},
-			"args": ["ingest", "--recreate"],
-			"justMyCode": true
-		},
-		{
-			"name": "V3.11.1 API server: Docling Structured Ingestion",
-			"type": "debugpy",
-			"request": "launch",
-			"module": "uvicorn",
-			"console": "integratedTerminal",
-			"cwd": "${workspaceFolder}",
-			"python": "${workspaceFolder}/.venv/bin/python",
-			"envFile": "${workspaceFolder}/.env",
-			"args": ["obsidian_rag.v3_11_1.app:app", "--host", "127.0.0.1", "--port", "8016"],
-			"justMyCode": true
-		},
-		{
-			"name": "V3.11.1 CLI: Docling chunks preview",
-			"type": "debugpy",
-			"request": "launch",
-			"module": "obsidian_rag.cli",
-			"console": "integratedTerminal",
-			"cwd": "${workspaceFolder}",
-			"python": "${workspaceFolder}/.venv/bin/python",
-			"envFile": "${workspaceFolder}/.env",
-			"env": {
-				"RAG_DEBUG_BREAKPOINTS": "v3_11_1.chunks.after_docling"
-			},
-			"args": ["documents-v3-11-1", "chunks", "${workspaceFolder}/knowledge"],
-			"justMyCode": true
-		},
-		{
-			"name": "V3.11.1 CLI: recreate Docling index",
+			"name": "V3.11.1 CLI: ingest food_safety collection",
 			"type": "debugpy",
 			"request": "launch",
 			"module": "obsidian_rag.cli",
@@ -834,23 +523,18 @@
 				"RAG_DOCUMENT_PARSER": "docling",
 				"RAG_DEBUG_BREAKPOINTS": "ingest.after_load,ingest.after_chunks,ingest.after_embeddings,qdrant.before_upsert,ingest.after_upsert"
 			},
-			"args": ["documents-v3-11-1", "ingest", "${workspaceFolder}/knowledge", "--recreate"],
+			"args": [
+				"documents-v3-11-1",
+				"ingest",
+				"${workspaceFolder}/knowledge/rag_test_food_safety_kb_expanded.md",
+				"--collection",
+				"food_safety",
+				"--recreate"
+			],
 			"justMyCode": true
 		},
 		{
-			"name": "V3.11.2 API server: Chunking Framework Comparison",
-			"type": "debugpy",
-			"request": "launch",
-			"module": "uvicorn",
-			"console": "integratedTerminal",
-			"cwd": "${workspaceFolder}",
-			"python": "${workspaceFolder}/.venv/bin/python",
-			"envFile": "${workspaceFolder}/.env",
-			"args": ["obsidian_rag.v3_11_2.app:app", "--host", "127.0.0.1", "--port", "8017"],
-			"justMyCode": true
-		},
-		{
-			"name": "V3.11.2 CLI: LangChain vs LlamaIndex",
+			"name": "V3.11.1 CLI: search food_safety collection",
 			"type": "debugpy",
 			"request": "launch",
 			"module": "obsidian_rag.cli",
@@ -859,18 +543,432 @@
 			"python": "${workspaceFolder}/.venv/bin/python",
 			"envFile": "${workspaceFolder}/.env",
 			"env": {
-				"RAG_DEBUG_BREAKPOINTS": "v3_11_2.compare.after_docling,v3_11_2.compare.after_langchain,v3_11_2.compare.after_llama_hierarchical,v3_11_2.compare.after_llama_semantic"
+				"RAG_DEBUG_BREAKPOINTS": "search.after_query_embedding,qdrant.after_search,search.after_retrieval"
 			},
-			"args": [
-				"chunking-v3-11-2",
-				"compare",
-				"部署失败时应该如何回滚？",
-				"--path",
-				"${workspaceFolder}/knowledge/manual.pdf",
-				"--top-k",
-				"4"
-			],
+			"args": ["documents-v3-11-1", "search", "核心结论是什么？", "--collection", "food_safety"],
+			"justMyCode": true
+		},
+		{
+			"name": "V3.11.3 API server: Collection Router",
+			"type": "debugpy",
+			"request": "launch",
+			"module": "uvicorn",
+			"console": "integratedTerminal",
+			"cwd": "${workspaceFolder}",
+			"python": "${workspaceFolder}/.venv/bin/python",
+			"envFile": "${workspaceFolder}/.env",
+			"env": {
+				"RAG_KNOWLEDGE_BASE_REGISTRY": "${workspaceFolder}/knowledge_bases.yaml",
+				"RAG_DEBUG_BREAKPOINTS": "v3_11_3.registry.loaded,v3_11_3.router.selected,v3_11_3.search.completed"
+			},
+			"args": ["obsidian_rag.v3_11_3.app:app", "--host", "127.0.0.1", "--port", "8018"],
+			"justMyCode": true
+		},
+		{
+			"name": "V3.11.3 CLI: explicit recipes search",
+			"type": "debugpy",
+			"request": "launch",
+			"module": "obsidian_rag.cli",
+			"console": "integratedTerminal",
+			"cwd": "${workspaceFolder}",
+			"python": "${workspaceFolder}/.venv/bin/python",
+			"envFile": "${workspaceFolder}/.env",
+			"env": {
+				"RAG_DEBUG_BREAKPOINTS": "v3_11_3.registry.loaded,v3_11_3.router.selected,v3_11_3.search.completed"
+			},
+			"args": ["collections-v3-11-3", "search", "番茄炒蛋怎么做？", "--collection", "recipes", "--top-k", "5"],
+			"justMyCode": true
+		},
+		{
+			"name": "V3.11.3 CLI: auto multi-collection search",
+			"type": "debugpy",
+			"request": "launch",
+			"module": "obsidian_rag.cli",
+			"console": "integratedTerminal",
+			"cwd": "${workspaceFolder}",
+			"python": "${workspaceFolder}/.venv/bin/python",
+			"envFile": "${workspaceFolder}/.env",
+			"env": {
+				"RAG_KNOWLEDGE_BASE_REGISTRY": "${workspaceFolder}/knowledge_bases.yaml",
+				"RAG_DEBUG_BREAKPOINTS": "v3_11_3.registry.loaded,v3_11_3.router.selected,v3_11_3.search.completed"
+			},
+			"args": ["collections-v3-11-3", "search", "鸡肉怎么做更安全？", "--max-collections", "2", "--top-k", "5", "--mode", "hybrid"],
 			"justMyCode": true
 		}
+		// {
+		// 	"name": "V3.7 agent ask: context builder",
+		// 	"type": "debugpy",
+		// 	"request": "launch",
+		// 	"module": "obsidian_rag.cli",
+		// 	"console": "integratedTerminal",
+		// 	"cwd": "${workspaceFolder}",
+		// 	"python": "${workspaceFolder}/.venv/bin/python",
+		// 	"envFile": "${workspaceFolder}/.env",
+		// 	"env": {
+		// 		"RAG_DEBUG_BREAKPOINTS": "search.after_query_embedding,qdrant.after_search,search.after_retrieval,prompting.messages_built"
+		// 	},
+		// 	"args": [
+		// 		"agent-v3-7",
+		// 		"ask",
+		// 		// "帮我总结生鸡肉处理、厨房清洁、剩菜保存三类食品安全建议",
+		// 		"剩菜可以保存多少天？",
+		// 		"--top-k",
+		// 		"5",
+		// 		"--mode",
+		// 		"hybrid",
+		// 		"--max-steps",
+		// 		"4",
+		// 		"--max-retries",
+		// 		"1",
+		// 		"--context-max-chunks",
+		// 		"4",
+		// 		"--context-token-budget",
+		// 		"4000"
+		// 	],
+		// 	"justMyCode": true
+		// },
+		// {
+		// 	"name": "V3.6 agent ask: evidence checker",
+		// 	"type": "debugpy",
+		// 	"request": "launch",
+		// 	"module": "obsidian_rag.cli",
+		// 	"console": "integratedTerminal",
+		// 	"cwd": "${workspaceFolder}",
+		// 	"python": "${workspaceFolder}/.venv/bin/python",
+		// 	"envFile": "${workspaceFolder}/.env",
+		// 	"env": {
+		// 		"RAG_DEBUG_BREAKPOINTS": "search.after_query_embedding,qdrant.after_search,search.after_retrieval,prompting.messages_built"
+		// 	},
+		// 	"args": [
+		// 		"agent-v3-6",
+		// 		"ask",
+		// 		"帮我总结生鸡肉处理、厨房清洁、剩菜保存三类食品安全建议",
+		// 		"--top-k",
+		// 		"5",
+		// 		"--mode",
+		// 		"hybrid",
+		// 		"--max-steps",
+		// 		"4",
+		// 		"--max-retries",
+		// 		"1"
+		// 	],
+		// 	"justMyCode": true
+		// },
+		// {
+		// 	"name": "V3.6 agent ask: evidence insufficient",
+		// 	"type": "debugpy",
+		// 	"request": "launch",
+		// 	"module": "obsidian_rag.cli",
+		// 	"console": "integratedTerminal",
+		// 	"cwd": "${workspaceFolder}",
+		// 	"python": "${workspaceFolder}/.venv/bin/python",
+		// 	"envFile": "${workspaceFolder}/.env",
+		// 	"env": {
+		// 		"RAG_DEBUG_BREAKPOINTS": "search.after_query_embedding,qdrant.after_search,search.after_retrieval,prompting.messages_built"
+		// 	},
+		// 	"args": [
+		// 		"agent-v3-6",
+		// 		"ask",
+		// 		"请从我的知识库里总结生鸡肉清洗的食品安全建议",
+		// 		"--top-k",
+		// 		"5",
+		// 		"--mode",
+		// 		"hybrid",
+		// 		"--max-steps",
+		// 		"4",
+		// 		"--max-retries",
+		// 		"1",
+		// 		"--filter-path",
+		// 		"__not_exists__.md"
+		// 	],
+		// 	"justMyCode": true
+		// },
+		// {
+		// 	"name": "V3.5 agent ask: planner executor",
+		// 	"type": "debugpy",
+		// 	"request": "launch",
+		// 	"module": "obsidian_rag.cli",
+		// 	"console": "integratedTerminal",
+		// 	"cwd": "${workspaceFolder}",
+		// 	"python": "${workspaceFolder}/.venv/bin/python",
+		// 	"envFile": "${workspaceFolder}/.env",
+		// 	"env": {
+		// 		"RAG_DEBUG_BREAKPOINTS": "search.after_query_embedding,qdrant.after_search,search.after_retrieval,prompting.messages_built"
+		// 	},
+		// 	"args": [
+		// 		"agent-v3-5",
+		// 		"ask",
+		// 		"帮我总结生鸡肉处理、厨房清洁、剩菜保存三类食品安全建议",
+		// 		"--top-k",
+		// 		"5",
+		// 		"--mode",
+		// 		"hybrid",
+		// 		"--max-steps",
+		// 		"4"
+		// 	],
+		// 	"justMyCode": true
+		// },
+		// {
+		// 	"name": "V3.4 planner: structured plan",
+		// 	"type": "debugpy",
+		// 	"request": "launch",
+		// 	"module": "obsidian_rag.cli",
+		// 	"console": "integratedTerminal",
+		// 	"cwd": "${workspaceFolder}",
+		// 	"python": "${workspaceFolder}/.venv/bin/python",
+		// 	"envFile": "${workspaceFolder}/.env",
+		// 	"args": [
+		// 		"agent-v3-4",
+		// 		"plan",
+		// 		"帮我总结生鸡肉处理、厨房清洁、剩菜保存三类食品安全建议",
+		// 		"--top-k",
+		// 		"5",
+		// 		"--mode",
+		// 		"hybrid",
+		// 		"--max-steps",
+		// 		"7"
+		// 	],
+		// 	"justMyCode": true
+		// },
+		// {
+		// 	"name": "V3.3 agent ask: LangGraph loop",
+		// 	"type": "debugpy",
+		// 	"request": "launch",
+		// 	"module": "obsidian_rag.cli",
+		// 	"console": "integratedTerminal",
+		// 	"cwd": "${workspaceFolder}",
+		// 	"python": "${workspaceFolder}/.venv/bin/python",
+		// 	"envFile": "${workspaceFolder}/.env",
+		// 	"env": {
+		// 		"RAG_DEBUG_BREAKPOINTS": "search.after_query_embedding,qdrant.after_search,search.after_retrieval,prompting.messages_built"
+		// 	},
+		// 	"args": [
+		// 		"agent-v3-3",
+		// 		"ask",
+		// 		"然后呢？",
+		// 		"--top-k",
+		// 		"5",
+		// 		"--mode",
+		// 		"hybrid",
+		// 		"--max-steps",
+		// 		"1"
+		// 	],
+		// 	"justMyCode": true
+		// },
+		// {
+		// 	"name": "V3.2 agent ask: tool calling loop",
+		// 	"type": "debugpy",
+		// 	"request": "launch",
+		// 	"module": "obsidian_rag.cli",
+		// 	"console": "integratedTerminal",
+		// 	"cwd": "${workspaceFolder}",
+		// 	"python": "${workspaceFolder}/.venv/bin/python",
+		// 	"envFile": "${workspaceFolder}/.env",
+		// 	"env": {
+		// 		"RAG_DEBUG_BREAKPOINTS": "search.after_query_embedding,qdrant.after_search,search.after_retrieval,prompting.messages_built"
+		// 	},
+		// 	"args": [
+		// 		"agent-v3-2",
+		// 		"ask",
+		// 		"who are you",
+		// 		"--top-k",
+		// 		"5",
+		// 		"--mode",
+		// 		"hybrid",
+		// 		"--max-steps",
+		// 		"1"
+		// 	],
+		// 	"justMyCode": true
+		// },
+		// {
+		// 	"name": "V3.1 agent ask: LLM router loop",
+		// 	"type": "debugpy",
+		// 	"request": "launch",
+		// 	"module": "obsidian_rag.cli",
+		// 	"console": "integratedTerminal",
+		// 	"cwd": "${workspaceFolder}",
+		// 	"python": "${workspaceFolder}/.venv/bin/python",
+		// 	"envFile": "${workspaceFolder}/.env",
+		// 	"env": {
+		// 		"RAG_DEBUG_BREAKPOINTS": "search.after_query_embedding,qdrant.after_search,search.after_retrieval,prompting.messages_built"
+		// 	},
+		// 	"args": [
+		// 		"agent-v3-1",
+		// 		"ask",
+		// 		"生鸡肉需要清洗吗",
+		// 		"--top-k",
+		// 		"5",
+		// 		"--mode",
+		// 		"hybrid",
+		// 		"--max-steps",
+		// 		"1"
+		// 	],
+		// 	"justMyCode": true
+		// },
+		// {
+		// 	"name": "V3 agent ask: lightweight agent loop",
+		// 	"type": "debugpy",
+		// 	"request": "launch",
+		// 	"module": "obsidian_rag.cli",
+		// 	"console": "integratedTerminal",
+		// 	"cwd": "${workspaceFolder}",
+		// 	"python": "${workspaceFolder}/.venv/bin/python",
+		// 	"envFile": "${workspaceFolder}/.env",
+		// 	"env": {
+		// 		"RAG_DEBUG_BREAKPOINTS": "search.after_query_embedding,qdrant.after_search,search.after_retrieval,prompting.messages_built"
+		// 	},
+		// 	"args": [
+		// 		"agent",
+		// 		"ask",
+		// 		"生鸡肉还需要清洗下锅吗？处理完后厨房怎么清洁？",
+		// 		"--top-k",
+		// 		"5",
+		// 		"--mode",
+		// 		"hybrid",
+		// 		"--max-steps",
+		// 		"2"
+		// 	],
+		// 	"justMyCode": true
+		// },
+		// {
+		// 	"name": "RAG ask: harness architecture",
+		// 	"type": "debugpy",
+		// 	"request": "launch",
+		// 	"module": "obsidian_rag.cli",
+		// 	"console": "integratedTerminal",
+		// 	"cwd": "${workspaceFolder}",
+		// 	"python": "${workspaceFolder}/.venv/bin/python",
+		// 	"envFile": "${workspaceFolder}/.env",
+		// 	"env": {
+		// 		"RAG_DEBUG_BREAKPOINTS": "ask.after_retrieval,prompting.messages_built,ask.before_llm,ask.after_llm"
+		// 	},
+		// 	"args": ["ask", "剩菜需要加热到100°再吃吗？", "--top-k", "5"],
+		// 	"justMyCode": true
+		// },
+		// {
+		// 	"name": "RAG search: harness architecture",
+		// 	"type": "debugpy",
+		// 	"request": "launch",
+		// 	"module": "obsidian_rag.cli",
+		// 	"console": "integratedTerminal",
+		// 	"cwd": "${workspaceFolder}",
+		// 	"python": "${workspaceFolder}/.venv/bin/python",
+		// 	"envFile": "${workspaceFolder}/.env",
+		// 	"env": {
+		// 		"RAG_DEBUG_BREAKPOINTS": "search.after_query_embedding,qdrant.after_search,search.after_retrieval"
+		// 	},
+		// 	"args": ["search", "今天深圳天气怎么样", "--top-k", "5"],
+		// 	"justMyCode": true
+		// },
+		// {
+		// 	"name": "RAG ingest current vault",
+		// 	"type": "debugpy",
+		// 	"request": "launch",
+		// 	"module": "obsidian_rag.cli",
+		// 	"console": "integratedTerminal",
+		// 	"cwd": "${workspaceFolder}",
+		// 	"python": "${workspaceFolder}/.venv/bin/python",
+		// 	"envFile": "${workspaceFolder}/.env",
+		// 	"env": {
+		// 		"RAG_DEBUG_BREAKPOINTS": "ingest.after_load,ingest.after_chunks,ingest.after_embeddings,qdrant.before_upsert,ingest.after_upsert"
+		// 	},
+		// 	"args": ["ingest", "--recreate"],
+		// 	"justMyCode": true
+		// },
+		// {
+		// 	"name": "V3.11.1 API server: Docling Structured Ingestion",
+		// 	"type": "debugpy",
+		// 	"request": "launch",
+		// 	"module": "uvicorn",
+		// 	"console": "integratedTerminal",
+		// 	"cwd": "${workspaceFolder}",
+		// 	"python": "${workspaceFolder}/.venv/bin/python",
+		// 	"envFile": "${workspaceFolder}/.env",
+		// 	"args": [
+		// 		"obsidian_rag.v3_11_1.app:app",
+		// 		"--host",
+		// 		"127.0.0.1",
+		// 		"--port",
+		// 		"8016"
+		// 	],
+		// 	"justMyCode": true
+		// },
+		// {
+		// 	"name": "V3.11.1 CLI: Docling chunks preview",
+		// 	"type": "debugpy",
+		// 	"request": "launch",
+		// 	"module": "obsidian_rag.cli",
+		// 	"console": "integratedTerminal",
+		// 	"cwd": "${workspaceFolder}",
+		// 	"python": "${workspaceFolder}/.venv/bin/python",
+		// 	"envFile": "${workspaceFolder}/.env",
+		// 	"env": {
+		// 		"RAG_DEBUG_BREAKPOINTS": "v3_11_1.chunks.after_docling"
+		// 	},
+		// 	"args": ["documents-v3-11-1", "chunks", "${workspaceFolder}/knowledge"],
+		// 	"justMyCode": true
+		// },
+		// {
+		// 	"name": "V3.11.1 CLI: recreate Docling index",
+		// 	"type": "debugpy",
+		// 	"request": "launch",
+		// 	"module": "obsidian_rag.cli",
+		// 	"console": "integratedTerminal",
+		// 	"cwd": "${workspaceFolder}",
+		// 	"python": "${workspaceFolder}/.venv/bin/python",
+		// 	"envFile": "${workspaceFolder}/.env",
+		// 	"env": {
+		// 		"RAG_DOCUMENT_PARSER": "docling",
+		// 		"RAG_DEBUG_BREAKPOINTS": "ingest.after_load,ingest.after_chunks,ingest.after_embeddings,qdrant.before_upsert,ingest.after_upsert"
+		// 	},
+		// 	"args": [
+		// 		"documents-v3-11-1",
+		// 		"ingest",
+		// 		"${workspaceFolder}/knowledge",
+		// 		"--recreate"
+		// 	],
+		// 	"justMyCode": true
+		// },
+		// {
+		// 	"name": "V3.11.2 API server: Chunking Framework Comparison",
+		// 	"type": "debugpy",
+		// 	"request": "launch",
+		// 	"module": "uvicorn",
+		// 	"console": "integratedTerminal",
+		// 	"cwd": "${workspaceFolder}",
+		// 	"python": "${workspaceFolder}/.venv/bin/python",
+		// 	"envFile": "${workspaceFolder}/.env",
+		// 	"args": [
+		// 		"obsidian_rag.v3_11_2.app:app",
+		// 		"--host",
+		// 		"127.0.0.1",
+		// 		"--port",
+		// 		"8017"
+		// 	],
+		// 	"justMyCode": true
+		// },
+		// {
+		// 	"name": "V3.11.2 CLI: LangChain vs LlamaIndex",
+		// 	"type": "debugpy",
+		// 	"request": "launch",
+		// 	"module": "obsidian_rag.cli",
+		// 	"console": "integratedTerminal",
+		// 	"cwd": "${workspaceFolder}",
+		// 	"python": "${workspaceFolder}/.venv/bin/python",
+		// 	"envFile": "${workspaceFolder}/.env",
+		// 	"env": {
+		// 		"RAG_DEBUG_BREAKPOINTS": "v3_11_2.compare.after_docling,v3_11_2.compare.after_langchain,v3_11_2.compare.after_llama_hierarchical,v3_11_2.compare.after_llama_semantic"
+		// 	},
+		// 	"args": [
+		// 		"chunking-v3-11-2",
+		// 		"compare",
+		// 		"部署失败时应该如何回滚？",
+		// 		"--path",
+		// 		"${workspaceFolder}/knowledge/manual.pdf",
+		// 		"--top-k",
+		// 		"4"
+		// 	],
+		// 	"justMyCode": true
+		// }
 	]
 }

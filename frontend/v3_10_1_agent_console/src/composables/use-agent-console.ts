@@ -1,6 +1,12 @@
 import { computed, onMounted, reactive, ref, watch } from "vue";
 
-import { fetchConversation, fetchHealth, fetchRuns, streamAgent } from "@/api/production-client";
+import {
+  fetchConversation,
+  fetchHealth,
+  fetchRuns,
+  normalizeProductionResponse,
+  streamAgent,
+} from "@/api/production-client";
 import type {
   AgentStreamEvent,
   AgentAskPayload,
@@ -17,6 +23,7 @@ const MAX_SESSIONS = 12;
 const MAX_MESSAGES_PER_SESSION = 40;
 
 const defaultOptions: AgentOptions = {
+  collection: "food_safety",
   memoryWindow: 3,
   memoryCompactionEnabled: true,
   memoryCompactionTriggerTurns: 4,
@@ -130,7 +137,7 @@ export function useAgentConsole() {
 
     try {
       const result = await streamAgent(
-        toPayload(trimmedQuestion, activeConversationId.value, options),
+        buildAgentAskPayload(trimmedQuestion, activeConversationId.value, options),
         (event) => applyStreamEvent(event),
       );
       response.value = result;
@@ -163,10 +170,11 @@ export function useAgentConsole() {
       response.value = {
         run: event.data.run,
         agent_response: response.value?.agent_response ?? null,
+        skill_result: response.value?.skill_result ?? null,
       };
     }
     if (event.data.response) {
-      response.value = event.data.response;
+      response.value = normalizeProductionResponse(event.data.response);
     }
   }
 
@@ -189,10 +197,15 @@ export function useAgentConsole() {
   };
 }
 
-function toPayload(question: string, conversationId: string, options: AgentOptions): AgentAskPayload {
+export function buildAgentAskPayload(
+  question: string,
+  conversationId: string,
+  options: AgentOptions,
+): AgentAskPayload {
   return {
     question,
     conversation_id: conversationId,
+    collection: options.collection.trim() || null,
     memory_window: options.memoryWindow,
     memory_compaction_enabled: options.memoryCompactionEnabled,
     memory_compaction_trigger_turns: options.memoryCompactionTriggerTurns,
@@ -252,7 +265,8 @@ function latestSessionRun(session: ConsoleSession | undefined): ProductionAskRes
   if (!session) {
     return null;
   }
-  return [...session.messages].reverse().find((message) => message.run)?.run ?? null;
+  const run = [...session.messages].reverse().find((message) => message.run)?.run;
+  return run ? normalizeProductionResponse(run) : null;
 }
 
 function compactTitle(question: string): string {

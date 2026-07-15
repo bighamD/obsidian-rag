@@ -4,6 +4,7 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
+from obsidian_rag.config import COLLECTION_NAME_PATTERN
 
 SearchMode = Literal["dense", "keyword", "hybrid"]
 
@@ -11,9 +12,9 @@ SearchMode = Literal["dense", "keyword", "hybrid"]
 class DoclingPathRequest(BaseModel):
     """Docling convert/chunks 的本地文件或目录输入。"""
 
-    path: str | None = Field(default=None, description="本地文件或目录；为空时使用 RAG_VAULT_PATH。")
+    path: str | None = Field(default=None, description="本地文件或目录的绝对路径；为空时使用 RAG_VAULT_PATH。")
 
-    model_config = {"json_schema_extra": {"examples": [{"path": "knowledge/manual.pdf"}]}}
+    model_config = {"json_schema_extra": {"examples": [{"path": "/absolute/path/to/manual.pdf"}]}}
 
 
 class DoclingConversionSummary(BaseModel):
@@ -39,7 +40,7 @@ class DoclingChunkView(BaseModel):
 
     node_id: str = Field(description="映射到 Qdrant point 的稳定节点 ID。")
     source: str = Field(description="源文件路径。")
-    chunk_id: str | None = Field(default=None, description="从正文/标题识别的 KB 引用 ID。")
+    chunk_id: str | None = Field(default=None, description="文档 YAML 或编号标题提供的业务引用 ID，例如 KB-072、VU-001。")
     heading_path: list[str] = Field(description="Docling meta 中的标题路径。")
     page_numbers: list[int] = Field(description="Docling provenance 中涉及的页码。")
     raw_text: str = Field(description="HybridChunker 产生的原始 chunk.text。")
@@ -58,12 +59,17 @@ class DoclingChunksResponse(BaseModel):
 
 
 class DoclingIngestRequest(BaseModel):
-    """通过共享 V0 Docling backend 重建索引。"""
+    """通过共享 V0 Docling 摄取链路重建索引。"""
 
-    path: str | None = Field(default=None, description="本地文件或目录；为空时使用 RAG_VAULT_PATH。")
+    path: str | None = Field(default=None, description="本地文件或目录的绝对路径；为空时使用 RAG_VAULT_PATH。")
     recreate: bool = Field(default=True, description="是否重建当前 Qdrant collection。首次运行应为 true。")
+    collection: str | None = Field(
+        default=None,
+        pattern=COLLECTION_NAME_PATTERN,
+        description="写入目标知识库 Collection；为空时使用 RAG_COLLECTION。",
+    )
 
-    model_config = {"json_schema_extra": {"examples": [{"path": "knowledge", "recreate": True}]}}
+    model_config = {"json_schema_extra": {"examples": [{"collection": "food_safety", "recreate": True}]}}
 
 
 class DoclingIngestResponse(BaseModel):
@@ -71,9 +77,10 @@ class DoclingIngestResponse(BaseModel):
 
     document_count: int = Field(description="Docling 成功转换的文档数。")
     chunk_count: int = Field(description="写入索引的 HybridChunker chunk 数。")
-    parser: str = Field(description="共享 pipeline 实际使用的 parser backend。")
+    parser: str = Field(description="共享 pipeline 固定使用的文档解析框架，当前为 docling。")
     chunk_schema_version: str = Field(description="写入 metadata 的 chunk schema 版本。")
     recreated: bool = Field(description="是否重建了 Qdrant collection。")
+    collection: str = Field(description="本次实际写入的知识库 Collection。")
 
 
 class DoclingSearchRequest(BaseModel):
@@ -82,9 +89,18 @@ class DoclingSearchRequest(BaseModel):
     query: str = Field(min_length=1, description="检索问题。")
     top_k: int = Field(default=5, ge=1, le=50, description="最多返回多少个 chunks。")
     mode: SearchMode = Field(default="hybrid", description="dense、keyword 或 hybrid。")
+    collection: str | None = Field(
+        default=None,
+        pattern=COLLECTION_NAME_PATTERN,
+        description="检索目标知识库 Collection；为空时使用 RAG_COLLECTION。",
+    )
 
     model_config = {
-        "json_schema_extra": {"examples": [{"query": "这个文档的核心结论是什么？", "top_k": 5, "mode": "hybrid"}]}
+        "json_schema_extra": {
+            "examples": [
+                {"query": "这个文档的核心结论是什么？", "top_k": 5, "mode": "hybrid", "collection": "food_safety"}
+            ]
+        }
     }
 
 
@@ -94,7 +110,7 @@ class DoclingSearchHit(BaseModel):
     source: str = Field(description="源文件路径。")
     score: float = Field(description="当前检索模式的排序分数。")
     node_id: str | None = Field(default=None, description="Docling chunk 映射后的节点 ID。")
-    chunk_id: str | None = Field(default=None, description="知识库 KB 引用 ID。")
+    chunk_id: str | None = Field(default=None, description="知识库中可选的业务引用 ID，例如 KB-072、VU-001。")
     heading_path: list[str] = Field(description="标题路径。")
     page_numbers: list[int] = Field(description="页码定位。")
     contextualized_text: str = Field(description="检索命中的实际 embedding/context 文本。")
@@ -107,6 +123,7 @@ class DoclingSearchResponse(BaseModel):
 
     query: str = Field(description="原始问题。")
     mode: SearchMode = Field(description="检索模式。")
+    collection: str = Field(description="本次实际检索的知识库 Collection。")
     results: list[DoclingSearchHit] = Field(description="命中的 Docling chunks。")
 
 
@@ -114,7 +131,7 @@ class DoclingRuntimeResponse(BaseModel):
     """可安全公开的 V3.11.1 框架边界。"""
 
     version: str = Field(description="学习版本号。")
-    parser: str = Field(description="共享 V0 当前 parser backend。")
+    parser: str = Field(description="共享 V0 固定使用的文档解析框架，当前为 docling。")
     converter: str = Field(description="文档转换组件。")
     chunker: str = Field(description="切片组件。")
     tokenizer_model: str = Field(description="HybridChunker tokenizer。")

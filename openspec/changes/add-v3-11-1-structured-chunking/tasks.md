@@ -1,8 +1,8 @@
 ## 1. Docling shared integration
 
-- [x] 1.1 Remove the custom DocumentTree/chunker work and restore the legacy implementation as fallback
+- [x] 1.1 Remove the custom DocumentTree/chunker work and keep Docling as the only shared ingest path
 - [x] 1.2 Add Docling dependencies, configuration and a thin converter/HybridChunker adapter
-- [x] 1.3 Route shared V0 ingest through the configured docling or legacy backend
+- [x] 1.3 Route shared V0 ingest directly through Docling without a legacy backend selector
 
 ## 2. V3.11.1 learning version
 

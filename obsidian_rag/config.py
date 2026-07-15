@@ -1,10 +1,15 @@
 from __future__ import annotations
 
 import os
-from dataclasses import dataclass
+import re
+from dataclasses import dataclass, replace
 from pathlib import Path
 
 from dotenv import load_dotenv
+
+
+COLLECTION_NAME_PATTERN = r"^[a-z0-9][a-z0-9_-]{0,62}$"
+COLLECTION_NAME_RE = re.compile(COLLECTION_NAME_PATTERN)
 
 
 @dataclass(frozen=True)
@@ -19,11 +24,8 @@ class RagConfig:
     qdrant_url: str | None
     db_path: Path
     collection_name: str
-    chunk_size: int
-    chunk_overlap: int
     min_score: float
     vault_path: Path | None
-    document_parser: str = "docling"
     docling_tokenizer_model: str = "sentence-transformers/all-MiniLM-L6-v2"
     chunk_token_size: int = 512
 
@@ -40,12 +42,9 @@ def load_config() -> RagConfig:
         ollama_base_url=os.getenv("OLLAMA_BASE_URL", "http://127.0.0.1:11434"),
         qdrant_url=_optional_str(os.getenv("QDRANT_URL")),
         db_path=Path(os.getenv("RAG_DB_PATH", ".rag/qdrant")),
-        collection_name=os.getenv("RAG_COLLECTION", "obsidian_notes"),
-        chunk_size=int(os.getenv("RAG_CHUNK_SIZE", "1200")),
-        chunk_overlap=int(os.getenv("RAG_CHUNK_OVERLAP", "150")),
+        collection_name=validate_collection_name(os.getenv("RAG_COLLECTION", "obsidian_notes")),
         min_score=float(os.getenv("RAG_MIN_SCORE", "0.35")),
         vault_path=_optional_path(os.getenv("RAG_VAULT_PATH")),
-        document_parser=os.getenv("RAG_DOCUMENT_PARSER", "docling").strip().lower(),
         docling_tokenizer_model=os.getenv(
             "RAG_DOCLING_TOKENIZER_MODEL",
             "sentence-transformers/all-MiniLM-L6-v2",
@@ -65,6 +64,24 @@ def resolve_ingest_path(cli_path: Path | None, config: RagConfig) -> Path:
     if config.vault_path is not None:
         return config.vault_path
     raise RuntimeError("Provide an ingest path or set RAG_VAULT_PATH in .env")
+
+
+def with_collection(config: RagConfig, collection: str | None = None) -> RagConfig:
+    """返回本次请求的 collection 配置副本，不修改共享全局 config。"""
+
+    selected = config.collection_name if collection is None else collection
+    return replace(config, collection_name=validate_collection_name(selected))
+
+
+def validate_collection_name(value: str) -> str:
+    """校验用户可读且可安全映射到 Qdrant / 本地索引文件的 collection 名称。"""
+
+    if not isinstance(value, str) or not COLLECTION_NAME_RE.fullmatch(value):
+        raise ValueError(
+            "collection 必须匹配 "
+            f"{COLLECTION_NAME_PATTERN}，例如 food_safety 或 recipes。"
+        )
+    return value
 
 
 def _optional_path(value: str | None) -> Path | None:

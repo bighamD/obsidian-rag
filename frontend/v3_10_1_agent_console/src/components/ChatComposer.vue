@@ -45,6 +45,20 @@ function submitOnEnter(event: KeyboardEvent) {
       </div>
       <div class="settings-grid">
         <label>
+          <span>Collection</span>
+          <input
+            :value="options.collection"
+            list="collection-options"
+            placeholder="留空使用自动路由/默认库"
+            @input="updateOption('collection', ($event.target as HTMLInputElement).value)"
+          />
+          <datalist id="collection-options">
+            <option value="food_safety" />
+            <option value="recipes" />
+            <option value="vueuse_core_kb" />
+          </datalist>
+        </label>
+        <label>
           <span>检索模式</span>
           <span class="segmented-control">
             <button

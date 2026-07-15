@@ -41,6 +41,28 @@ class FakeChatClient:
         return "处理生肉后要清洁台面并洗手。"
 
 
+class RetryCollectionRetrievalService:
+    def __init__(self):
+        self.collections = []
+
+    def search(self, query, top_k=5, mode="hybrid", filters=None, collection=None):
+        self.collections.append(collection)
+        if len(self.collections) == 1:
+            return []
+        return [
+            SearchResult(
+                chunk=TextChunk(
+                    text="菜谱补搜结果。",
+                    metadata={"source": "recipes.md", "chunk_id": "RC-001", "topic": "番茄意面"},
+                ),
+                score=0.88,
+            )
+        ]
+
+    def collection_name(self, collection=None):
+        return collection or "obsidian_notes"
+
+
 def test_v3_8_1_second_turn_reads_memory_for_planner_and_answer_context(tmp_path):
     memory_store = SQLiteConversationMemoryStore(tmp_path / "memory.sqlite3")
     planner = FakePlannerService()
@@ -111,3 +133,25 @@ def test_v3_8_1_compacts_old_turns_before_planner(tmp_path):
     assert "会话摘要" in planner.requests[-1].question
     assert "处理生肉后要清洁台面并洗手。" in planner.requests[-1].question
     assert response.graph_path[:3] == ["load_memory", "compact_memory", "planner"]
+
+
+def test_v3_8_1_initial_and_retry_search_stay_in_requested_collection(tmp_path):
+    retrieval = RetryCollectionRetrievalService()
+    service = AgentService(
+        retrieval_service=retrieval,
+        planner_service=FakePlannerService(),
+        chat_client=FakeChatClient(),
+        memory_store=SQLiteConversationMemoryStore(tmp_path / "memory.sqlite3"),
+    )
+
+    response = service.ask(
+        AgentAskRequest(
+            question="番茄意面怎么做？",
+            collection="recipes",
+            max_retries=1,
+        )
+    )
+
+    assert retrieval.collections == ["recipes", "recipes"]
+    assert response.collection == "recipes"
+    assert response.retry_step_results[0].result_count == 1

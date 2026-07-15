@@ -6,6 +6,7 @@ from datetime import datetime, timezone
 from time import perf_counter
 from typing import Any, TypedDict
 
+
 from langgraph.graph import END, START, StateGraph
 
 from obsidian_rag.prompting import format_sources
@@ -162,6 +163,7 @@ class AgentService:
             run_id=final_state["run_id"],
             conversation_id=final_state["conversation_id"],
             question=request.question,
+            collection=_effective_collection_name(self.retrieval_service, request.collection),
             answer=final_state.get("answer") or "执行结束，但没有生成最终答案。",
             used_retrieval=bool(final_state.get("used_retrieval", False)),
             sources=final_state.get("sources", []),
@@ -417,6 +419,7 @@ class AgentService:
                 top_k=request.top_k,
                 mode=request.mode,
                 filters=request.filters,
+                **_collection_kwargs(request.collection),
             )
             results = list(tool_result.results)
             step_result = StepResult(
@@ -561,6 +564,7 @@ class AgentService:
             top_k=request.top_k,
             mode=request.mode,
             filters=request.filters,
+            **_collection_kwargs(request.collection),
         )
         results = list(tool_result.results)
         status = "success" if tool_result.status == "success" else "failed"
@@ -599,6 +603,18 @@ def _copy_state(state: AgentState) -> AgentState:
     copied["trace"] = list(state.get("trace", []))
     copied["node_timings"] = list(state.get("node_timings", []))
     return copied
+
+
+def _collection_kwargs(collection: str | None) -> dict[str, str]:
+    return {"collection": collection} if collection is not None else {}
+
+
+def _effective_collection_name(retrieval_service, collection: str | None) -> str:
+    resolver = getattr(retrieval_service, "collection_name", None)
+    if callable(resolver):
+        return str(resolver(collection))
+    config = getattr(retrieval_service, "config", None)
+    return collection or str(getattr(config, "collection_name", "obsidian_notes"))
 
 
 def _emit_agent_event(

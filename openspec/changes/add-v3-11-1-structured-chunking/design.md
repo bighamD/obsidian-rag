@@ -1,6 +1,6 @@
 ## Context
 
-V0 `ingest_path()` 是所有后续版本共用的数据入口。仓库已有 `SourceDocument`、`TextChunk`、embedding、Qdrant、BM25 与 V2 evaluation，但没有布局解析框架。用户更关注主流技术方向，因此 V3.11.1 应展示 Docling 的标准模型与 chunker，而不是维护一套自研 AST、tokenizer 或递归算法。
+V0 `ingest_path()` 是所有后续版本共用的数据入口。仓库已有 `TextChunk`、embedding、Qdrant、BM25 与 V2 evaluation，但没有布局解析框架。用户更关注主流技术方向，因此 V3.11.1 应展示 Docling 的标准模型与 chunker，而不是维护一套自研 AST、tokenizer 或递归算法。
 
 ## Goals / Non-Goals
 
@@ -9,7 +9,7 @@ V0 `ingest_path()` 是所有后续版本共用的数据入口。仓库已有 `So
 - 使用 Docling `DocumentConverter` 处理本地多格式文件。
 - 在 preview 中直接展示 `DoclingDocument` 摘要、原始 chunk metadata 和 contextualized text。
 - 使用 `HybridChunker` 作为唯一主切片实现，并映射到仓库 `TextChunk`。
-- 让共享 V0 ingest 可选择 `docling` 或 `legacy` backend，默认使用 Docling。
+- 让共享 V0 ingest 固定使用 Docling，移除旧 loader/chunker 的运行时回退。
 - 复用现有向量库、关键词索引、检索和评估链路。
 
 **Non-Goals:**
@@ -25,9 +25,9 @@ V0 `ingest_path()` 是所有后续版本共用的数据入口。仓库已有 `So
 
 共享模块 `docling_ingestion.py` 在实际 convert/chunk 时导入 `DocumentConverter`、`HybridChunker` 与 `HuggingFaceTokenizer`。依赖缺失时抛出包含安装命令的明确错误，现有 search/agent 导入不受影响。
 
-### 2. V0 pipeline 通过 backend 选择，不复制 ingest
+### 2. V0 pipeline 固定使用 Docling，不复制 ingest
 
-`RAG_DOCUMENT_PARSER=docling|legacy` 控制 `ingest_path()`：Docling backend 直接从文件路径产生 `TextChunk`；legacy backend 保留原 loader/chunker，便于学习对照和故障回退。V3.11.1 API 固定展示 Docling 路径。
+`ingest_path()` 直接通过 Docling 从文件路径产生 `TextChunk`，不再保留 parser 选择器与旧 loader/chunker 回退。V3.11.1 API 和共享摄取链路使用同一条 Docling 路径。
 
 ### 3. 使用 Docling 官方 HybridChunker
 
@@ -64,9 +64,9 @@ V0 `ingest_path()` 是所有后续版本共用的数据入口。仓库已有 `So
 ## Migration Plan
 
 1. 安装框架依赖并使用 convert/chunks preview 验证代表性文件。
-2. 设置 `RAG_DOCUMENT_PARSER=docling`。
+2. 配置 tokenizer 与 token 上限。
 3. 使用 `recreate=true` 重建 Qdrant 和 keyword index。
-4. 运行 V2 retrieval evaluation；需要回退时改回 `legacy` 并重新 ingest。
+4. 运行 V2 retrieval evaluation。
 
 ## Open Questions
 

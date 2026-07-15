@@ -228,11 +228,11 @@ class MySQLConversationMemoryStore:
             self._execute(
                 connection,
                 """
-                INSERT INTO conversations (conversation_id, created_at, updated_at)
-                VALUES (%s, %s, %s)
+                INSERT INTO conversations (conversation_id, created_at, updated_at, summary_text)
+                VALUES (%s, %s, %s, %s)
                 ON DUPLICATE KEY UPDATE updated_at = %s
                 """,
-                (conversation_id, created_at, created_at, created_at),
+                (conversation_id, created_at, created_at, "", created_at),
             )
             self._execute(
                 connection,

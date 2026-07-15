@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from obsidian_rag.config import RagConfig, resolve_ingest_path
+from obsidian_rag.config import RagConfig, resolve_ingest_path, with_collection
 from obsidian_rag.debugging import debug_breakpoint
 from obsidian_rag.docling_ingestion import DOCLING_CHUNK_SCHEMA_VERSION, DoclingConversion, DoclingIngestion
 from obsidian_rag.pipeline import ingest_path
@@ -64,20 +64,27 @@ class DoclingLearningService:
         )
 
     def ingest(self, request: DoclingIngestRequest) -> DoclingIngestResponse:
-        path = self._resolve_path(request.path)
-        if self.config.document_parser != "docling":
-            raise ValueError("V3.11.1 ingest 要求 RAG_DOCUMENT_PARSER=docling。")
-        document_count, chunk_count = ingest_path(path, self.config, recreate=request.recreate)
+        request_config = with_collection(self.config, request.collection)
+        path = resolve_ingest_path(Path(request.path).expanduser() if request.path else None, request_config)
+        document_count, chunk_count = ingest_path(path, request_config, recreate=request.recreate)
         return DoclingIngestResponse(
             document_count=document_count,
             chunk_count=chunk_count,
-            parser=self.config.document_parser,
+            parser="docling",
             chunk_schema_version=DOCLING_CHUNK_SCHEMA_VERSION,
             recreated=request.recreate,
+            collection=request_config.collection_name,
         )
 
     def search(self, request: DoclingSearchRequest) -> DoclingSearchResponse:
-        results = RetrievalService(self.config).search(request.query, top_k=request.top_k, mode=request.mode)
+        retrieval_service = RetrievalService(self.config)
+        collection = retrieval_service.collection_name(request.collection)
+        results = retrieval_service.search(
+            request.query,
+            top_k=request.top_k,
+            mode=request.mode,
+            collection=request.collection,
+        )
         hits = []
         for result in results:
             metadata = result.chunk.metadata
@@ -94,12 +101,12 @@ class DoclingLearningService:
                     metadata=metadata,
                 )
             )
-        return DoclingSearchResponse(query=request.query, mode=request.mode, results=hits)
+        return DoclingSearchResponse(query=request.query, mode=request.mode, collection=collection, results=hits)
 
     def runtime(self) -> DoclingRuntimeResponse:
         return DoclingRuntimeResponse(
             version="v3.11.1",
-            parser=self.config.document_parser,
+            parser="docling",
             converter="Docling DocumentConverter",
             chunker="Docling HybridChunker",
             tokenizer_model=self.config.docling_tokenizer_model,

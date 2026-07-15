@@ -6,6 +6,7 @@ from zoneinfo import ZoneInfo
 
 from pydantic import BaseModel, Field, field_validator
 
+from obsidian_rag.config import COLLECTION_NAME_PATTERN
 from obsidian_rag.v1.schemas import SearchFilters, SearchHit, SearchMode
 from obsidian_rag.v3_4.schemas import Plan
 
@@ -58,6 +59,11 @@ class AgentAskRequest(BaseModel):
     top_k: int = Field(default=5, ge=1, le=20, description="每个 search step 返回的最大检索结果数。")
     mode: SearchMode = Field(default="hybrid", description="检索模式：dense、keyword 或 hybrid。")
     filters: SearchFilters | None = Field(default=None, description="可选的知识库元数据过滤条件。")
+    collection: str | None = Field(
+        default=None,
+        pattern=COLLECTION_NAME_PATTERN,
+        description="本次检索使用的知识库 Collection；为空时使用 RAG_COLLECTION 默认值。",
+    )
     max_steps: int = Field(default=4, ge=1, le=8, description="Planner 最多生成的执行步骤数。")
     max_retries: int = Field(default=1, ge=0, le=3, description="Evidence 不足时最多进行的补搜轮数。")
     context_max_chunks: int = Field(default=6, ge=1, le=20, description="最多选入 Answer prompt 的知识库 chunks 数。")
@@ -289,6 +295,10 @@ class AgentAskResponse(BaseModel):
     run_id: str = Field(description="本次 Agent 执行的唯一标识。")
     conversation_id: str = Field(description="本次请求所在的会话标识。")
     question: str = Field(description="本次用户原始问题。")
+    collection: str = Field(
+        default="obsidian_notes",
+        description="本次初始检索和 retry 检索实际使用的知识库 Collection。",
+    )
     answer: str = Field(description="Agent 综合生成的最终回答。")
     used_retrieval: bool = Field(description="本次是否至少获得了一条 RAG 检索结果。")
     sources: list[str] = Field(description="最终检索结果使用到的去重来源文件。")
