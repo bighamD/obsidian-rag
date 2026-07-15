@@ -7,7 +7,13 @@ from obsidian_rag.config import RagConfig
 from obsidian_rag.docling_ingestion import DoclingConversion
 from obsidian_rag.v3_11_2.app import app
 from obsidian_rag.v3_11_2.dependencies import get_framework_comparison_service
-from obsidian_rag.v3_11_2.frameworks import FrameworkChunk, FrameworkHit, FrameworkRun
+from obsidian_rag.v3_11_2.frameworks import (
+    SEMANTIC_DOCUMENT_MAX_CHARS,
+    FrameworkChunk,
+    FrameworkHit,
+    FrameworkRun,
+    _bounded_markdown_sections,
+)
 from obsidian_rag.v3_11_2.schemas import FrameworkCompareRequest
 from obsidian_rag.v3_11_2.service import FrameworkComparisonService
 
@@ -103,3 +109,12 @@ def test_service_api_and_cli_compare_three_framework_strategies(tmp_path: Path, 
 
     run_chunking3112_compare(_config(tmp_path), "how to rollback?", path=source, service=service)
     assert '"semantic_splitter"' in capsys.readouterr().out
+
+
+def test_semantic_markdown_sections_are_bounded_for_embedding_context():
+    markdown = "# VueUse\n\n" + ("useDraggable 可以处理拖拽交互。" * 1000)
+
+    sections = _bounded_markdown_sections(markdown)
+
+    assert len(sections) > 1
+    assert max(map(len, sections)) <= SEMANTIC_DOCUMENT_MAX_CHARS

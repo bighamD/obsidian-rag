@@ -549,6 +549,18 @@
 			"justMyCode": true
 		},
 		{
+			"name": "V3.11.2 Swagger: Chunking Framework Comparison",
+			"type": "debugpy",
+			"request": "launch",
+			"module": "uvicorn",
+			"console": "integratedTerminal",
+			"cwd": "${workspaceFolder}",
+			"python": "${workspaceFolder}/.venv/bin/python",
+			"envFile": "${workspaceFolder}/.env",
+			"args": ["obsidian_rag.v3_11_2.app:app", "--host", "127.0.0.1", "--port", "8000"],
+			"justMyCode": true
+		},
+		{
 			"name": "V3.11.3 API server: Collection Router",
 			"type": "debugpy",
 			"request": "launch",

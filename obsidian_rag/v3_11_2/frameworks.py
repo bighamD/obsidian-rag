@@ -1,8 +1,12 @@
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from time import perf_counter
 from typing import Any
+
+
+SEMANTIC_DOCUMENT_MAX_CHARS = 3000
 
 
 @dataclass(frozen=True)
@@ -192,7 +196,8 @@ def run_llamaindex_semantic(
         buffer_size=1,
         breakpoint_percentile_threshold=breakpoint_percentile,
     )
-    nodes = parser.get_nodes_from_documents([Document(text=text, metadata=metadata)])
+    documents = [Document(text=section, metadata=metadata) for section in _bounded_markdown_sections(text)]
+    nodes = parser.get_nodes_from_documents(documents)
     index = VectorStoreIndex(nodes, embed_model=embed_model)
     hits_raw = index.as_retriever(similarity_top_k=top_k).retrieve(query)
     build_ms = (perf_counter() - started) * 1000
@@ -206,6 +211,30 @@ def run_llamaindex_semantic(
     ]
     hits = [_llama_hit(item, "semantic_node") for item in hits_raw]
     return _run("llamaindex", "semantic_splitter", build_ms, chunks, hits)
+
+
+def _bounded_markdown_sections(text: str, max_chars: int = SEMANTIC_DOCUMENT_MAX_CHARS) -> list[str]:
+    """按 Markdown 段落分组，并限制 SemanticSplitter 单个文档的输入长度。"""
+
+    blocks = [block.strip() for block in re.split(r"\n\s*\n+", text) if block.strip()]
+    sections: list[str] = []
+    current = ""
+    for block in blocks:
+        while len(block) > max_chars:
+            if current:
+                sections.append(current)
+                current = ""
+            sections.append(block[:max_chars])
+            block = block[max_chars:].lstrip()
+        candidate = f"{current}\n\n{block}" if current else block
+        if len(candidate) > max_chars:
+            sections.append(current)
+            current = block
+        else:
+            current = candidate
+    if current:
+        sections.append(current)
+    return sections
 
 
 def _llama_embedding(embedding_client: Any):
