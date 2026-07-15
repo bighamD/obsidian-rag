@@ -509,6 +509,44 @@
 				"hybrid"
 			],
 			"justMyCode": true
+		},
+		{
+			"name": "V3.11.1 CLI: ingest food_safety collection",
+			"type": "debugpy",
+			"request": "launch",
+			"module": "obsidian_rag.cli",
+			"console": "integratedTerminal",
+			"cwd": "${workspaceFolder}",
+			"python": "${workspaceFolder}/.venv/bin/python",
+			"envFile": "${workspaceFolder}/.env",
+			"env": {
+				"RAG_DOCUMENT_PARSER": "docling",
+				"RAG_DEBUG_BREAKPOINTS": "ingest.after_load,ingest.after_chunks,ingest.after_embeddings,qdrant.before_upsert,ingest.after_upsert"
+			},
+			"args": [
+				"documents-v3-11-1",
+				"ingest",
+				"${workspaceFolder}/knowledge/rag_test_food_safety_kb_expanded.md",
+				"--collection",
+				"food_safety",
+				"--recreate"
+			],
+			"justMyCode": true
+		},
+		{
+			"name": "V3.11.1 CLI: search food_safety collection",
+			"type": "debugpy",
+			"request": "launch",
+			"module": "obsidian_rag.cli",
+			"console": "integratedTerminal",
+			"cwd": "${workspaceFolder}",
+			"python": "${workspaceFolder}/.venv/bin/python",
+			"envFile": "${workspaceFolder}/.env",
+			"env": {
+				"RAG_DEBUG_BREAKPOINTS": "search.after_query_embedding,qdrant.after_search,search.after_retrieval"
+			},
+			"args": ["documents-v3-11-1", "search", "核心结论是什么？", "--collection", "food_safety"],
+			"justMyCode": true
 		}
 		// {
 		// 	"name": "V3.7 agent ask: context builder",

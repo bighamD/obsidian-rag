@@ -17,11 +17,16 @@ from obsidian_rag.v3_8_1.schemas import (
 
 
 class FakeAgentService:
+    def __init__(self):
+        self.requests = []
+
     def ask(self, request):
+        self.requests.append(request)
         return AgentAskResponse(
             run_id="run_test",
             conversation_id=request.conversation_id or "conv_test",
             question=request.question,
+            collection=request.collection or "obsidian_notes",
             answer="最终答案",
             used_retrieval=True,
             sources=["food.md"],
@@ -74,6 +79,21 @@ def test_v3_8_1_agent_ask_returns_conversation_memory():
     assert payload["memory_snapshot"]["window"] == 3
     assert payload["memory_write"]["saved"] is True
     assert payload["memory_compaction"]["compacted"] is False
+
+
+def test_v3_8_1_agent_api_forwards_collection():
+    service = FakeAgentService()
+    app.dependency_overrides[get_agent_service] = lambda: service
+    client = TestClient(app)
+
+    try:
+        response = client.post("/agent/ask", json={"question": "番茄意面怎么做？", "collection": "recipes"})
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    assert service.requests[0].collection == "recipes"
+    assert response.json()["collection"] == "recipes"
 
 
 def test_v3_8_1_memory_route_returns_saved_turns(tmp_path):

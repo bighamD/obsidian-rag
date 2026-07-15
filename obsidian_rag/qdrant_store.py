@@ -83,6 +83,11 @@ class QdrantVectorStore:
         debug_breakpoint("qdrant.after_search", collection=self.collection_name, top_k=top_k, result_count=len(results))
         return results
 
+    def close(self) -> None:
+        """释放 embedded Qdrant 的文件锁。"""
+
+        self.client.close()
+
     def _collection_exists(self) -> bool:
         try:
             self.client.get_collection(self.collection_name)

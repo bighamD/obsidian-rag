@@ -7,7 +7,7 @@ from pathlib import Path
 import httpx
 
 from obsidian_rag.config import RagConfig
-from obsidian_rag.config import load_config, resolve_ingest_path
+from obsidian_rag.config import load_config, resolve_ingest_path, with_collection
 from obsidian_rag.pipeline import answer, ingest_path, search
 from obsidian_rag.prompting import format_sources
 from obsidian_rag.v1.schemas import SearchFilters, SearchMode
@@ -90,14 +90,17 @@ def main() -> None:
         help="Obsidian vault, folder, Markdown file, or PDF file. Defaults to RAG_VAULT_PATH.",
     )
     ingest_parser.add_argument("--recreate", action="store_true", help="Drop and rebuild the collection first")
+    ingest_parser.add_argument("--collection", help="Target knowledge-base collection; defaults to RAG_COLLECTION")
 
     search_parser = subparsers.add_parser("search", help="Retrieve relevant chunks without calling the LLM")
     search_parser.add_argument("query")
     search_parser.add_argument("--top-k", type=int, default=5)
+    search_parser.add_argument("--collection", help="Knowledge-base collection; defaults to RAG_COLLECTION")
 
     ask_parser = subparsers.add_parser("ask", help="Retrieve chunks and ask the configured LLM")
     ask_parser.add_argument("question")
     ask_parser.add_argument("--top-k", type=int, default=5)
+    ask_parser.add_argument("--collection", help="Knowledge-base collection; defaults to RAG_COLLECTION")
 
     eval_parser = subparsers.add_parser("eval", help="Run repeatable RAG evaluations")
     eval_subparsers = eval_parser.add_subparsers(dest="eval_command", required=True)
@@ -207,6 +210,7 @@ def main() -> None:
     agent381_ask_parser.add_argument("--memory-compaction-trigger-tokens", type=int, default=3000)
     agent381_ask_parser.add_argument("--top-k", type=int, default=5)
     agent381_ask_parser.add_argument("--mode", choices=["dense", "keyword", "hybrid"], default="hybrid")
+    agent381_ask_parser.add_argument("--collection", help="检索目标 Collection；默认使用 RAG_COLLECTION")
     agent381_ask_parser.add_argument("--max-steps", type=int, default=4)
     agent381_ask_parser.add_argument("--max-retries", type=int, default=1)
     agent381_ask_parser.add_argument("--filter-path")
@@ -256,6 +260,7 @@ def main() -> None:
     )
     _add_production_ask_arguments(agent311_ask_parser, "V3.11 Skill System MySQL Memory DB path")
     agent311_ask_parser.add_argument("--skill-name", help="Force one Skill for deterministic debugging")
+    agent311_ask_parser.add_argument("--collection", help="检索目标 Collection；默认使用 RAG_COLLECTION")
     agent311_ask_parser.add_argument("--disable-skill-router", action="store_true")
     agent311_ask_parser.add_argument("--skill-root", type=Path, default=Path("skills"))
     agent311_skills_parser = agent311_subparsers.add_parser("skills", help="Inspect local Skill Registry")
@@ -281,10 +286,12 @@ def main() -> None:
     documents3111_ingest = documents3111_subparsers.add_parser("ingest", help="Rebuild shared Qdrant with Docling chunks")
     documents3111_ingest.add_argument("path", type=Path, nargs="?")
     documents3111_ingest.add_argument("--recreate", action="store_true")
+    documents3111_ingest.add_argument("--collection", help="写入目标 Collection；默认使用 RAG_COLLECTION")
     documents3111_search = documents3111_subparsers.add_parser("search", help="Search the shared Docling index")
     documents3111_search.add_argument("query")
     documents3111_search.add_argument("--top-k", type=int, default=5)
     documents3111_search.add_argument("--mode", choices=["dense", "keyword", "hybrid"], default="hybrid")
+    documents3111_search.add_argument("--collection", help="检索目标 Collection；默认使用 RAG_COLLECTION")
 
     chunking3112_parser = subparsers.add_parser(
         "chunking-v3-11-2",
@@ -319,18 +326,23 @@ def main() -> None:
     config = load_config()
 
     if args.command == "ingest":
-        path = resolve_ingest_path(args.path, config)
-        document_count, chunk_count = ingest_path(path, config=config, recreate=args.recreate)
-        print(f"Indexed {document_count} documents into {chunk_count} chunks.")
+        request_config = with_collection(config, args.collection)
+        path = resolve_ingest_path(args.path, request_config)
+        document_count, chunk_count = ingest_path(path, config=request_config, recreate=args.recreate)
+        print(f"Indexed {document_count} documents into {chunk_count} chunks in {request_config.collection_name}.")
         return
 
     if args.command == "search":
-        results = search(args.query, config=config, top_k=args.top_k)
+        request_config = with_collection(config, args.collection)
+        results = search(args.query, config=request_config, top_k=args.top_k)
+        print(f"Collection: {request_config.collection_name}")
         _print_results(results)
         return
 
     if args.command == "ask":
-        response, results = answer(args.question, config=config, top_k=args.top_k)
+        request_config = with_collection(config, args.collection)
+        response, results = answer(args.question, config=request_config, top_k=args.top_k)
+        print(f"Collection: {request_config.collection_name}")
         print(response.strip())
         _print_sources(format_sources(results))
         return
@@ -466,6 +478,7 @@ def main() -> None:
             context_max_chunks=args.context_max_chunks,
             context_token_budget=args.context_token_budget,
             memory_db_path=args.memory_db_path,
+            collection=args.collection,
         )
         return
 
@@ -567,6 +580,7 @@ def main() -> None:
             filter_path=args.filter_path,
             context_max_chunks=args.context_max_chunks,
             context_token_budget=args.context_token_budget,
+            collection=args.collection,
             skill_name=args.skill_name,
             skill_router_enabled=not args.disable_skill_router,
             skill_root=args.skill_root,
@@ -586,6 +600,7 @@ def main() -> None:
             query=getattr(args, "query", None),
             top_k=getattr(args, "top_k", 5),
             mode=getattr(args, "mode", "hybrid"),
+            collection=getattr(args, "collection", None),
         )
         return
 
@@ -1186,6 +1201,7 @@ def run_agent381_ask(
     filter_path: str | None = None,
     context_max_chunks: int = 6,
     context_token_budget: int = 4000,
+    collection: str | None = None,
     memory_db_path: Path | None = None,
     retrieval_service=None,
     chat_client=None,
@@ -1222,6 +1238,7 @@ def run_agent381_ask(
             max_retries=max_retries,
             context_max_chunks=context_max_chunks,
             context_token_budget=context_token_budget,
+            collection=collection,
         )
     )
     print(f"Run: {response.run_id}")
@@ -1451,6 +1468,7 @@ def run_documents3111(
     query: str | None = None,
     top_k: int = 5,
     mode: SearchMode = "hybrid",
+    collection: str | None = None,
     service: DoclingLearningService | None = None,
 ) -> None:
     """运行 V3.11.1 Docling 学习入口，并打印结构化 JSON。"""
@@ -1462,9 +1480,9 @@ def run_documents3111(
     elif command == "chunks":
         response = service.chunks(DoclingPathRequest(path=path_value))
     elif command == "ingest":
-        response = service.ingest(DoclingIngestRequest(path=path_value, recreate=recreate))
+        response = service.ingest(DoclingIngestRequest(path=path_value, recreate=recreate, collection=collection))
     elif command == "search" and query:
-        response = service.search(DoclingSearchRequest(query=query, top_k=top_k, mode=mode))
+        response = service.search(DoclingSearchRequest(query=query, top_k=top_k, mode=mode, collection=collection))
     else:
         raise ValueError(f"Unsupported V3.11.1 command: {command}")
     print(response.model_dump_json(indent=2))
@@ -1502,6 +1520,7 @@ def run_agent311_ask(
     filter_path: str | None = None,
     context_max_chunks: int = 6,
     context_token_budget: int = 4000,
+    collection: str | None = None,
     skill_name: str | None = None,
     skill_router_enabled: bool = True,
     skill_root: Path = Path("skills"),
@@ -1540,6 +1559,7 @@ def run_agent311_ask(
             max_retries=max_retries,
             context_max_chunks=context_max_chunks,
             context_token_budget=context_token_budget,
+            collection=collection,
             skill_name=skill_name,
             skill_router_enabled=skill_router_enabled,
         )

@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from obsidian_rag.config import RagConfig, resolve_ingest_path
+from obsidian_rag.config import RagConfig, resolve_ingest_path, validate_collection_name, with_collection
 
 
 def _config(vault_path: Path | None = None) -> RagConfig:
@@ -35,3 +35,19 @@ def test_resolve_ingest_path_uses_configured_vault_path():
 def test_resolve_ingest_path_requires_cli_or_configured_path():
     with pytest.raises(RuntimeError, match="RAG_VAULT_PATH"):
         resolve_ingest_path(None, _config())
+
+
+def test_with_collection_returns_immutable_request_scoped_config():
+    config = _config()
+
+    scoped = with_collection(config, "food_safety")
+
+    assert config.collection_name == "obsidian_notes"
+    assert scoped.collection_name == "food_safety"
+    assert scoped is not config
+
+
+@pytest.mark.parametrize("value", ["FoodSafety", "food safety", "food/safety", "", "-food"])
+def test_validate_collection_name_rejects_invalid_values(value: str):
+    with pytest.raises(ValueError, match="collection"):
+        validate_collection_name(value)

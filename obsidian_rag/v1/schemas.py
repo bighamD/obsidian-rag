@@ -4,6 +4,7 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
+from obsidian_rag.config import COLLECTION_NAME_PATTERN
 from obsidian_rag.schema import SearchResult
 from obsidian_rag.v1.retrieval.models import RankedSearchResult
 
@@ -22,6 +23,11 @@ class SearchRequest(BaseModel):
     top_k: int = Field(default=5, ge=1, le=50)
     mode: SearchMode = "hybrid"
     filters: SearchFilters | None = None
+    collection: str | None = Field(
+        default=None,
+        pattern=COLLECTION_NAME_PATTERN,
+        description="本次检索的知识库 Collection；为空时使用 RAG_COLLECTION。",
+    )
 
 
 class AskRequest(BaseModel):
@@ -29,11 +35,21 @@ class AskRequest(BaseModel):
     top_k: int = Field(default=5, ge=1, le=50)
     mode: SearchMode = "hybrid"
     filters: SearchFilters | None = None
+    collection: str | None = Field(
+        default=None,
+        pattern=COLLECTION_NAME_PATTERN,
+        description="本次问答检索的知识库 Collection；为空时使用 RAG_COLLECTION。",
+    )
 
 
 class IngestRequest(BaseModel):
     path: str | None = None
     recreate: bool = False
+    collection: str | None = Field(
+        default=None,
+        pattern=COLLECTION_NAME_PATTERN,
+        description="写入目标知识库 Collection；为空时使用 RAG_COLLECTION。",
+    )
 
 
 class SearchHit(BaseModel):
@@ -57,17 +73,20 @@ class SearchHit(BaseModel):
 class SearchResponse(BaseModel):
     query: str
     mode: SearchMode
+    collection: str
     results: list[SearchHit]
 
 
 class CompareSearchResponse(BaseModel):
     query: str
+    collection: str
     results: dict[str, list[SearchHit]]
 
 
 class AskResponse(BaseModel):
     question: str
     answer: str
+    collection: str
     results: list[SearchHit]
     sources: list[str]
 
@@ -75,6 +94,7 @@ class AskResponse(BaseModel):
 class IngestResponse(BaseModel):
     document_count: int
     chunk_count: int
+    collection: str
 
 
 def to_search_hit(result: SearchResult | RankedSearchResult) -> SearchHit:

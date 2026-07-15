@@ -92,9 +92,12 @@ def ingest_path(path: Path, config: RagConfig, recreate: bool = False) -> tuple[
         first_vector_head=vectors[0][:5] if vectors else [],
     )
     store = make_store(config)
-    store.ensure_collection(recreate=recreate)
-    store.upsert(chunks, vectors)
-    _write_keyword_index(config, chunks)
+    try:
+        store.ensure_collection(recreate=recreate)
+        store.upsert(chunks, vectors)
+    finally:
+        store.close()
+    _write_keyword_index(config, chunks, recreate=recreate)
     debug_breakpoint("ingest.after_upsert", collection=config.collection_name, chunk_count=len(chunks))
     return document_count, len(chunks)
 
@@ -102,10 +105,13 @@ def ingest_path(path: Path, config: RagConfig, recreate: bool = False) -> tuple[
 def search(query: str, config: RagConfig, top_k: int = 5) -> list[SearchResult]:
     embeddings = make_embedding_client(config)
     store = make_store(config)
-    store.ensure_collection(recreate=False)
-    query_vector = embeddings.embed_query(query)
-    debug_breakpoint("search.after_query_embedding", query=query, vector_dimensions=len(query_vector), vector_head=query_vector[:5])
-    results = store.search(query_vector, top_k=top_k)
+    try:
+        store.ensure_collection(recreate=False)
+        query_vector = embeddings.embed_query(query)
+        debug_breakpoint("search.after_query_embedding", query=query, vector_dimensions=len(query_vector), vector_head=query_vector[:5])
+        results = store.search(query_vector, top_k=top_k)
+    finally:
+        store.close()
     debug_breakpoint("search.after_retrieval", query=query, result_count=len(results), first_result=results[0] if results else None)
     return results
 
@@ -135,9 +141,13 @@ def _has_enough_relevance(results: list[SearchResult], min_score: float) -> bool
     return bool(results) and results[0].score >= min_score
 
 
-def _write_keyword_index(config: RagConfig, chunks) -> None:
+def _write_keyword_index(config: RagConfig, chunks, recreate: bool) -> None:
     from obsidian_rag.v1.retrieval.keyword import KeywordIndex, keyword_index_path
 
-    index = KeywordIndex(keyword_index_path(config.db_path))
-    index.build(chunks)
+    index = KeywordIndex(keyword_index_path(config.db_path, config.collection_name))
+    if recreate:
+        index.build(chunks)
+    else:
+        index.load()
+        index.upsert(chunks)
     index.save()

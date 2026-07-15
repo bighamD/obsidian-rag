@@ -4,6 +4,7 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
+from obsidian_rag.config import COLLECTION_NAME_PATTERN
 
 SearchMode = Literal["dense", "keyword", "hybrid"]
 
@@ -62,8 +63,13 @@ class DoclingIngestRequest(BaseModel):
 
     path: str | None = Field(default=None, description="本地文件或目录的绝对路径；为空时使用 RAG_VAULT_PATH。")
     recreate: bool = Field(default=True, description="是否重建当前 Qdrant collection。首次运行应为 true。")
+    collection: str | None = Field(
+        default=None,
+        pattern=COLLECTION_NAME_PATTERN,
+        description="写入目标知识库 Collection；为空时使用 RAG_COLLECTION。",
+    )
 
-    model_config = {"json_schema_extra": {"examples": [{"recreate": True}]}}
+    model_config = {"json_schema_extra": {"examples": [{"collection": "food_safety", "recreate": True}]}}
 
 
 class DoclingIngestResponse(BaseModel):
@@ -74,6 +80,7 @@ class DoclingIngestResponse(BaseModel):
     parser: str = Field(description="共享 pipeline 实际使用的 parser backend。")
     chunk_schema_version: str = Field(description="写入 metadata 的 chunk schema 版本。")
     recreated: bool = Field(description="是否重建了 Qdrant collection。")
+    collection: str = Field(description="本次实际写入的知识库 Collection。")
 
 
 class DoclingSearchRequest(BaseModel):
@@ -82,9 +89,18 @@ class DoclingSearchRequest(BaseModel):
     query: str = Field(min_length=1, description="检索问题。")
     top_k: int = Field(default=5, ge=1, le=50, description="最多返回多少个 chunks。")
     mode: SearchMode = Field(default="hybrid", description="dense、keyword 或 hybrid。")
+    collection: str | None = Field(
+        default=None,
+        pattern=COLLECTION_NAME_PATTERN,
+        description="检索目标知识库 Collection；为空时使用 RAG_COLLECTION。",
+    )
 
     model_config = {
-        "json_schema_extra": {"examples": [{"query": "这个文档的核心结论是什么？", "top_k": 5, "mode": "hybrid"}]}
+        "json_schema_extra": {
+            "examples": [
+                {"query": "这个文档的核心结论是什么？", "top_k": 5, "mode": "hybrid", "collection": "food_safety"}
+            ]
+        }
     }
 
 
@@ -107,6 +123,7 @@ class DoclingSearchResponse(BaseModel):
 
     query: str = Field(description="原始问题。")
     mode: SearchMode = Field(description="检索模式。")
+    collection: str = Field(description="本次实际检索的知识库 Collection。")
     results: list[DoclingSearchHit] = Field(description="命中的 Docling chunks。")
 
 

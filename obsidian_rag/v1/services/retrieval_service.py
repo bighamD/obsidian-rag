@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from obsidian_rag.config import RagConfig
+from obsidian_rag.config import RagConfig, with_collection
 from obsidian_rag.pipeline import search as dense_search
 from obsidian_rag.schema import SearchResult
 from obsidian_rag.v1.retrieval.hybrid import reciprocal_rank_fusion
@@ -19,15 +19,17 @@ class RetrievalService:
         top_k: int = 5,
         mode: SearchMode = "hybrid",
         filters: SearchFilters | None = None,
+        collection: str | None = None,
     ) -> list[SearchResult | RankedSearchResult]:
+        config = with_collection(self.config, collection)
         if mode == "dense":
-            return self._filter_results(dense_search(query, self.config, top_k=top_k), filters)[:top_k]
+            return self._filter_results(dense_search(query, config, top_k=top_k), filters)[:top_k]
         if mode == "keyword":
-            return self._keyword_search(query, top_k=top_k, filters=filters)
+            return self._keyword_search(query, config=config, top_k=top_k, filters=filters)
         if mode == "hybrid":
             recall_k = max(top_k * 3, top_k)
-            dense_results = self._filter_results(dense_search(query, self.config, top_k=recall_k), filters)
-            keyword_results = self._keyword_search(query, top_k=recall_k, filters=filters)
+            dense_results = self._filter_results(dense_search(query, config, top_k=recall_k), filters)
+            keyword_results = self._keyword_search(query, config=config, top_k=recall_k, filters=filters)
             return reciprocal_rank_fusion(dense_results, keyword_results, top_k=top_k)
         raise ValueError(f"Unsupported search mode: {mode}")
 
@@ -36,9 +38,10 @@ class RetrievalService:
         query: str,
         top_k: int = 5,
         filters: SearchFilters | None = None,
+        collection: str | None = None,
     ) -> dict[str, list[SearchResult | RankedSearchResult]]:
-        dense_results = self.search(query, top_k=top_k, mode="dense", filters=filters)
-        keyword_results = self.search(query, top_k=top_k, mode="keyword", filters=filters)
+        dense_results = self.search(query, top_k=top_k, mode="dense", filters=filters, collection=collection)
+        keyword_results = self.search(query, top_k=top_k, mode="keyword", filters=filters, collection=collection)
         hybrid_results = reciprocal_rank_fusion(
             [result for result in dense_results if isinstance(result, SearchResult)],
             [result for result in keyword_results if isinstance(result, SearchResult)],
@@ -46,13 +49,19 @@ class RetrievalService:
         )
         return {"dense": dense_results, "keyword": keyword_results, "hybrid": hybrid_results}
 
+    def collection_name(self, collection: str | None = None) -> str:
+        """返回本次检索实际使用的 collection，供 API / trace 回显。"""
+
+        return with_collection(self.config, collection).collection_name
+
     def _keyword_search(
         self,
         query: str,
+        config: RagConfig,
         top_k: int,
         filters: SearchFilters | None,
     ) -> list[SearchResult]:
-        index = KeywordIndex(keyword_index_path(self.config.db_path))
+        index = KeywordIndex(keyword_index_path(config.db_path, config.collection_name))
         index.load()
         return self._filter_results(index.search(query, top_k=top_k), filters)[:top_k]
 

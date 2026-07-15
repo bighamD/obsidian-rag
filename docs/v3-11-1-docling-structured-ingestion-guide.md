@@ -1,6 +1,6 @@
 # V3.11.1 Docling Structured Ingestion 学习指南
 
-V3.11.1 在 V3.11 Skill System 与 V3.12 MCP Integration 之间补充多格式文档数据基础。它不修改 Agent 行为，而是把共享 V0 ingest 从“Markdown/PDF 纯文本 loader + 字符切片”升级为可选择的 Docling framework backend。
+V3.11.1 在 V3.11 Skill System 与 V3.12 MCP Integration 之间补充多格式文档数据基础。它不改写 Agent 的 Planner、Skill 或决策行为；本次新增的请求级 `collection` 会被 V3.8.1/V3.11 Agent 透传到检索层。Docling 部分则把共享 V0 ingest 从“Markdown/PDF 纯文本 loader + 字符切片”升级为可选择的 Docling framework backend。
 
 ![V3.11.1 Docling Structured Ingestion](assets/rag-v3-11-1-docling-flow.svg)
 
@@ -32,6 +32,7 @@ PDF / Markdown / DOCX / PPTX / XLSX / HTML / CSV / Image
 - 将 headings、captions、origin、doc_items provenance 和页码映射到 metadata。
 - 从标题块内的 fenced YAML 提取可选业务 metadata；`chunk_id` 不限制为 `KB-` 前缀，兼容 `KB-072`、`VU-001` 等引用 ID。
 - 通过共享 V0 pipeline 写入现有 Qdrant 与 keyword index。
+- 用请求级 `collection` 隔离 Qdrant 与 keyword index；同一 collection 的增量 ingest 会合并 keyword index。
 - 提供 convert、chunks、ingest、search 四个 JSON 接口和对应 CLI。
 
 ## 当前版本不做什么
@@ -39,7 +40,7 @@ PDF / Markdown / DOCX / PPTX / XLSX / HTML / CSV / Image
 - 不实现 LangChain ParentDocumentRetriever。
 - 不实现 LlamaIndex AutoMergingRetriever 或 SemanticSplitter。
 - 不重新实现 PDF Layout、OCR、表格识别或 Markdown AST。
-- 不改写 V3.11 Skill Registry、Router 或 Agent。
+- 不改写 V3.11 Skill Registry、Router、Planner 或 Agent 的决策逻辑；Agent 仅复用请求级 collection 检索能力。
 - 不提供 SSE、后台任务、转换缓存或旧索引迁移。
 
 这些框架检索能力由 V3.11.2 继续学习；V3.12 仍回到 MCP Integration 主线。
@@ -62,6 +63,8 @@ PDF / Markdown / DOCX / PPTX / XLSX / HTML / CSV / Image
 RAG_DOCUMENT_PARSER=docling
 RAG_DOCLING_TOKENIZER_MODEL=sentence-transformers/all-MiniLM-L6-v2
 RAG_CHUNK_TOKENS=512
+# 默认知识库；单次 ingest/search 可用 collection 参数覆盖
+RAG_COLLECTION=obsidian_notes
 ```
 
 首次使用 Docling 可能下载布局、OCR 或 tokenizer 模型。若需要回到原来的 loader/chunker：
@@ -120,11 +123,12 @@ API 入口：
 
 ```json
 {
+  "collection": "food_safety",
   "recreate": true
 }
 ```
 
-本版本 chunk schema 为 `docling-v1`，首次 ingest 应使用 `recreate=true`。它会覆盖当前 Qdrant collection 和 keyword index；不会删除源文件。已有索引需要重新 ingest，才会获得新增的业务 metadata。
+本版本 chunk schema 为 `docling-v1`，首次 ingest 应使用 `recreate=true`。它只会覆盖当前指定的 Qdrant collection 及其 keyword index；不会删除源文件或其他 collection。省略 `recreate` 时，新 chunks 会增量写入当前 collection，并合并到该 collection 的 keyword index。已有索引需要重新 ingest，才会获得新增的业务 metadata。
 
 ### 业务 metadata 约定
 
@@ -152,7 +156,8 @@ source: https://vueuse.org/guide/
 {
   "query": "这个文档的核心结论是什么？",
   "top_k": 5,
-  "mode": "hybrid"
+  "mode": "hybrid",
+  "collection": "food_safety"
 }
 ```
 
@@ -161,16 +166,19 @@ source: https://vueuse.org/guide/
 ```bash
 .venv/bin/obsidian-rag documents-v3-11-1 convert /absolute/path/to/manual.pdf
 .venv/bin/obsidian-rag documents-v3-11-1 chunks /absolute/path/to/manual.pdf
-.venv/bin/obsidian-rag documents-v3-11-1 ingest --recreate
-.venv/bin/obsidian-rag documents-v3-11-1 search "核心结论是什么？" --top-k 5 --mode hybrid
+.venv/bin/obsidian-rag documents-v3-11-1 ingest --collection food_safety --recreate
+.venv/bin/obsidian-rag documents-v3-11-1 search "核心结论是什么？" --top-k 5 --mode hybrid --collection food_safety
 ```
 
 省略 `chunks` / `ingest` 的路径时，CLI 使用 `.env` 中的 `RAG_VAULT_PATH`。
 
-## 正常主链路
+## `ingest` 正常主链路
+
+`convert` 与 `chunks` 是无状态预览接口，不接受 collection；只有 `ingest` / `search` 会选择 collection。
 
 ```text
 CLI / Swagger
+  -> collection（未传时回退 RAG_COLLECTION）
   -> DoclingLearningService
   -> DoclingIngestion
   -> DocumentConverter.convert
@@ -192,6 +200,7 @@ CLI / Swagger
 | 单文件 convert 传入目录 | 返回参数错误，提示改用 chunks/ingest |
 | 目录中个别文件转换失败 | chunks preview 返回 `errors`，成功文件继续展示 |
 | 所有文件转换失败 | ingest 中止，不写入空索引 |
+| 指定 `collection` | dense、keyword、hybrid 只访问该 collection；`recreate` 只重建该 collection，未传时增量合并该 collection 的 keyword index |
 | 标题块含 `chunk_id` YAML | 将 `chunk_id`、title、tags、source 等 metadata 绑定到该标题路径的 chunks |
 | 标题块不含业务 YAML | 仍正常切片；无编号标题时不伪造 `chunk_id` |
 | tokenizer/model 首次使用 | 可能下载模型，耗时高于后续运行 |
@@ -202,8 +211,8 @@ CLI / Swagger
 | --- | --- |
 | `obsidian_rag/docling_ingestion.py` | Docling Converter/HybridChunker 薄适配和 TextChunk metadata 映射 |
 | `obsidian_rag/structured_metadata.py` | Markdown 标题块 YAML metadata 的提取、规范化和 Docling heading path 匹配 |
-| `obsidian_rag/pipeline.py` | 根据 `RAG_DOCUMENT_PARSER` 选择 docling 或 legacy，然后统一 embed/upsert |
-| `obsidian_rag/config.py` | parser、tokenizer 和 token 上限配置 |
+| `obsidian_rag/pipeline.py` | 根据 `RAG_DOCUMENT_PARSER` 选择 docling 或 legacy，然后按请求 collection 统一 embed/upsert、关闭 embedded Qdrant client 并维护 keyword index |
+| `obsidian_rag/config.py` | parser、tokenizer、token 上限和请求级 collection 配置 |
 | `obsidian_rag/v3_11_1/schemas.py` | Swagger 输入输出职责与字段中文说明 |
 | `obsidian_rag/v3_11_1/service.py` | convert/chunks/ingest/search 学习编排 |
 | `obsidian_rag/v3_11_1/routes/` | FastAPI JSON 路由 |
@@ -214,14 +223,16 @@ CLI / Swagger
 
 | 顺序 | 文件行号与函数 | 观察变量 |
 | --- | --- | --- |
-| 1 | `v3_11_1/service.py:41` `DoclingLearningService.convert()` | `path`、`request.path` |
-| 2 | `docling_ingestion.py:75` `DoclingIngestion.convert_file()` | `result.status`、`document`、`markdown` |
-| 3 | `v3_11_1/service.py:49` `DoclingLearningService.chunks()` | `batch.conversions`、`batch.errors` |
-| 4 | `docling_ingestion.py:91` `chunk_conversion()` | `chunk.text`、`contextualized`、`docling_meta`、结构化业务 metadata |
-| 5 | `docling_ingestion.py:127` `convert_and_chunk_path()` | `files`、`conversions`、`chunks`、`errors` |
-| 6 | `pipeline.py:56` `ingest_path()` | `config.document_parser`、`document_count`、`chunks` |
+| 1 | `v3_11_1/service.py:66` `DoclingLearningService.ingest()` | `request.collection`、`request_config.collection_name`、`path`、`request.recreate` |
+| 2 | `config.py:75` `with_collection()` | `selected`、返回副本的 `collection_name`，确认不修改共享 config |
+| 3 | `pipeline.py:56` `ingest_path()` | `config.document_parser`、`config.collection_name`、`document_count`、`chunks` |
+| 4 | `docling_ingestion.py:129` `convert_and_chunk_path()` | `files`、`conversions`、`chunks`、`errors` |
+| 5 | `docling_ingestion.py:77` `convert_file()` | `result.status`、`document`、`markdown` |
+| 6 | `docling_ingestion.py:93` `chunk_conversion()` | `chunk.text`、`contextualized`、`docling_meta`、结构化业务 metadata |
 | 7 | `pipeline.py:17` `make_embedding_client()` | embedding provider/model |
-| 8 | `qdrant_store.py:48` `upsert()` | point payload、`node_id`、vector dimensions |
+| 8 | `qdrant_store.py:38` `ensure_collection()` | `collection_name`、`recreate` |
+| 9 | `qdrant_store.py:48` `upsert()` | point payload、`node_id`、vector dimensions |
+| 10 | `pipeline.py:144` `_write_keyword_index()` | `config.collection_name`、collection 对应 keyword index 路径与增量合并行为 |
 
 行号已经按版本完成时的代码核对。后续代码变化后，应优先按函数名重新定位。
 
@@ -229,6 +240,7 @@ CLI / Swagger
 
 - adapter 测试使用 Docling fake，验证 headings、任意业务 ID（如 KB / VU）、provenance page 和 schema 映射。
 - service/API/CLI 测试不下载真实模型，也不连接 Qdrant。
+- 共享 V0 pipeline smoke 使用临时 embedded Qdrant，验证 food_safety / recipes 的 dense、keyword、hybrid 隔离，以及 `recreate` 不影响另一 collection。
 - 真正的布局/OCR 效果必须用本地代表性 PDF/图片执行 chunks preview 后再评估。
 - 本版本不会自动启动 API；由用户自行运行 Swagger 和断点调试。
 

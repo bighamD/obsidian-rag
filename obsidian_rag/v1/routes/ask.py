@@ -18,6 +18,7 @@ def ask(
     return AskResponse(
         question=request.question,
         answer=answer,
+        collection=answer_service.collection_name(request.collection),
         results=[to_search_hit(result) for result in results],
         sources=answer_service.sources(results),
     )
