@@ -49,6 +49,14 @@ from obsidian_rag.llm import OpenAIChatClient
 from obsidian_rag.v3_11.agent.service import SkillAgentService
 from obsidian_rag.v3_11.schemas import SkillAskRequest
 from obsidian_rag.v3_11.skills.registry import SkillRegistry
+from obsidian_rag.v3_11_1.schemas import (
+    DoclingIngestRequest,
+    DoclingPathRequest,
+    DoclingSearchRequest,
+)
+from obsidian_rag.v3_11_1.service import DoclingLearningService
+from obsidian_rag.v3_11_2.schemas import FrameworkCompareRequest
+from obsidian_rag.v3_11_2.service import FrameworkComparisonService
 
 
 def _add_production_ask_arguments(parser, memory_db_help: str) -> None:
@@ -257,6 +265,41 @@ def main() -> None:
     )
     agent311_list_parser = agent311_skills_subparsers.add_parser("list", help="List discovered Skill manifests")
     agent311_list_parser.add_argument("--skill-root", type=Path, default=Path("skills"))
+
+    documents3111_parser = subparsers.add_parser(
+        "documents-v3-11-1",
+        help="Learn Docling conversion, HybridChunker and shared structured ingest",
+    )
+    documents3111_subparsers = documents3111_parser.add_subparsers(
+        dest="documents3111_command",
+        required=True,
+    )
+    documents3111_convert = documents3111_subparsers.add_parser("convert", help="Convert one file to DoclingDocument")
+    documents3111_convert.add_argument("path", type=Path, nargs="?")
+    documents3111_chunks = documents3111_subparsers.add_parser("chunks", help="Preview Docling HybridChunker output")
+    documents3111_chunks.add_argument("path", type=Path, nargs="?")
+    documents3111_ingest = documents3111_subparsers.add_parser("ingest", help="Rebuild shared Qdrant with Docling chunks")
+    documents3111_ingest.add_argument("path", type=Path, nargs="?")
+    documents3111_ingest.add_argument("--recreate", action="store_true")
+    documents3111_search = documents3111_subparsers.add_parser("search", help="Search the shared Docling index")
+    documents3111_search.add_argument("query")
+    documents3111_search.add_argument("--top-k", type=int, default=5)
+    documents3111_search.add_argument("--mode", choices=["dense", "keyword", "hybrid"], default="hybrid")
+
+    chunking3112_parser = subparsers.add_parser(
+        "chunking-v3-11-2",
+        help="Compare LangChain and LlamaIndex chunking/retrieval strategies",
+    )
+    chunking3112_subparsers = chunking3112_parser.add_subparsers(dest="chunking3112_command", required=True)
+    chunking3112_compare = chunking3112_subparsers.add_parser("compare", help="Run all three request-scoped strategies")
+    chunking3112_compare.add_argument("query")
+    chunking3112_compare.add_argument("--path", type=Path)
+    chunking3112_compare.add_argument("--top-k", type=int, default=4)
+    chunking3112_compare.add_argument("--langchain-parent-chars", type=int, default=2000)
+    chunking3112_compare.add_argument("--langchain-child-chars", type=int, default=400)
+    chunking3112_compare.add_argument("--llama-parent-tokens", type=int, default=1024)
+    chunking3112_compare.add_argument("--llama-child-tokens", type=int, default=256)
+    chunking3112_compare.add_argument("--semantic-breakpoint-percentile", type=int, default=95)
 
     agent3103_parser = subparsers.add_parser("agent-v3-10-3", help="Run V3.10.3 LangGraph Advanced Patterns")
     agent3103_subparsers = agent3103_parser.add_subparsers(dest="agent3103_command", required=True)
@@ -532,6 +575,32 @@ def main() -> None:
 
     if args.command == "agent-v3-11" and args.agent311_command == "skills" and args.agent311_skills_command == "list":
         run_agent311_list(args.skill_root)
+        return
+
+    if args.command == "documents-v3-11-1":
+        run_documents3111(
+            command=args.documents3111_command,
+            config=config,
+            path=getattr(args, "path", None),
+            recreate=getattr(args, "recreate", False),
+            query=getattr(args, "query", None),
+            top_k=getattr(args, "top_k", 5),
+            mode=getattr(args, "mode", "hybrid"),
+        )
+        return
+
+    if args.command == "chunking-v3-11-2" and args.chunking3112_command == "compare":
+        run_chunking3112_compare(
+            config=config,
+            query=args.query,
+            path=args.path,
+            top_k=args.top_k,
+            langchain_parent_chars=args.langchain_parent_chars,
+            langchain_child_chars=args.langchain_child_chars,
+            llama_parent_tokens=args.llama_parent_tokens,
+            llama_child_tokens=args.llama_child_tokens,
+            semantic_breakpoint_percentile=args.semantic_breakpoint_percentile,
+        )
         return
 
     if args.command == "agent-v3-10-3" and args.agent3103_command == "ask":
@@ -1342,6 +1411,63 @@ def run_agent3102_stream(
                 if final_response:
                     print("\nAnswer:")
                     print(final_response.get("answer", "").strip())
+
+
+def run_chunking3112_compare(
+    config: RagConfig,
+    query: str,
+    path: Path | None = None,
+    top_k: int = 4,
+    langchain_parent_chars: int = 2000,
+    langchain_child_chars: int = 400,
+    llama_parent_tokens: int = 1024,
+    llama_child_tokens: int = 256,
+    semantic_breakpoint_percentile: int = 95,
+    service: FrameworkComparisonService | None = None,
+) -> None:
+    """运行 V3.11.2 三框架策略对比并打印统一 JSON。"""
+
+    service = service or FrameworkComparisonService(config)
+    response = service.compare(
+        FrameworkCompareRequest(
+            path=str(path) if path else None,
+            query=query,
+            top_k=top_k,
+            langchain_parent_chars=langchain_parent_chars,
+            langchain_child_chars=langchain_child_chars,
+            llama_parent_tokens=llama_parent_tokens,
+            llama_child_tokens=llama_child_tokens,
+            semantic_breakpoint_percentile=semantic_breakpoint_percentile,
+        )
+    )
+    print(response.model_dump_json(indent=2))
+
+
+def run_documents3111(
+    command: str,
+    config: RagConfig,
+    path: Path | None = None,
+    recreate: bool = False,
+    query: str | None = None,
+    top_k: int = 5,
+    mode: SearchMode = "hybrid",
+    service: DoclingLearningService | None = None,
+) -> None:
+    """运行 V3.11.1 Docling 学习入口，并打印结构化 JSON。"""
+
+    service = service or DoclingLearningService(config)
+    path_value = str(path) if path else None
+    if command == "convert":
+        response = service.convert(DoclingPathRequest(path=path_value))
+    elif command == "chunks":
+        response = service.chunks(DoclingPathRequest(path=path_value))
+    elif command == "ingest":
+        response = service.ingest(DoclingIngestRequest(path=path_value, recreate=recreate))
+    elif command == "search" and query:
+        response = service.search(DoclingSearchRequest(query=query, top_k=top_k, mode=mode))
+    else:
+        raise ValueError(f"Unsupported V3.11.1 command: {command}")
+    print(response.model_dump_json(indent=2))
 
 
 def run_agent311_list(skill_root: Path) -> None:

@@ -793,6 +793,84 @@
 			},
 			"args": ["ingest", "--recreate"],
 			"justMyCode": true
+		},
+		{
+			"name": "V3.11.1 API server: Docling Structured Ingestion",
+			"type": "debugpy",
+			"request": "launch",
+			"module": "uvicorn",
+			"console": "integratedTerminal",
+			"cwd": "${workspaceFolder}",
+			"python": "${workspaceFolder}/.venv/bin/python",
+			"envFile": "${workspaceFolder}/.env",
+			"args": ["obsidian_rag.v3_11_1.app:app", "--host", "127.0.0.1", "--port", "8016"],
+			"justMyCode": true
+		},
+		{
+			"name": "V3.11.1 CLI: Docling chunks preview",
+			"type": "debugpy",
+			"request": "launch",
+			"module": "obsidian_rag.cli",
+			"console": "integratedTerminal",
+			"cwd": "${workspaceFolder}",
+			"python": "${workspaceFolder}/.venv/bin/python",
+			"envFile": "${workspaceFolder}/.env",
+			"env": {
+				"RAG_DEBUG_BREAKPOINTS": "v3_11_1.chunks.after_docling"
+			},
+			"args": ["documents-v3-11-1", "chunks", "${workspaceFolder}/knowledge"],
+			"justMyCode": true
+		},
+		{
+			"name": "V3.11.1 CLI: recreate Docling index",
+			"type": "debugpy",
+			"request": "launch",
+			"module": "obsidian_rag.cli",
+			"console": "integratedTerminal",
+			"cwd": "${workspaceFolder}",
+			"python": "${workspaceFolder}/.venv/bin/python",
+			"envFile": "${workspaceFolder}/.env",
+			"env": {
+				"RAG_DOCUMENT_PARSER": "docling",
+				"RAG_DEBUG_BREAKPOINTS": "ingest.after_load,ingest.after_chunks,ingest.after_embeddings,qdrant.before_upsert,ingest.after_upsert"
+			},
+			"args": ["documents-v3-11-1", "ingest", "${workspaceFolder}/knowledge", "--recreate"],
+			"justMyCode": true
+		},
+		{
+			"name": "V3.11.2 API server: Chunking Framework Comparison",
+			"type": "debugpy",
+			"request": "launch",
+			"module": "uvicorn",
+			"console": "integratedTerminal",
+			"cwd": "${workspaceFolder}",
+			"python": "${workspaceFolder}/.venv/bin/python",
+			"envFile": "${workspaceFolder}/.env",
+			"args": ["obsidian_rag.v3_11_2.app:app", "--host", "127.0.0.1", "--port", "8017"],
+			"justMyCode": true
+		},
+		{
+			"name": "V3.11.2 CLI: LangChain vs LlamaIndex",
+			"type": "debugpy",
+			"request": "launch",
+			"module": "obsidian_rag.cli",
+			"console": "integratedTerminal",
+			"cwd": "${workspaceFolder}",
+			"python": "${workspaceFolder}/.venv/bin/python",
+			"envFile": "${workspaceFolder}/.env",
+			"env": {
+				"RAG_DEBUG_BREAKPOINTS": "v3_11_2.compare.after_docling,v3_11_2.compare.after_langchain,v3_11_2.compare.after_llama_hierarchical,v3_11_2.compare.after_llama_semantic"
+			},
+			"args": [
+				"chunking-v3-11-2",
+				"compare",
+				"部署失败时应该如何回滚？",
+				"--path",
+				"${workspaceFolder}/knowledge/manual.pdf",
+				"--top-k",
+				"4"
+			],
+			"justMyCode": true
 		}
 	]
 }

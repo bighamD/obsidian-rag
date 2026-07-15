@@ -766,6 +766,53 @@ V3.11 已完成：本地 `SkillRegistry` 扫描 front matter，LLM Router 返回
 
 V3.11 仍保持边界：不接 MCP、Permission、Sandbox、Shell，不让 Skill 绕过 `ToolRegistry` 执行动作。
 
+### V3.11.1 Docling Structured Ingestion
+
+V3.11.1 是 V3.12 MCP 前的数据基础插入版本，不改变 V3.11 Skill System：
+
+```text
+multi-format files -> Docling DocumentConverter -> DoclingDocument
+                   -> HybridChunker -> TextChunk adapter
+                   -> existing Embedding / Qdrant / KeywordIndex
+```
+
+学习重点：
+
+- Docling 如何统一 PDF、Markdown、DOCX、PPTX、XLSX、HTML、CSV 和图片等输入。
+- `DoclingDocument`、layout/OCR/table/provenance metadata 的职责。
+- `HybridChunker` 如何结合文档结构与 tokenizer 上限。
+- `chunk.text` 与 `contextualize(chunk)` 的区别。
+- 为什么框架输出仍需要映射到稳定的本地 `TextChunk` contract。
+
+版本边界：
+
+- 不自研 Document Tree、PDF Parser、OCR 或递归切片算法。
+- 不实现父子检索或语义切片；这些由 V3.11.2 对比。
+- 共享 V0 ingest 支持 `docling|legacy` backend，Docling 索引需要 recreate。
+
+### V3.11.2 Chunking Framework Comparison
+
+V3.11.2 使用同一 Docling Markdown 和 embedding，对比三个 request-scoped 内存实验：
+
+```text
+LangChain RecursiveCharacterTextSplitter + ParentDocumentRetriever
+LlamaIndex HierarchicalNodeParser + AutoMergingRetriever
+LlamaIndex SemanticSplitterNodeParser + VectorStoreIndex
+```
+
+学习重点：
+
+- 小 child 召回、大 parent 返回。
+- LlamaIndex Node Relationship 与自动父级合并。
+- embedding 语义距离驱动的切片边界。
+- 为什么不同框架的 score 不能直接比较，必须回到真实问题集和证据完整性。
+
+版本边界：
+
+- compare 不修改共享 Qdrant，不调用 Answer LLM，不新增 SSE。
+- 实验结果必须通过 V2 Hit Rate、MRR、Source Recall 和 Context 完整性复测后，才能决定是否接入共享检索。
+- 完成后回到既定 V3.12 MCP Integration 主线。
+
 ## Phase 9：MCP Integration
 
 建议版本：`V3.12 MCP Integration`
