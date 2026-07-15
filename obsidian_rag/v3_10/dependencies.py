@@ -4,10 +4,10 @@ import os
 from functools import lru_cache
 
 from obsidian_rag.config import RagConfig, load_config
+from obsidian_rag.core.agent.service import AgentService
+from obsidian_rag.core.mysql_memory import MySQLConversationMemoryStore
 from obsidian_rag.llm import OpenAIChatClient
 from obsidian_rag.v1.services.retrieval_service import RetrievalService
-from obsidian_rag.v3_8_1.agent.service import AgentService
-from obsidian_rag.v3_8_1.mysql_memory import MySQLConversationMemoryStore
 from obsidian_rag.v3_10.runtime.lifecycle import AgentRuntimeService
 from obsidian_rag.v3_10.runtime.store import InMemoryRunStore
 from obsidian_rag.v3_10.schemas import RuntimeConfigResponse

@@ -353,6 +353,17 @@ def main() -> None:
     mcp312_subparsers.add_parser("serve-demo", help="Run the low-risk demo MCP Server over stdio")
     mcp312_subparsers.add_parser("serve-rag", help="Expose local RAG read-only tools over stdio")
 
+    agent3121_parser = subparsers.add_parser(
+        "agent-v3-12-1",
+        help="Run the public Agent Core JSON or visible-answer SSE endpoint",
+    )
+    agent3121_subparsers = agent3121_parser.add_subparsers(dest="agent3121_command", required=True)
+    agent3121_ask = agent3121_subparsers.add_parser("ask", help="Call V3.12.1 Agent Core")
+    _add_production_ask_arguments(agent3121_ask, "已迁移到 MySQL，此参数仅为旧 CLI 兼容保留")
+    agent3121_ask.add_argument("--collection", help="本次检索使用的知识库 collection")
+    agent3121_ask.add_argument("--json", action="store_true", help="使用同步 JSON 而不是 answer_delta SSE")
+    agent3121_ask.add_argument("--api-base", default="http://127.0.0.1:8020")
+
     agent3103_parser = subparsers.add_parser("agent-v3-10-3", help="Run V3.10.3 LangGraph Advanced Patterns")
     agent3103_subparsers = agent3103_parser.add_subparsers(dest="agent3103_command", required=True)
     agent3103_ask_parser = agent3103_subparsers.add_parser("ask", help="Call the Advanced Graph JSON or SSE endpoint")
@@ -493,6 +504,7 @@ def main() -> None:
         run_agent38_ask(
             question=args.question,
             conversation_id=args.conversation_id,
+            collection=args.collection,
             memory_window=args.memory_window,
             config=config,
             top_k=args.top_k,
@@ -686,6 +698,27 @@ def main() -> None:
         )
         return
 
+    if args.command == "agent-v3-12-1" and args.agent3121_command == "ask":
+        run_agent3121_ask(
+            question=args.question,
+            conversation_id=args.conversation_id,
+            collection=args.collection,
+            memory_window=args.memory_window,
+            memory_compaction_enabled=not args.disable_memory_compaction,
+            memory_compaction_trigger_turns=args.memory_compaction_trigger_turns,
+            memory_compaction_trigger_tokens=args.memory_compaction_trigger_tokens,
+            top_k=args.top_k,
+            mode=args.mode,
+            max_steps=args.max_steps,
+            max_retries=args.max_retries,
+            filter_path=args.filter_path,
+            context_max_chunks=args.context_max_chunks,
+            context_token_budget=args.context_token_budget,
+            api_base=args.api_base,
+            stream=not args.json,
+        )
+        return
+
     if args.command == "agent-v3-10-3" and args.agent3103_command == "ask":
         run_agent3103_ask(
             question=args.question,
@@ -761,6 +794,79 @@ def run_mcp312(
     else:
         raise ValueError(f"Unsupported V3.12 MCP command: {command}")
     print(json.dumps(payload, ensure_ascii=False, indent=2))
+
+
+def run_agent3121_ask(
+    question: str,
+    conversation_id: str | None = None,
+    collection: str | None = None,
+    memory_window: int = 3,
+    memory_compaction_enabled: bool = True,
+    memory_compaction_trigger_turns: int = 4,
+    memory_compaction_trigger_tokens: int = 3000,
+    top_k: int = 5,
+    mode: SearchMode = "hybrid",
+    max_steps: int = 4,
+    max_retries: int = 1,
+    filter_path: str | None = None,
+    context_max_chunks: int = 6,
+    context_token_budget: int = 4000,
+    api_base: str = "http://127.0.0.1:8020",
+    stream: bool = True,
+) -> None:
+    """调用 V3.12.1 公共 Core；SSE 只打印最终可见 answer_delta。"""
+
+    payload = {
+        "question": question,
+        "conversation_id": conversation_id,
+        "collection": collection,
+        "memory_window": memory_window,
+        "memory_compaction_enabled": memory_compaction_enabled,
+        "memory_compaction_trigger_turns": memory_compaction_trigger_turns,
+        "memory_compaction_trigger_tokens": memory_compaction_trigger_tokens,
+        "top_k": top_k,
+        "mode": mode,
+        "filters": {"path": filter_path} if filter_path else None,
+        "max_steps": max_steps,
+        "max_retries": max_retries,
+        "context_max_chunks": context_max_chunks,
+        "context_token_budget": context_token_budget,
+    }
+    base = api_base.rstrip("/")
+    if not stream:
+        response = httpx.post(f"{base}/agent/ask", json=payload, timeout=None)
+        response.raise_for_status()
+        result = response.json()
+        agent = result.get("agent_response") or {}
+        print(agent.get("answer", "").strip())
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return
+
+    current_event = "message"
+    final_response = None
+    with httpx.stream(
+        "POST",
+        f"{base}/agent/ask/stream",
+        json=payload,
+        headers={"Accept": "text/event-stream"},
+        timeout=None,
+    ) as response:
+        response.raise_for_status()
+        for line in response.iter_lines():
+            if line.startswith("event:"):
+                current_event = line.split(":", 1)[1].strip()
+                continue
+            if not line.startswith("data:"):
+                continue
+            event = json.loads(line.split(":", 1)[1].strip())
+            data = event.get("data", {})
+            if current_event == "answer_delta":
+                print(data.get("delta", ""), end="", flush=True)
+            elif current_event == "run_succeeded":
+                final_response = data.get("response")
+    print()
+    if final_response:
+        print(json.dumps(final_response, ensure_ascii=False, indent=2))
 
 
 def run_retrieval_eval(

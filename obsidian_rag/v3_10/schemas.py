@@ -4,7 +4,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
-from obsidian_rag.v3_8_1.schemas import AgentAskRequest, AgentAskResponse, AgentNodeTiming
+from obsidian_rag.core.schemas import AgentAskRequest, AgentAskResponse, AgentNodeTiming
 
 
 # V3.10 只描述运行外壳的生命周期，不改变 V3.8.1 Agent 图内的节点状态。

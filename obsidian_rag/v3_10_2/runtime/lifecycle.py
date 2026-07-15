@@ -14,6 +14,7 @@ from obsidian_rag.v3_10.runtime.lifecycle import (
 )
 from obsidian_rag.v3_10.runtime.store import InMemoryRunStore
 from obsidian_rag.v3_10.schemas import (
+    AgentAskResponse,
     ProductionAskRequest,
     ProductionAskResponse,
     RunError,
@@ -96,6 +97,9 @@ class StreamingAgentRuntimeService:
         def publish_agent_event(name: str, payload: dict) -> None:
             nonlocal record
             detail = _agent_event_detail(name, payload)
+            if name == "answer_delta":
+                self._publish_record_event(record, name, "running", detail, payload)
+                return
             record = self._append_event(record, name, "running", detail, {"agent": payload})
 
         try:
@@ -124,6 +128,9 @@ class StreamingAgentRuntimeService:
             self._publish_record_event(record, "run_failed", "failed", "Agent 调用异常结束。")
             return
 
+        agent_response = AgentAskResponse.model_validate(
+            agent_response.model_dump(mode="python") if hasattr(agent_response, "model_dump") else agent_response
+        )
         finished_at = _now()
         timing = RunTiming(
             started_at=started_at,
@@ -194,4 +201,6 @@ def _agent_event_detail(name: str, payload: dict) -> str:
         node_name = payload.get("node_name", "unknown")
         step_type = payload.get("step_type", "event")
         return f"{node_name} 产生 {step_type} 事件。"
+    if name == "answer_delta":
+        return "Answer LLM 产生最终可见文本增量。"
     return f"Agent 产生 {name} 事件。"

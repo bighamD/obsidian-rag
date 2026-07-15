@@ -39,6 +39,8 @@ class SkillRuntimeService:
         event_record = {"value": record}
 
         def publish_event(name: str, payload: dict) -> None:
+            if name == "answer_delta":
+                return
             event_record["value"] = self._append_event(
                 event_record["value"],
                 name,
@@ -82,6 +84,15 @@ class SkillRuntimeService:
 
         def publish_event(name: str, payload: dict) -> None:
             nonlocal record
+            if name == "answer_delta":
+                self._publish_record_event(
+                    record,
+                    name,
+                    "running",
+                    "Answer LLM 产生最终可见文本增量。",
+                    payload,
+                )
+                return
             record = self._append_event(
                 record,
                 name,
@@ -167,7 +178,7 @@ class SkillRuntimeService:
     ) -> RunRecord:
         updated = record.model_copy(update={"status": status, "events": [*record.events, _event(name, status, detail)]})
         self.run_store.save(updated)
-        if publish and (name.startswith("skill_") or name in {"node_finished", "trace_event"}):
+        if publish and (name.startswith("skill_") or name in {"node_finished", "trace_event", "answer_delta"}):
             self._publish_record_event(updated, name, status, detail, data)
         return updated
 

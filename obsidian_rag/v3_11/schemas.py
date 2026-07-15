@@ -4,8 +4,8 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
+from obsidian_rag.core.schemas import AgentAskResponse
 from obsidian_rag.v3_10.schemas import ProductionAskRequest, RunRecord
-from obsidian_rag.v3_8_1.schemas import AgentAskResponse
 
 
 SkillSelectionStatus = Literal[

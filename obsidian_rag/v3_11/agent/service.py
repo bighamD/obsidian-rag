@@ -3,10 +3,10 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import Any
 
-from obsidian_rag.v3_4.planner.service import PlannerService
-from obsidian_rag.v3_8_1.agent.service import AgentService as BaseAgentService
-from obsidian_rag.v3_8_1.mysql_memory import MySQLConversationMemoryStore
-from obsidian_rag.v3_8_1.schemas import AgentAskRequest, AgentAskResponse
+from obsidian_rag.core.agent.service import AgentService as BaseAgentService
+from obsidian_rag.core.mysql_memory import MySQLConversationMemoryStore
+from obsidian_rag.core.planner import PlannerService
+from obsidian_rag.core.schemas import AgentAskRequest, AgentAskResponse
 from obsidian_rag.v3_11.router.service import SkillRouter
 from obsidian_rag.v3_11.schemas import (
     SkillAgentResponse,

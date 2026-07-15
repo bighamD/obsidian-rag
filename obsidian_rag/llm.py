@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from collections.abc import Iterator
 
 from openai import OpenAI
 from pydantic import BaseModel, Field
@@ -27,6 +28,17 @@ class OpenAIChatClient:
     def complete(self, messages: list[dict]) -> str:
         response = self.client.chat.completions.create(model=self.model, messages=messages)
         return response.choices[0].message.content or ""
+
+    def stream(self, messages: list[dict]) -> Iterator[str]:
+        """只返回模型最终可见 content，不透传 reasoning_content。"""
+
+        response = self.client.chat.completions.create(model=self.model, messages=messages, stream=True)
+        for item in response:
+            if not item.choices:
+                continue
+            content = item.choices[0].delta.content or ""
+            if content:
+                yield content
 
     def complete_with_tools(self, messages: list[dict], tools: list[dict]) -> ToolCallingResponse:
         response = self.client.chat.completions.create(
