@@ -57,5 +57,13 @@ def test_v3_10_2_runtime_forwards_answer_delta_and_terminal_response(tmp_path):
     payloads = [json.loads(line.split("data:", 1)[1].strip()) for line in frames]
 
     assert event_names.count("answer_delta") == 2
+    assert "progress" in event_names
     assert event_names[-1] == "run_succeeded"
+    retrieval_progress = [
+        payload["data"]["agent"]
+        for name, payload in zip(event_names, payloads)
+        if name == "progress" and payload["data"]["agent"]["phase"] == "retrieval"
+    ]
+    assert retrieval_progress[-1]["status"] == "completed"
+    assert retrieval_progress[-1]["result_count"] == 1
     assert payloads[-1]["data"]["response"]["agent_response"]["answer"] == "熟剩菜冷藏三至四天。"

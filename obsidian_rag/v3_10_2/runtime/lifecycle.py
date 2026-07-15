@@ -203,4 +203,6 @@ def _agent_event_detail(name: str, payload: dict) -> str:
         return f"{node_name} 产生 {step_type} 事件。"
     if name == "answer_delta":
         return "Answer LLM 产生最终可见文本增量。"
+    if name == "progress":
+        return f"Agent 阶段 {payload.get('phase', 'unknown')}：{payload.get('status', 'running')}。"
     return f"Agent 产生 {name} 事件。"

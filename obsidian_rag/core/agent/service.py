@@ -5,7 +5,7 @@ from collections.abc import Callable
 from contextvars import ContextVar
 from datetime import datetime, timezone
 from time import perf_counter
-from typing import Any, TypedDict
+from typing import Any, Literal, TypedDict
 
 
 from langgraph.graph import END, START, StateGraph
@@ -26,6 +26,8 @@ from obsidian_rag.core.schemas import (
     AgentAskResponse,
     AnswerStreamMetrics,
     AgentNodeTiming,
+    AgentProgressEvent,
+    AgentProgressPhase,
     AgentTraceStep,
     ContextBundle,
     EvidenceCheckResult,
@@ -40,6 +42,17 @@ from obsidian_rag.core.tools import ToolRegistry, build_search_tool_registry
 SearchLikeResult = SearchResult | RankedSearchResult
 EventSink = Callable[[str, dict[str, Any]], None]
 _ACTIVE_EVENT_SINK: ContextVar[EventSink | None] = ContextVar("agent_event_sink", default=None)
+_NODE_PROGRESS_PHASE: dict[str, AgentProgressPhase] = {
+    "load_memory": "memory",
+    "compact_memory": "memory",
+    "planner": "planning",
+    "execute_steps": "retrieval",
+    "retry_search": "retrieval",
+    "evidence_check": "evidence",
+    "build_context": "context",
+    "synthesize_answer": "answer",
+    "save_memory": "memory_write",
+}
 
 
 class AgentState(TypedDict, total=False):
@@ -135,6 +148,13 @@ class AgentService:
                         "finished_at": node_timing.finished_at if node_timing else None,
                         "duration_ms": node_timing.duration_ms if node_timing else None,
                     },
+                )
+                _emit_progress_event(
+                    event_sink,
+                    node_name=node_name,
+                    status="completed",
+                    state=state,
+                    retrieval_service=self.retrieval_service,
                 )
 
             traces = state.get("trace", [])
@@ -255,9 +275,27 @@ class AgentService:
 
     def _timed_node(self, node_name: str, handler):
         def run(state: AgentState) -> AgentState:
+            _emit_progress_event(
+                _ACTIVE_EVENT_SINK.get(),
+                node_name=node_name,
+                status="running",
+                state=state,
+                retrieval_service=self.retrieval_service,
+            )
             started_at = _now()
             started = perf_counter()
-            result = handler(state)
+            try:
+                result = handler(state)
+            except Exception as exc:
+                _emit_progress_event(
+                    _ACTIVE_EVENT_SINK.get(),
+                    node_name=node_name,
+                    status="failed",
+                    state=state,
+                    retrieval_service=self.retrieval_service,
+                    metadata={"error_type": type(exc).__name__},
+                )
+                raise
             finished_at = _now()
             timings = list(result.get("node_timings", []))
             timings.append(
@@ -666,6 +704,38 @@ def _effective_collection_name(retrieval_service, collection: str | None) -> str
         return str(resolver(collection))
     config = getattr(retrieval_service, "config", None)
     return collection or str(getattr(config, "collection_name", "obsidian_notes"))
+
+
+def _emit_progress_event(
+    event_sink: EventSink | None,
+    *,
+    node_name: str,
+    status: Literal["running", "completed", "failed"],
+    state: AgentState,
+    retrieval_service,
+    metadata: dict[str, Any] | None = None,
+) -> None:
+    phase = _NODE_PROGRESS_PHASE.get(node_name)
+    if phase is None:
+        return
+    request = state.get("request")
+    collection = None
+    result_count = None
+    if phase == "retrieval" and request is not None:
+        collection = _effective_collection_name(retrieval_service, request.collection)
+        if status == "completed":
+            result_count = sum(
+                item.result_count
+                for item in [*state.get("step_results", []), *state.get("retry_step_results", [])]
+            )
+    progress = AgentProgressEvent(
+        phase=phase,
+        status=status,
+        collection=collection,
+        result_count=result_count,
+        metadata=metadata or {},
+    )
+    _emit_agent_event(event_sink, "progress", progress.model_dump(mode="json"))
 
 
 def _emit_agent_event(

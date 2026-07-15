@@ -1,5 +1,21 @@
 export type SearchMode = "dense" | "keyword" | "hybrid";
 export type RunStatus = "queued" | "running" | "succeeded" | "failed";
+export type AgentProgressPhase =
+  | "memory"
+  | "planning"
+  | "retrieval"
+  | "evidence"
+  | "context"
+  | "answer"
+  | "memory_write";
+
+export interface AgentProgress {
+  phase: AgentProgressPhase;
+  status: "running" | "completed" | "failed";
+  collection?: string | null;
+  result_count?: number | null;
+  metadata?: Record<string, unknown>;
+}
 
 export interface AgentOptions {
   collection: string;
@@ -54,6 +70,9 @@ export interface AgentStreamEvent {
     run?: RunRecord;
     response?: ProductionAskResponse;
     agent?: {
+      phase?: AgentProgressPhase;
+      status?: AgentProgress["status"];
+      collection?: string | null;
       node_name?: string;
       step_type?: string;
       step_id?: string | null;
@@ -216,6 +235,13 @@ export interface AgentResponse {
     reason: string;
   };
   memory_write: { saved: boolean; turn_id: string | null; reason: string | null };
+  answer_stream: {
+    mode: "complete" | "stream" | "fallback";
+    message_id: string | null;
+    llm_ttft_ms: number | null;
+    llm_generation_ms: number;
+    visible_character_count: number;
+  };
   graph_path: string[];
   trace: AgentTraceStep[];
 }
@@ -257,4 +283,13 @@ export interface ConsoleMessage {
   streamSequence?: number;
   isStreaming?: boolean;
   streamError?: string;
+  progress?: AgentProgress;
+  currentProgress?: string;
+  summary?: {
+    collection: string;
+    retrievalResultCount: number;
+    durationMs: number | null;
+    ttftMs: number | null;
+    memorySaved: boolean;
+  };
 }

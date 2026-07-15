@@ -178,7 +178,7 @@ class SkillRuntimeService:
     ) -> RunRecord:
         updated = record.model_copy(update={"status": status, "events": [*record.events, _event(name, status, detail)]})
         self.run_store.save(updated)
-        if publish and (name.startswith("skill_") or name in {"node_finished", "trace_event", "answer_delta"}):
+        if publish and (name.startswith("skill_") or name in {"progress", "node_finished", "trace_event", "answer_delta"}):
             self._publish_record_event(updated, name, status, detail, data)
         return updated
 
@@ -195,6 +195,8 @@ class SkillRuntimeService:
 
 
 def _event_detail(name: str, payload: dict) -> str:
+    if name == "progress":
+        return f"Agent 阶段 {payload.get('phase', 'unknown')}：{payload.get('status', 'running')}。"
     if name == "node_finished":
         duration_ms = payload.get("duration_ms")
         suffix = f"耗时 {duration_ms} ms。" if duration_ms is not None else ""

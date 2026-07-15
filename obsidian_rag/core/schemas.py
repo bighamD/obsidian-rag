@@ -74,6 +74,16 @@ AgentTraceStepType = Literal[
     "memory_write",
     "error",
 ]
+AgentProgressPhase = Literal[
+    "memory",
+    "planning",
+    "retrieval",
+    "evidence",
+    "context",
+    "answer",
+    "memory_write",
+]
+AgentProgressStatus = Literal["running", "completed", "failed"]
 
 
 class AgentAskRequest(BaseModel):
@@ -341,6 +351,16 @@ class AnswerStreamMetrics(BaseModel):
     llm_ttft_ms: int | None = Field(default=None, ge=0, description="首个可见文本 chunk 延迟；非流式时为空。")
     llm_generation_ms: int = Field(default=0, ge=0, description="Answer LLM 生成阶段总耗时。")
     visible_character_count: int = Field(default=0, ge=0, description="最终可见答案字符数。")
+
+
+class AgentProgressEvent(BaseModel):
+    """面向用户体验的稳定 Agent 阶段事实，不暴露内部节点实现或隐藏推理。"""
+
+    phase: AgentProgressPhase = Field(description="稳定业务阶段，不直接暴露 LangGraph 节点名称。")
+    status: AgentProgressStatus = Field(description="当前阶段正在执行、已完成或执行失败。")
+    collection: str | None = Field(default=None, description="检索阶段实际使用的知识库 Collection。")
+    result_count: int | None = Field(default=None, ge=0, description="检索阶段累计获得的结果数量。")
+    metadata: dict[str, Any] = Field(default_factory=dict, description="可选的阶段事实元数据，不包含隐藏推理。")
 
 
 class AgentEvent(BaseModel):

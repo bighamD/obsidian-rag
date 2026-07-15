@@ -11,6 +11,7 @@ import type {
   AgentStreamEvent,
   AgentAskPayload,
   AgentOptions,
+  AgentProgress,
   ConsoleMessage,
   ConsoleSession,
   MemorySnapshot,
@@ -129,9 +130,7 @@ export function useAgentConsole() {
     }
 
     appendMessage(session, createMessage("user", trimmedQuestion));
-    const assistantDraft = createMessage("assistant", "");
-    assistantDraft.isStreaming = true;
-    assistantDraft.streamSequence = 0;
+    const assistantDraft = createStreamingAssistantDraft();
     appendMessage(session, assistantDraft);
     session.title = compactTitle(trimmedQuestion);
     session.updatedAt = new Date().toISOString();
@@ -167,6 +166,9 @@ export function useAgentConsole() {
   }
 
   function applyStreamEvent(event: AgentStreamEvent, assistantDraft: ConsoleMessage) {
+    if (event.name === "progress") {
+      applyProgressEvent(assistantDraft, event);
+    }
     if (event.name === "answer_delta") {
       applyAnswerDelta(assistantDraft, event);
     }
@@ -214,8 +216,55 @@ export function applyAnswerDelta(message: ConsoleMessage, event: AgentStreamEven
   }
   message.streamMessageId = messageId;
   message.streamSequence = sequence;
+  message.currentProgress = "正在生成回答…";
   message.text += delta;
   return true;
+}
+
+export function createStreamingAssistantDraft(): ConsoleMessage {
+  const message = reactive(createMessage("assistant", ""));
+  message.isStreaming = true;
+  message.streamSequence = 0;
+  message.currentProgress = "正在生成回答…";
+  return message;
+}
+
+export function applyProgressEvent(message: ConsoleMessage, event: AgentStreamEvent): boolean {
+  const payload = event.data.agent;
+  if (!payload?.phase || !payload.status) {
+    return false;
+  }
+  const progress: AgentProgress = {
+    phase: payload.phase,
+    status: payload.status,
+    collection: payload.collection,
+    result_count: payload.result_count,
+  };
+  message.progress = progress;
+  message.currentProgress = formatProgress(progress);
+  return true;
+}
+
+export function formatProgress(progress: AgentProgress): string {
+  if (progress.status === "failed") {
+    return "当前阶段执行失败…";
+  }
+  if (progress.phase === "retrieval") {
+    if (progress.status === "completed") {
+      return `已找到 ${progress.result_count ?? 0} 条资料，正在检查证据…`;
+    }
+    return progress.collection ? `正在检索 ${progress.collection}…` : "正在检索知识库…";
+  }
+  const labels: Record<AgentProgress["phase"], { running: string; completed: string }> = {
+    memory: { running: "正在读取会话记忆…", completed: "会话记忆已就绪…" },
+    planning: { running: "正在生成执行计划…", completed: "执行计划已生成…" },
+    evidence: { running: "正在检查证据完整性…", completed: "证据检查已完成…" },
+    context: { running: "正在整理回答上下文…", completed: "回答上下文已就绪…" },
+    answer: { running: "正在生成回答…", completed: "回答已生成，正在收尾…" },
+    memory_write: { running: "正在保存会话记忆…", completed: "会话记忆已保存…" },
+    retrieval: { running: "正在检索知识库…", completed: "检索已完成…" },
+  };
+  return labels[progress.phase][progress.status];
 }
 
 export function reconcileAssistantMessage(message: ConsoleMessage, result: ProductionAskResponse) {
@@ -228,6 +277,14 @@ export function reconcileAssistantMessage(message: ConsoleMessage, result: Produ
   message.run = result;
   message.isStreaming = false;
   message.streamError = undefined;
+  message.currentProgress = undefined;
+  message.summary = {
+    collection: assistant.collection,
+    retrievalResultCount: result.run.metrics?.retrieval_result_count ?? 0,
+    durationMs: result.run.timing.duration_ms,
+    ttftMs: assistant.answer_stream?.llm_ttft_ms ?? null,
+    memorySaved: assistant.memory_write.saved,
+  };
 }
 
 export function markStreamError(message: ConsoleMessage, error: string) {

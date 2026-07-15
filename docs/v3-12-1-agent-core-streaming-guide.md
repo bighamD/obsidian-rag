@@ -20,6 +20,7 @@ V3.12.1 : Version Adapters -> Agent Core -> Tool Registry -> JSON / answer_delta
 - 本地 `search_notes` 与 MCP `server::tool` 进入统一 Registry，并保持显式执行。
 - OpenAI-compatible `stream=True` 只读取最终可见 `delta.content`。
 - `answer_delta` 使用稳定 `message_id + sequence`，终态仍返回完整 response。
+- Core 额外发布稳定 `progress(phase, status)`，前端不依赖 LangGraph 节点名。
 - Agent Console 在同一个 assistant 气泡中增量追加，终态补齐 sources、Run 和 Memory。
 - `answer_stream` 返回 `mode`、`llm_ttft_ms`、`llm_generation_ms` 和可见字符数。
 
@@ -66,10 +67,12 @@ V3.12 MCP Adapter -> V3.12.1 Tool Adapter -> core ToolRegistry
 POST /agent/ask/stream
   -> StreamingAgentRuntimeService.start_stream
   -> core.AgentService.ask_with_events
-  -> load_memory / compact_memory
-  -> planner / execute_steps / evidence_check
-  -> build_context
+  -> load_memory / compact_memory     -> progress(memory)
+  -> planner                          -> progress(planning)
+  -> execute_steps / retry_search     -> progress(retrieval, collection, result_count)
+  -> evidence_check / build_context   -> progress(evidence/context)
   -> synthesize_answer
+       -> progress(answer)
        -> OpenAIChatClient.stream
        -> answer_delta(message_id, sequence, delta)
        -> aggregate complete answer
@@ -142,16 +145,44 @@ POST /agent/ask/stream
 }
 ```
 
-## SSE 事件
+## SSE 事件职责
+
+三类 Agent 事件各自承担不同职责：
+
+| 事件 | 面向对象 | 稳定性与内容 |
+| --- | --- | --- |
+| `progress` | 最终用户体验 | 稳定 `phase/status` 和 collection、结果数等事实，不包含中文 UI 文案 |
+| `answer_delta` | 最终用户可见答案 | 只传最终可见文本增量，使用 `message_id + sequence` 去重 |
+| `trace_event` | 开发调试 | 节点、工具、query、reason 等内部可观察事实，可随实现演进 |
 
 ```text
 run_queued
 run_started
+progress(memory/planning/retrieval/evidence/context/answer)
 node_finished / trace_event
 answer_delta × N
 node_finished(synthesize_answer)
+progress(memory_write)
 node_finished(save_memory)
 run_succeeded + full response
+```
+
+检索阶段示例：
+
+```json
+{
+  "name": "progress",
+  "status": "running",
+  "data": {
+    "agent": {
+      "phase": "retrieval",
+      "status": "running",
+      "collection": "food_safety",
+      "result_count": null,
+      "metadata": {}
+    }
+  }
+}
 ```
 
 示例 delta：
@@ -200,12 +231,23 @@ run_succeeded + full response
 ```text
 提交问题
   -> 立即创建一个空 assistant 气泡
-  -> 空文本时显示“正在生成回答…”
+  -> progress(memory) 显示“正在读取会话记忆…”
+  -> progress(planning) 显示“正在生成执行计划…”
+  -> progress(retrieval) 显示“正在检索 food_safety…”
+  -> retrieval completed 显示“已找到 4 条资料，正在检查证据…”
   -> answer_delta 到达后同一气泡持续增长
   -> run_succeeded 后用完整 answer 对账并补 sources
+  -> 显示 food_safety / 4 条结果 / 总耗时 / 首字 TTFT / Memory 状态
 ```
 
-页面不显示模型原始推理；Run/Trace 面板继续展示 Skill、检索、节点和耗时事实。
+页面只保留单行最新状态，不构建复杂时间线，也不显示模型原始推理。旧后端没有 `progress` 时仍显示“正在生成回答…”并正常消费 `answer_delta`。V3.12.1 不经过 Skill Runtime，因此不会显示“正在选择 Skill”。
+
+VS Code/Cursor 可分别运行：
+
+- `V3.12.1 API server: Agent Core Streaming`
+- `V3.12.1 UI server: Agent Console`
+
+后者通过 `VITE_API_TARGET=http://127.0.0.1:8020` 将 `/api` 代理到 V3.12.1。
 
 ## 文件职责
 
@@ -223,7 +265,7 @@ run_succeeded + full response
 | `obsidian_rag/v3_12_1/tool_adapter.py` | V3.12 MCP Tool 到公共 Registry 的 Adapter |
 | `obsidian_rag/v3_12_1/service.py` | V3.12.1 教学门面 |
 | `obsidian_rag/v3_12_1/routes/` | JSON、SSE、Tool 和 health 路由 |
-| `frontend/.../use-agent-console.ts` | assistant 草稿、delta 去重追加和终态对账 |
+| `frontend/.../use-agent-console.ts` | progress reducer、assistant 草稿、delta 去重追加和终态对账 |
 | `tests/v3_12_1/` | Core streaming、依赖方向、API、Tool 和 CLI 测试 |
 
 ## 核心断点顺序
@@ -232,14 +274,17 @@ run_succeeded + full response
 | --- | --- | --- |
 | 1 | `cli.py:799` `run_agent3121_ask()` | `payload`、`stream`、`current_event`、`final_response` |
 | 2 | `v3_10_2/runtime/lifecycle.py:86` `_run()` | `run_id`、`record`、`request` |
-| 3 | `core/agent/service.py:95` `AgentService.ask_with_events()` | `request`、`event_sink`、ContextVar token |
-| 4 | `core/agent/service.py:531` `_synthesize_answer_node()` | `context_bundle.messages`、`answer`、`stream_metrics` |
-| 5 | `core/agent/service.py:685` `_generate_answer()` | `message_id`、`sequence`、`chunks`、`first_chunk_at` |
-| 6 | `v3_10_2/runtime/lifecycle.py:97` `publish_agent_event()` | `name=answer_delta`、`payload`、EventBus data |
-| 7 | `use-agent-console.ts:121` `submit()` | `assistantDraft`、SSE callback、终态 result |
-| 8 | `use-agent-console.ts:209` `applyAnswerDelta()` | `messageId`、`sequence`、`streamSequence`、`message.text` |
-| 9 | `use-agent-console.ts:226` `reconcileAssistantMessage()` | 最终 answer、sources、run |
-| 10 | `v3_12_1/tool_adapter.py:43` `_registry()` | 本地 definitions、MCP discovery、errors |
+| 3 | `core/agent/service.py:108` `AgentService.ask_with_events()` | `request`、`event_sink`、ContextVar token |
+| 4 | `core/agent/service.py:276` `_timed_node()` | `node_name`、稳定 `phase`、running/failed progress payload |
+| 5 | `core/agent/service.py:569` `_synthesize_answer_node()` | `context_bundle.messages`、`answer`、`stream_metrics` |
+| 6 | `core/agent/service.py:755` `_generate_answer()` | `message_id`、`sequence`、`chunks`、`first_chunk_at` |
+| 7 | `v3_10_2/runtime/lifecycle.py:97` `publish_agent_event()` | `name=progress/answer_delta`、`payload`、EventBus data |
+| 8 | `use-agent-console.ts:122` `submit()` | `assistantDraft`、SSE callback、终态 result |
+| 9 | `use-agent-console.ts:171` `applyStreamEvent()` | progress、answer_delta 与终态 response 分流 |
+| 10 | `use-agent-console.ts:209` `applyAnswerDelta()` | `messageId`、`sequence`、`streamSequence`、`message.text` |
+| 11 | `use-agent-console.ts:227` `applyProgressEvent()` | `phase`、`status`、`collection`、`result_count`、`currentProgress` |
+| 12 | `use-agent-console.ts:265` `reconcileAssistantMessage()` | 最终 answer、sources、summary、run |
+| 13 | `v3_12_1/tool_adapter.py:43` `_registry()` | 本地 definitions、MCP discovery、errors |
 
 以上行号按 V3.12.1 完成时的代码核对；后续代码变化应以函数名重新定位。
 

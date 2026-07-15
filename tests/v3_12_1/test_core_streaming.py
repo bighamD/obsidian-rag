@@ -78,6 +78,27 @@ def test_core_streams_visible_answer_and_keeps_final_response(tmp_path: Path):
     assert "reasoning_content" not in str(deltas)
 
 
+def test_core_publishes_stable_progress_with_retrieval_facts(tmp_path: Path):
+    events = []
+
+    _service(tmp_path, StreamingChat()).ask_with_events(
+        AgentAskRequest(question="剩菜可以保存多久？", collection="food_safety"),
+        lambda name, payload: events.append((name, payload)),
+    )
+
+    progress = [payload for name, payload in events if name == "progress"]
+    planning = [(item["phase"], item["status"]) for item in progress if item["phase"] == "planning"]
+    retrieval = [item for item in progress if item["phase"] == "retrieval"]
+
+    assert planning == [("planning", "running"), ("planning", "completed")]
+    assert [(item["status"], item["collection"]) for item in retrieval] == [
+        ("running", "food_safety"),
+        ("completed", "food_safety"),
+    ]
+    assert retrieval[-1]["result_count"] == 1
+    assert all("正在" not in str(item) and "已找到" not in str(item) for item in progress)
+
+
 def test_core_falls_back_before_first_chunk(tmp_path: Path):
     response = _service(tmp_path, FallbackChat()).ask_with_events(
         AgentAskRequest(question="剩菜可以保存多久？"),
