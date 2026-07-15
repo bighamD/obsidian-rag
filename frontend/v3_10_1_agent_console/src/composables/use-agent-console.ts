@@ -129,6 +129,10 @@ export function useAgentConsole() {
     }
 
     appendMessage(session, createMessage("user", trimmedQuestion));
+    const assistantDraft = createMessage("assistant", "");
+    assistantDraft.isStreaming = true;
+    assistantDraft.streamSequence = 0;
+    appendMessage(session, assistantDraft);
     session.title = compactTitle(trimmedQuestion);
     session.updatedAt = new Date().toISOString();
     isRunning.value = true;
@@ -138,34 +142,34 @@ export function useAgentConsole() {
     try {
       const result = await streamAgent(
         buildAgentAskPayload(trimmedQuestion, activeConversationId.value, options),
-        (event) => applyStreamEvent(event),
+        (event) => applyStreamEvent(event, assistantDraft),
       );
       response.value = result;
       const assistant = result.agent_response;
       if (assistant) {
-        appendMessage(
-          session,
-          createMessage("assistant", assistant.answer, undefined, assistant.sources, result),
-        );
+        reconcileAssistantMessage(assistantDraft, result);
         memorySnapshot.value = assistant.memory_snapshot;
       } else {
-        appendMessage(
-          session,
-          createMessage("error", result.run.error?.message ?? "本次运行没有生成可展示的答案。", undefined, [], result),
-        );
+        assistantDraft.role = "error";
+        assistantDraft.text = result.run.error?.message ?? "本次运行没有生成可展示的答案。";
+        assistantDraft.run = result;
+        assistantDraft.isStreaming = false;
       }
       await refreshRuns();
     } catch (error) {
       const message = error instanceof Error ? error.message : "请求失败。";
       requestError.value = message;
-      appendMessage(session, createMessage("error", message));
+      markStreamError(assistantDraft, message);
     } finally {
       isRunning.value = false;
       session.updatedAt = new Date().toISOString();
     }
   }
 
-  function applyStreamEvent(event: AgentStreamEvent) {
+  function applyStreamEvent(event: AgentStreamEvent, assistantDraft: ConsoleMessage) {
+    if (event.name === "answer_delta") {
+      applyAnswerDelta(assistantDraft, event);
+    }
     if (event.data.run) {
       response.value = {
         run: event.data.run,
@@ -195,6 +199,44 @@ export function useAgentConsole() {
     sessions,
     submit,
   };
+}
+
+export function applyAnswerDelta(message: ConsoleMessage, event: AgentStreamEvent): boolean {
+  const { message_id: messageId, sequence, delta } = event.data;
+  if (!messageId || typeof sequence !== "number" || !delta) {
+    return false;
+  }
+  if (message.streamMessageId && message.streamMessageId !== messageId) {
+    return false;
+  }
+  if (sequence <= (message.streamSequence ?? 0)) {
+    return false;
+  }
+  message.streamMessageId = messageId;
+  message.streamSequence = sequence;
+  message.text += delta;
+  return true;
+}
+
+export function reconcileAssistantMessage(message: ConsoleMessage, result: ProductionAskResponse) {
+  const assistant = result.agent_response;
+  if (!assistant) {
+    return;
+  }
+  message.text = assistant.answer;
+  message.sources = assistant.sources;
+  message.run = result;
+  message.isStreaming = false;
+  message.streamError = undefined;
+}
+
+export function markStreamError(message: ConsoleMessage, error: string) {
+  message.isStreaming = false;
+  message.streamError = error;
+  if (!message.text) {
+    message.role = "error";
+    message.text = error;
+  }
 }
 
 export function buildAgentAskPayload(

@@ -13,7 +13,7 @@ const props = defineProps<{
 const scrollContainer = ref<HTMLElement | null>(null);
 
 watch(
-  () => [props.messages.length, props.isRunning],
+  () => [props.messages.length, props.isRunning, props.messages.at(-1)?.text],
   async () => {
     await nextTick();
     scrollContainer.value?.scrollTo({ top: scrollContainer.value.scrollHeight, behavior: "smooth" });
@@ -39,20 +39,21 @@ watch(
           <strong>{{ message.role === 'user' ? '你' : message.role === 'error' ? '运行错误' : 'Obsidian RAG' }}</strong>
           <time>{{ formatDateTime(message.createdAt) }}</time>
         </div>
-        <div v-if="message.role === 'assistant'" class="message-content markdown" v-html="renderSafeMarkdown(message.text)" />
+        <div
+          v-if="message.role === 'assistant' && message.text"
+          class="message-content markdown"
+          v-html="renderSafeMarkdown(message.text)"
+        />
+        <p v-else-if="message.role === 'assistant'" class="message-content">
+          <LoaderCircle :size="15" class="spin" /> 正在生成回答…
+        </p>
         <p v-else class="message-content">{{ message.text }}</p>
+        <p v-if="message.streamError" class="message-content stream-error">流式连接中断：{{ message.streamError }}</p>
         <div v-if="message.sources?.length" class="source-row">
           <span v-for="source in message.sources" :key="source" class="source-chip">{{ source }}</span>
         </div>
       </div>
     </article>
 
-    <article v-if="isRunning" class="message assistant running-message">
-      <div class="message-avatar" aria-hidden="true"><LoaderCircle :size="17" class="spin" /></div>
-      <div class="message-body">
-        <div class="message-meta"><strong>Obsidian RAG</strong></div>
-        <p class="message-content">正在运行 Agent</p>
-      </div>
-    </article>
   </main>
 </template>

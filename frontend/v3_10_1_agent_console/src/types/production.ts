@@ -47,6 +47,10 @@ export interface AgentStreamEvent {
   occurred_at: string;
   detail: string;
   data: {
+    message_id?: string;
+    sequence?: number;
+    delta?: string;
+    node_name?: string;
     run?: RunRecord;
     response?: ProductionAskResponse;
     agent?: {
@@ -249,4 +253,8 @@ export interface ConsoleMessage {
   createdAt: string;
   sources?: string[];
   run?: ProductionAskResponse;
+  streamMessageId?: string;
+  streamSequence?: number;
+  isStreaming?: boolean;
+  streamError?: string;
 }
