@@ -8,12 +8,6 @@ Metadata = dict[str, Any]
 
 
 @dataclass(frozen=True)
-class SourceDocument:
-    text: str
-    metadata: Metadata = field(default_factory=dict)
-
-
-@dataclass(frozen=True)
 class TextChunk:
     text: str
     metadata: Metadata = field(default_factory=dict)

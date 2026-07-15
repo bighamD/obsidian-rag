@@ -791,7 +791,7 @@ multi-format files -> Docling DocumentConverter -> DoclingDocument
 
 - 不自研 Document Tree、PDF Parser、OCR 或递归切片算法。
 - 不实现父子检索或语义切片；这些由 V3.11.2 对比。
-- 共享 V0 ingest 支持 `docling|legacy` backend，Docling 索引需要 recreate。
+- 共享 V0 ingest 固定使用 Docling；旧 loader/字符切片不再作为运行时 backend，已有索引切换时需要 recreate。
 
 ### V3.11.2 Chunking Framework Comparison
 

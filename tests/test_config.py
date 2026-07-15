@@ -17,8 +17,6 @@ def _config(vault_path: Path | None = None) -> RagConfig:
         qdrant_url=None,
         db_path=Path(".rag/qdrant"),
         collection_name="obsidian_notes",
-        chunk_size=1200,
-        chunk_overlap=150,
         min_score=0.35,
         vault_path=vault_path,
     )

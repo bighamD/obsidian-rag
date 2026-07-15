@@ -1,6 +1,6 @@
 # V3.11.1 Docling Structured Ingestion 学习指南
 
-V3.11.1 在 V3.11 Skill System 与 V3.12 MCP Integration 之间补充多格式文档数据基础。它不改写 Agent 的 Planner、Skill 或决策行为；本次新增的请求级 `collection` 会被 V3.8.1/V3.11 Agent 透传到检索层。Docling 部分则把共享 V0 ingest 从“Markdown/PDF 纯文本 loader + 字符切片”升级为可选择的 Docling framework backend。
+V3.11.1 在 V3.11 Skill System 与 V3.12 MCP Integration 之间补充多格式文档数据基础。它不改写 Agent 的 Planner、Skill 或决策行为；本次新增的请求级 `collection` 会被 V3.8.1/V3.11 Agent 透传到检索层。Docling 部分则把共享 V0 ingest 从“Markdown/PDF 纯文本 loader + 字符切片”升级为固定的 Docling framework 链路。
 
 ![V3.11.1 Docling Structured Ingestion](assets/rag-v3-11-1-docling-flow.svg)
 
@@ -47,7 +47,7 @@ PDF / Markdown / DOCX / PPTX / XLSX / HTML / CSV / Image
 
 ## 相比旧 V0 改进了什么
 
-| 维度 | legacy backend | docling backend |
+| 维度 | 旧 V0 | V3.11.1 Docling |
 | --- | --- | --- |
 | 格式 | Markdown、PDF | Docling 当前支持的多格式 |
 | 文档模型 | 扁平 `SourceDocument.text` | `DoclingDocument` |
@@ -60,20 +60,13 @@ PDF / Markdown / DOCX / PPTX / XLSX / HTML / CSV / Image
 ## 配置
 
 ```dotenv
-RAG_DOCUMENT_PARSER=docling
 RAG_DOCLING_TOKENIZER_MODEL=sentence-transformers/all-MiniLM-L6-v2
 RAG_CHUNK_TOKENS=512
 # 默认知识库；单次 ingest/search 可用 collection 参数覆盖
 RAG_COLLECTION=obsidian_notes
 ```
 
-首次使用 Docling 可能下载布局、OCR 或 tokenizer 模型。若需要回到原来的 loader/chunker：
-
-```dotenv
-RAG_DOCUMENT_PARSER=legacy
-```
-
-`legacy` 是显式学习/故障回退，不是 V3.11.1 主路径。
+首次使用 Docling 可能下载布局、OCR 或 tokenizer 模型。共享 ingest 固定使用 Docling，不再提供旧 loader/chunker 回退开关。
 
 ## Swagger JSON 示例
 
@@ -194,8 +187,6 @@ CLI / Swagger
 
 | 分支 | 行为 |
 | --- | --- |
-| `RAG_DOCUMENT_PARSER=docling` | 使用 Converter + HybridChunker 主链路 |
-| `RAG_DOCUMENT_PARSER=legacy` | 继续使用原 loader/chunker |
 | Docling 依赖缺失 | 返回明确的 `pip install -e .` 提示 |
 | 单文件 convert 传入目录 | 返回参数错误，提示改用 chunks/ingest |
 | 目录中个别文件转换失败 | chunks preview 返回 `errors`，成功文件继续展示 |
@@ -211,8 +202,8 @@ CLI / Swagger
 | --- | --- |
 | `obsidian_rag/docling_ingestion.py` | Docling Converter/HybridChunker 薄适配和 TextChunk metadata 映射 |
 | `obsidian_rag/structured_metadata.py` | Markdown 标题块 YAML metadata 的提取、规范化和 Docling heading path 匹配 |
-| `obsidian_rag/pipeline.py` | 根据 `RAG_DOCUMENT_PARSER` 选择 docling 或 legacy，然后按请求 collection 统一 embed/upsert、关闭 embedded Qdrant client 并维护 keyword index |
-| `obsidian_rag/config.py` | parser、tokenizer、token 上限和请求级 collection 配置 |
+| `obsidian_rag/pipeline.py` | 固定执行 Docling convert/chunk，然后按请求 collection 统一 embed/upsert、关闭 embedded Qdrant client 并维护 keyword index |
+| `obsidian_rag/config.py` | tokenizer、token 上限和请求级 collection 配置 |
 | `obsidian_rag/v3_11_1/schemas.py` | Swagger 输入输出职责与字段中文说明 |
 | `obsidian_rag/v3_11_1/service.py` | convert/chunks/ingest/search 学习编排 |
 | `obsidian_rag/v3_11_1/routes/` | FastAPI JSON 路由 |
@@ -224,15 +215,15 @@ CLI / Swagger
 | 顺序 | 文件行号与函数 | 观察变量 |
 | --- | --- | --- |
 | 1 | `v3_11_1/service.py:66` `DoclingLearningService.ingest()` | `request.collection`、`request_config.collection_name`、`path`、`request.recreate` |
-| 2 | `config.py:75` `with_collection()` | `selected`、返回副本的 `collection_name`，确认不修改共享 config |
-| 3 | `pipeline.py:56` `ingest_path()` | `config.document_parser`、`config.collection_name`、`document_count`、`chunks` |
+| 2 | `config.py:69` `with_collection()` | `selected`、返回副本的 `collection_name`，确认不修改共享 config |
+| 3 | `pipeline.py:54` `ingest_path()` | `config.collection_name`、`document_count`、`chunks` |
 | 4 | `docling_ingestion.py:129` `convert_and_chunk_path()` | `files`、`conversions`、`chunks`、`errors` |
 | 5 | `docling_ingestion.py:77` `convert_file()` | `result.status`、`document`、`markdown` |
 | 6 | `docling_ingestion.py:93` `chunk_conversion()` | `chunk.text`、`contextualized`、`docling_meta`、结构化业务 metadata |
-| 7 | `pipeline.py:17` `make_embedding_client()` | embedding provider/model |
-| 8 | `qdrant_store.py:38` `ensure_collection()` | `collection_name`、`recreate` |
-| 9 | `qdrant_store.py:48` `upsert()` | point payload、`node_id`、vector dimensions |
-| 10 | `pipeline.py:144` `_write_keyword_index()` | `config.collection_name`、collection 对应 keyword index 路径与增量合并行为 |
+| 7 | `pipeline.py:15` `make_embedding_client()` | embedding provider/model |
+| 8 | `qdrant_store.py:41` `ensure_collection()` | `collection_name`、`recreate` |
+| 9 | `qdrant_store.py:51` `upsert()` | point payload、`node_id`、vector dimensions |
+| 10 | `pipeline.py:128` `_write_keyword_index()` | `config.collection_name`、collection 对应 keyword index 路径与增量合并行为 |
 
 行号已经按版本完成时的代码核对。后续代码变化后，应优先按函数名重新定位。
 

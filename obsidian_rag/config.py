@@ -24,11 +24,8 @@ class RagConfig:
     qdrant_url: str | None
     db_path: Path
     collection_name: str
-    chunk_size: int
-    chunk_overlap: int
     min_score: float
     vault_path: Path | None
-    document_parser: str = "docling"
     docling_tokenizer_model: str = "sentence-transformers/all-MiniLM-L6-v2"
     chunk_token_size: int = 512
 
@@ -46,11 +43,8 @@ def load_config() -> RagConfig:
         qdrant_url=_optional_str(os.getenv("QDRANT_URL")),
         db_path=Path(os.getenv("RAG_DB_PATH", ".rag/qdrant")),
         collection_name=validate_collection_name(os.getenv("RAG_COLLECTION", "obsidian_notes")),
-        chunk_size=int(os.getenv("RAG_CHUNK_SIZE", "1200")),
-        chunk_overlap=int(os.getenv("RAG_CHUNK_OVERLAP", "150")),
         min_score=float(os.getenv("RAG_MIN_SCORE", "0.35")),
         vault_path=_optional_path(os.getenv("RAG_VAULT_PATH")),
-        document_parser=os.getenv("RAG_DOCUMENT_PARSER", "docling").strip().lower(),
         docling_tokenizer_model=os.getenv(
             "RAG_DOCLING_TOKENIZER_MODEL",
             "sentence-transformers/all-MiniLM-L6-v2",

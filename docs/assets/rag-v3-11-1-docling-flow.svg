@@ -15,10 +15,8 @@
   <text x="76" y="254" font-family="Arial, sans-serif" font-size="15" fill="#334155">DOCX / PPTX</text>
   <text x="76" y="288" font-family="Arial, sans-serif" font-size="15" fill="#334155">XLSX / CSV</text>
   <text x="76" y="322" font-family="Arial, sans-serif" font-size="15" fill="#334155">HTML / Images</text>
-  <text x="76" y="382" font-family="Arial, sans-serif" font-size="13" fill="#64748b">RAG_DOCUMENT_PARSER</text>
-  <text x="76" y="408" font-family="Arial, sans-serif" font-size="14" font-weight="700" fill="#1d4ed8">docling</text>
-  <text x="76" y="452" font-family="Arial, sans-serif" font-size="13" fill="#64748b">显式 fallback</text>
-  <text x="76" y="478" font-family="Arial, sans-serif" font-size="14" font-weight="700" fill="#64748b">legacy</text>
+  <text x="76" y="382" font-family="Arial, sans-serif" font-size="13" fill="#64748b">固定解析链路</text>
+  <text x="76" y="408" font-family="Arial, sans-serif" font-size="14" font-weight="700" fill="#1d4ed8">Docling only</text>
 
   <rect x="350" y="120" width="480" height="390" rx="9" fill="#ffffff" stroke="#bbf7d0" stroke-width="2"/>
   <rect x="350" y="120" width="480" height="54" rx="9" fill="#f0fdf4" stroke="#bbf7d0" stroke-width="2"/>

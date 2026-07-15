@@ -66,13 +66,11 @@ class DoclingLearningService:
     def ingest(self, request: DoclingIngestRequest) -> DoclingIngestResponse:
         request_config = with_collection(self.config, request.collection)
         path = resolve_ingest_path(Path(request.path).expanduser() if request.path else None, request_config)
-        if request_config.document_parser != "docling":
-            raise ValueError("V3.11.1 ingest 要求 RAG_DOCUMENT_PARSER=docling。")
         document_count, chunk_count = ingest_path(path, request_config, recreate=request.recreate)
         return DoclingIngestResponse(
             document_count=document_count,
             chunk_count=chunk_count,
-            parser=request_config.document_parser,
+            parser="docling",
             chunk_schema_version=DOCLING_CHUNK_SCHEMA_VERSION,
             recreated=request.recreate,
             collection=request_config.collection_name,
@@ -108,7 +106,7 @@ class DoclingLearningService:
     def runtime(self) -> DoclingRuntimeResponse:
         return DoclingRuntimeResponse(
             version="v3.11.1",
-            parser=self.config.document_parser,
+            parser="docling",
             converter="Docling DocumentConverter",
             chunker="Docling HybridChunker",
             tokenizer_model=self.config.docling_tokenizer_model,

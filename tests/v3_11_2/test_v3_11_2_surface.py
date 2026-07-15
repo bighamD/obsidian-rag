@@ -24,8 +24,6 @@ def _config(path: Path) -> RagConfig:
         qdrant_url=None,
         db_path=path / "qdrant",
         collection_name="test",
-        chunk_size=1200,
-        chunk_overlap=150,
         min_score=0.0,
         vault_path=path / "manual.md",
     )

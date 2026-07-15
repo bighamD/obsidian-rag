@@ -59,7 +59,7 @@ class DoclingChunksResponse(BaseModel):
 
 
 class DoclingIngestRequest(BaseModel):
-    """通过共享 V0 Docling backend 重建索引。"""
+    """通过共享 V0 Docling 摄取链路重建索引。"""
 
     path: str | None = Field(default=None, description="本地文件或目录的绝对路径；为空时使用 RAG_VAULT_PATH。")
     recreate: bool = Field(default=True, description="是否重建当前 Qdrant collection。首次运行应为 true。")
@@ -77,7 +77,7 @@ class DoclingIngestResponse(BaseModel):
 
     document_count: int = Field(description="Docling 成功转换的文档数。")
     chunk_count: int = Field(description="写入索引的 HybridChunker chunk 数。")
-    parser: str = Field(description="共享 pipeline 实际使用的 parser backend。")
+    parser: str = Field(description="共享 pipeline 固定使用的文档解析框架，当前为 docling。")
     chunk_schema_version: str = Field(description="写入 metadata 的 chunk schema 版本。")
     recreated: bool = Field(description="是否重建了 Qdrant collection。")
     collection: str = Field(description="本次实际写入的知识库 Collection。")
@@ -131,7 +131,7 @@ class DoclingRuntimeResponse(BaseModel):
     """可安全公开的 V3.11.1 框架边界。"""
 
     version: str = Field(description="学习版本号。")
-    parser: str = Field(description="共享 V0 当前 parser backend。")
+    parser: str = Field(description="共享 V0 固定使用的文档解析框架，当前为 docling。")
     converter: str = Field(description="文档转换组件。")
     chunker: str = Field(description="切片组件。")
     tokenizer_model: str = Field(description="HybridChunker tokenizer。")

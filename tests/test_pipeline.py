@@ -1,7 +1,7 @@
 from pathlib import Path
 
 from obsidian_rag.config import RagConfig
-from obsidian_rag.pipeline import answer, make_store
+from obsidian_rag.pipeline import answer, ingest_path, make_store
 from obsidian_rag.schema import SearchResult, TextChunk
 
 
@@ -17,8 +17,6 @@ def _config(db_path: Path, qdrant_url: str | None = None) -> RagConfig:
         qdrant_url=qdrant_url,
         db_path=db_path,
         collection_name="obsidian_notes",
-        chunk_size=1200,
-        chunk_overlap=150,
         min_score=0.35,
         vault_path=Path("/tmp/vault"),
     )
@@ -37,6 +35,45 @@ def test_make_store_falls_back_to_local_path(tmp_path: Path):
 
     assert store.url is None
     assert store.path == db_path
+
+
+def test_ingest_path_always_uses_docling(monkeypatch, tmp_path: Path):
+    chunk = TextChunk(text="Docling chunk", metadata={"source": "note.md"})
+    captured = {}
+
+    class FakeIngestion:
+        def convert_and_chunk_path(self, path):
+            captured["path"] = path
+            return type("Batch", (), {"errors": [], "conversions": [object()], "chunks": [chunk]})()
+
+    class FakeEmbeddings:
+        def embed_texts(self, texts):
+            captured["texts"] = texts
+            return [[0.0] * 1024]
+
+    class FakeStore:
+        def ensure_collection(self, recreate=False):
+            captured["recreate"] = recreate
+
+        def upsert(self, chunks, vectors):
+            captured["chunks"] = chunks
+
+        def close(self):
+            captured["closed"] = True
+
+    monkeypatch.setattr("obsidian_rag.pipeline.make_docling_ingestion", lambda config: FakeIngestion())
+    monkeypatch.setattr("obsidian_rag.pipeline.make_embedding_client", lambda config: FakeEmbeddings())
+    monkeypatch.setattr("obsidian_rag.pipeline.make_store", lambda config: FakeStore())
+    monkeypatch.setattr("obsidian_rag.pipeline._write_keyword_index", lambda *args, **kwargs: None)
+
+    assert ingest_path(tmp_path, _config(tmp_path / "qdrant"), recreate=True) == (1, 1)
+    assert captured == {
+        "path": tmp_path,
+        "texts": ["Docling chunk"],
+        "recreate": True,
+        "chunks": [chunk],
+        "closed": True,
+    }
 
 
 def test_answer_skips_llm_when_top_score_is_below_min_score(monkeypatch, tmp_path: Path):

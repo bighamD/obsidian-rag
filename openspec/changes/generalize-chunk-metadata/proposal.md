@@ -22,7 +22,7 @@
 
 ## Impact
 
-- 受影响代码：`obsidian_rag/chunking.py`、`obsidian_rag/docling_ingestion.py`、`obsidian_rag/v3_11_1/schemas.py`。
+- 受影响代码：`obsidian_rag/docling_ingestion.py`、`obsidian_rag/v3_11_1/schemas.py`。
 - 受影响下游：Context Builder、引用标签、检索评测将能继续使用非 `KB-` 的 `chunk_id`。
 - 不新增第三方依赖；复用现有 `PyYAML`。
 - 本地 `knowledge/` 目录仅用于手工验证，不纳入版本控制。
