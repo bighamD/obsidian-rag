@@ -11,9 +11,9 @@ SearchMode = Literal["dense", "keyword", "hybrid"]
 class DoclingPathRequest(BaseModel):
     """Docling convert/chunks 的本地文件或目录输入。"""
 
-    path: str | None = Field(default=None, description="本地文件或目录；为空时使用 RAG_VAULT_PATH。")
+    path: str | None = Field(default=None, description="本地文件或目录的绝对路径；为空时使用 RAG_VAULT_PATH。")
 
-    model_config = {"json_schema_extra": {"examples": [{"path": "knowledge/manual.pdf"}]}}
+    model_config = {"json_schema_extra": {"examples": [{"path": "/absolute/path/to/manual.pdf"}]}}
 
 
 class DoclingConversionSummary(BaseModel):
@@ -39,7 +39,7 @@ class DoclingChunkView(BaseModel):
 
     node_id: str = Field(description="映射到 Qdrant point 的稳定节点 ID。")
     source: str = Field(description="源文件路径。")
-    chunk_id: str | None = Field(default=None, description="从正文/标题识别的 KB 引用 ID。")
+    chunk_id: str | None = Field(default=None, description="文档 YAML 或编号标题提供的业务引用 ID，例如 KB-072、VU-001。")
     heading_path: list[str] = Field(description="Docling meta 中的标题路径。")
     page_numbers: list[int] = Field(description="Docling provenance 中涉及的页码。")
     raw_text: str = Field(description="HybridChunker 产生的原始 chunk.text。")
@@ -60,10 +60,10 @@ class DoclingChunksResponse(BaseModel):
 class DoclingIngestRequest(BaseModel):
     """通过共享 V0 Docling backend 重建索引。"""
 
-    path: str | None = Field(default=None, description="本地文件或目录；为空时使用 RAG_VAULT_PATH。")
+    path: str | None = Field(default=None, description="本地文件或目录的绝对路径；为空时使用 RAG_VAULT_PATH。")
     recreate: bool = Field(default=True, description="是否重建当前 Qdrant collection。首次运行应为 true。")
 
-    model_config = {"json_schema_extra": {"examples": [{"path": "knowledge", "recreate": True}]}}
+    model_config = {"json_schema_extra": {"examples": [{"recreate": True}]}}
 
 
 class DoclingIngestResponse(BaseModel):
@@ -94,7 +94,7 @@ class DoclingSearchHit(BaseModel):
     source: str = Field(description="源文件路径。")
     score: float = Field(description="当前检索模式的排序分数。")
     node_id: str | None = Field(default=None, description="Docling chunk 映射后的节点 ID。")
-    chunk_id: str | None = Field(default=None, description="知识库 KB 引用 ID。")
+    chunk_id: str | None = Field(default=None, description="知识库中可选的业务引用 ID，例如 KB-072、VU-001。")
     heading_path: list[str] = Field(description="标题路径。")
     page_numbers: list[int] = Field(description="页码定位。")
     contextualized_text: str = Field(description="检索命中的实际 embedding/context 文本。")

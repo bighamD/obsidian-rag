@@ -30,6 +30,7 @@ PDF / Markdown / DOCX / PPTX / XLSX / HTML / CSV / Image
 - 使用官方 `HybridChunker`，不自研递归切片算法。
 - 同时保留 `chunk.text` 与 `HybridChunker.contextualize()`。
 - 将 headings、captions、origin、doc_items provenance 和页码映射到 metadata。
+- 从标题块内的 fenced YAML 提取可选业务 metadata；`chunk_id` 不限制为 `KB-` 前缀，兼容 `KB-072`、`VU-001` 等引用 ID。
 - 通过共享 V0 pipeline 写入现有 Qdrant 与 keyword index。
 - 提供 convert、chunks、ingest、search 四个 JSON 接口和对应 CLI。
 
@@ -85,7 +86,7 @@ API 入口：
 
 ```json
 {
-  "path": "knowledge/manual.pdf"
+  "path": "/absolute/path/to/manual.pdf"
 }
 ```
 
@@ -97,7 +98,7 @@ API 入口：
 
 ```json
 {
-  "path": "knowledge/manual.pdf"
+  "path": "/absolute/path/to/manual.pdf"
 }
 ```
 
@@ -111,6 +112,7 @@ API 入口：
 | `heading_path` | 标题路径 |
 | `page_numbers` | provenance 中提取的页码 |
 | `node_id` | 映射到 Qdrant point 的稳定 ID |
+| `chunk_id` | 文档 YAML 或编号标题提供的可选业务引用 ID，不限 `KB-` 前缀 |
 
 ### 3. 重建索引
 
@@ -118,12 +120,29 @@ API 入口：
 
 ```json
 {
-  "path": "knowledge",
   "recreate": true
 }
 ```
 
-本版本 chunk schema 为 `docling-v1`，首次 ingest 应使用 `recreate=true`。它会覆盖当前 Qdrant collection 和 keyword index；不会删除源文件。
+本版本 chunk schema 为 `docling-v1`，首次 ingest 应使用 `recreate=true`。它会覆盖当前 Qdrant collection 和 keyword index；不会删除源文件。已有索引需要重新 ingest，才会获得新增的业务 metadata。
+
+### 业务 metadata 约定
+
+在 Markdown 二级标题块中放置 fenced YAML，即可让该标题下的所有 Docling chunks 继承 metadata：
+
+````markdown
+## VU-001：VueUse 定位
+
+```
+chunk_id: VU-001
+title: VueUse 定位
+category: 基础
+tags: [vueuse, vue3]
+source: https://vueuse.org/guide/
+```
+````
+
+`node_id` 是系统生成的稳定向量 ID；`chunk_id` 是可选的业务引用 ID。前者始终存在，后者用于引用展示、Context Builder 优先级和评测。YAML 的 `source` 会保存为 `kb_source`，不会覆盖源文件路径 `source`。
 
 ### 4. 检索 Docling chunks
 
@@ -140,11 +159,13 @@ API 入口：
 ## CLI
 
 ```bash
-.venv/bin/obsidian-rag documents-v3-11-1 convert knowledge/manual.pdf
-.venv/bin/obsidian-rag documents-v3-11-1 chunks knowledge/manual.pdf
-.venv/bin/obsidian-rag documents-v3-11-1 ingest knowledge --recreate
+.venv/bin/obsidian-rag documents-v3-11-1 convert /absolute/path/to/manual.pdf
+.venv/bin/obsidian-rag documents-v3-11-1 chunks /absolute/path/to/manual.pdf
+.venv/bin/obsidian-rag documents-v3-11-1 ingest --recreate
 .venv/bin/obsidian-rag documents-v3-11-1 search "核心结论是什么？" --top-k 5 --mode hybrid
 ```
+
+省略 `chunks` / `ingest` 的路径时，CLI 使用 `.env` 中的 `RAG_VAULT_PATH`。
 
 ## 正常主链路
 
@@ -171,6 +192,8 @@ CLI / Swagger
 | 单文件 convert 传入目录 | 返回参数错误，提示改用 chunks/ingest |
 | 目录中个别文件转换失败 | chunks preview 返回 `errors`，成功文件继续展示 |
 | 所有文件转换失败 | ingest 中止，不写入空索引 |
+| 标题块含 `chunk_id` YAML | 将 `chunk_id`、title、tags、source 等 metadata 绑定到该标题路径的 chunks |
+| 标题块不含业务 YAML | 仍正常切片；无编号标题时不伪造 `chunk_id` |
 | tokenizer/model 首次使用 | 可能下载模型，耗时高于后续运行 |
 
 ## 文件职责
@@ -178,6 +201,7 @@ CLI / Swagger
 | 文件 | 作用 |
 | --- | --- |
 | `obsidian_rag/docling_ingestion.py` | Docling Converter/HybridChunker 薄适配和 TextChunk metadata 映射 |
+| `obsidian_rag/structured_metadata.py` | Markdown 标题块 YAML metadata 的提取、规范化和 Docling heading path 匹配 |
 | `obsidian_rag/pipeline.py` | 根据 `RAG_DOCUMENT_PARSER` 选择 docling 或 legacy，然后统一 embed/upsert |
 | `obsidian_rag/config.py` | parser、tokenizer 和 token 上限配置 |
 | `obsidian_rag/v3_11_1/schemas.py` | Swagger 输入输出职责与字段中文说明 |
@@ -191,10 +215,10 @@ CLI / Swagger
 | 顺序 | 文件行号与函数 | 观察变量 |
 | --- | --- | --- |
 | 1 | `v3_11_1/service.py:41` `DoclingLearningService.convert()` | `path`、`request.path` |
-| 2 | `docling_ingestion.py:74` `DoclingIngestion.convert_file()` | `result.status`、`document`、`markdown` |
+| 2 | `docling_ingestion.py:75` `DoclingIngestion.convert_file()` | `result.status`、`document`、`markdown` |
 | 3 | `v3_11_1/service.py:49` `DoclingLearningService.chunks()` | `batch.conversions`、`batch.errors` |
-| 4 | `docling_ingestion.py:90` `chunk_conversion()` | `chunk.text`、`contextualized`、`docling_meta` |
-| 5 | `docling_ingestion.py:124` `convert_and_chunk_path()` | `files`、`conversions`、`chunks`、`errors` |
+| 4 | `docling_ingestion.py:91` `chunk_conversion()` | `chunk.text`、`contextualized`、`docling_meta`、结构化业务 metadata |
+| 5 | `docling_ingestion.py:127` `convert_and_chunk_path()` | `files`、`conversions`、`chunks`、`errors` |
 | 6 | `pipeline.py:56` `ingest_path()` | `config.document_parser`、`document_count`、`chunks` |
 | 7 | `pipeline.py:17` `make_embedding_client()` | embedding provider/model |
 | 8 | `qdrant_store.py:48` `upsert()` | point payload、`node_id`、vector dimensions |
@@ -203,7 +227,7 @@ CLI / Swagger
 
 ## 测试与边界
 
-- adapter 测试使用 Docling fake，验证 headings、KB ID、provenance page 和 schema 映射。
+- adapter 测试使用 Docling fake，验证 headings、任意业务 ID（如 KB / VU）、provenance page 和 schema 映射。
 - service/API/CLI 测试不下载真实模型，也不连接 Qdrant。
 - 真正的布局/OCR 效果必须用本地代表性 PDF/图片执行 chunks preview 后再评估。
 - 本版本不会自动启动 API；由用户自行运行 Swagger 和断点调试。

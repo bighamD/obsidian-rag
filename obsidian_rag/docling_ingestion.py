@@ -1,12 +1,16 @@
 from __future__ import annotations
 
-import re
 import uuid
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
 from obsidian_rag.schema import TextChunk
+from obsidian_rag.structured_metadata import (
+    extract_structured_sections,
+    merge_structured_metadata,
+    metadata_for_heading_path,
+)
 
 
 DOCLING_CHUNK_SCHEMA_VERSION = "docling-v1"
@@ -30,7 +34,6 @@ SUPPORTED_SUFFIXES = {
     ".webp",
     ".xlsx",
 }
-KB_ID_RE = re.compile(r"\b(KB-[A-Za-z0-9][A-Za-z0-9_-]*)\b")
 
 
 @dataclass(frozen=True)
@@ -89,6 +92,7 @@ class DoclingIngestion:
 
     def chunk_conversion(self, conversion: DoclingConversion) -> list[TextChunk]:
         chunks: list[TextChunk] = []
+        structured_sections = extract_structured_sections(conversion.markdown)
         for index, chunk in enumerate(self.chunker.chunk(dl_doc=conversion.document)):
             contextualized = str(self.chunker.contextualize(chunk=chunk)).strip()
             raw_text = str(chunk.text).strip()
@@ -113,11 +117,12 @@ class DoclingIngestion:
                 "raw_chunk_text": raw_text,
                 "docling": docling_meta,
             }
-            kb_match = KB_ID_RE.search("\n".join([*headings, contextualized]))
-            if kb_match:
-                metadata["chunk_id"] = kb_match.group(1)
+            metadata = merge_structured_metadata(
+                metadata,
+                metadata_for_heading_path(structured_sections, headings),
+            )
             if headings:
-                metadata["topic"] = headings[-1]
+                metadata.setdefault("topic", headings[-1])
             chunks.append(TextChunk(text=contextualized, metadata=metadata))
         return chunks
 

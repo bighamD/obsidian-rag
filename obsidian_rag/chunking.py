@@ -1,17 +1,7 @@
 from __future__ import annotations
 
-import re
-
-import yaml
-
 from obsidian_rag.schema import SourceDocument, TextChunk
-
-
-CHUNK_METADATA_RE = re.compile(r"```ya?ml\s*\n(.*?)\n```", re.IGNORECASE | re.DOTALL)
-KB_SECTION_HEADING_RE = re.compile(
-    r"^##\s+(KB-[A-Za-z0-9][A-Za-z0-9_-]*)(?=\s|[:：]|$).*$",
-    re.MULTILINE,
-)
+from obsidian_rag.structured_metadata import extract_structured_sections, merge_structured_metadata
 
 
 def chunk_document(document: SourceDocument, max_chars: int = 1200, overlap_chars: int = 150) -> list[TextChunk]:
@@ -25,12 +15,9 @@ def chunk_document(document: SourceDocument, max_chars: int = 1200, overlap_char
         return []
 
     chunks: list[TextChunk] = []
-    for section_text, section_chunk_id in _split_kb_sections(text):
+    for section_text, section_metadata in _split_structured_sections(text):
         metadata = dict(document.metadata)
-        metadata.update(_extract_chunk_metadata(section_text, metadata))
-        if section_chunk_id is not None:
-            # KB 标题定义语义边界和稳定 ID；YAML 补充 topic、tags 等元数据。
-            metadata["chunk_id"] = section_chunk_id
+        metadata = merge_structured_metadata(metadata, section_metadata)
 
         for chunk_text in _split_text(section_text, max_chars, overlap_chars):
             chunk_metadata = dict(metadata)
@@ -73,23 +60,26 @@ def _split_text(text: str, max_chars: int, overlap_chars: int) -> list[str]:
     return chunks
 
 
-def _split_kb_sections(text: str) -> list[tuple[str, str | None]]:
-    """按二级 KB 标题切分，避免相邻知识块共享或错配 metadata。"""
+def _split_structured_sections(text: str) -> list[tuple[str, dict[str, object]]]:
+    """按含结构化 metadata 的二级标题块切分，保留无结构文档的旧行为。"""
 
-    headings = list(KB_SECTION_HEADING_RE.finditer(text))
-    if not headings:
-        return [(text, None)]
+    structured_sections = extract_structured_sections(text)
+    if not structured_sections:
+        return [(text, {})]
 
-    sections: list[tuple[str, str | None]] = []
-    prefix = text[: headings[0].start()].strip()
-    if prefix:
-        sections.append((prefix, None))
-
-    for index, heading in enumerate(headings):
-        end = headings[index + 1].start() if index + 1 < len(headings) else len(text)
-        section = text[heading.start() : end].strip()
-        if section:
-            sections.append((section, heading.group(1)))
+    sections: list[tuple[str, dict[str, object]]] = []
+    cursor = 0
+    for structured_section in structured_sections:
+        prefix = text[cursor : structured_section.start].strip()
+        if prefix:
+            sections.append((prefix, {}))
+        section_text = text[structured_section.start : structured_section.end].strip()
+        if section_text:
+            sections.append((section_text, dict(structured_section.metadata)))
+        cursor = structured_section.end
+    suffix = text[cursor:].strip()
+    if suffix:
+        sections.append((suffix, {}))
     return sections
 
 
@@ -110,49 +100,3 @@ def _with_overlap(previous: str, next_paragraph: str, overlap_chars: int) -> str
         return next_paragraph
     overlap = previous[-overlap_chars:].strip()
     return f"{overlap}\n\n{next_paragraph}".strip()
-
-
-def _extract_chunk_metadata(text: str, base_metadata: dict[str, object]) -> dict[str, object]:
-    match = CHUNK_METADATA_RE.search(text)
-    if not match:
-        return {}
-
-    try:
-        parsed = yaml.safe_load(match.group(1)) or {}
-    except yaml.YAMLError:
-        return {}
-    if not isinstance(parsed, dict):
-        return {}
-
-    metadata: dict[str, object] = {}
-    for key, value in parsed.items():
-        if value is None:
-            continue
-        normalized_key = str(key)
-        if normalized_key == "source":
-            metadata["kb_source"] = str(value)
-        elif normalized_key == "tags":
-            metadata["tags"] = _merge_unique(_as_list(base_metadata.get("tags")), _as_list(value))
-        else:
-            metadata[normalized_key] = value
-    return metadata
-
-
-def _as_list(value: object) -> list[str]:
-    if value is None:
-        return []
-    if isinstance(value, str):
-        return [value.strip().lstrip("#")] if value.strip() else []
-    if isinstance(value, list | tuple | set):
-        return [str(item).strip().lstrip("#") for item in value if str(item).strip()]
-    return [str(value).strip().lstrip("#")] if str(value).strip() else []
-
-
-def _merge_unique(first: list[str], second: list[str]) -> list[str]:
-    merged: list[str] = []
-    seen: set[str] = set()
-    for item in [*first, *second]:
-        if item and item not in seen:
-            merged.append(item)
-            seen.add(item)
-    return merged

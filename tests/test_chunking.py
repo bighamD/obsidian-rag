@@ -73,6 +73,36 @@ topic: 鸡肉处理
     assert {chunk.metadata.get("topic") for chunk in chicken_chunks} == {"鸡肉处理"}
 
 
+def test_chunk_document_keeps_vu_yaml_metadata_on_every_subchunk():
+    document = SourceDocument(
+        text="""## VU-001：VueUse 定位
+
+```
+chunk_id: VU-001
+title: VueUse 定位
+category: 基础
+tags: [vueuse, vue3]
+source: https://vueuse.org/guide/
+```
+
+VueUse 是 Vue Composition API 工具函数集合。VueUse 是 Vue Composition API 工具函数集合。
+
+VueUse 是 Vue Composition API 工具函数集合。VueUse 是 Vue Composition API 工具函数集合。""",
+        metadata={"source": "vueuse.md", "tags": ["vault"]},
+    )
+
+    chunks = chunk_document(document, max_chars=80, overlap_chars=0)
+
+    assert len(chunks) >= 2
+    assert {chunk.metadata.get("chunk_id") for chunk in chunks} == {"VU-001"}
+    assert {chunk.metadata.get("title") for chunk in chunks} == {"VueUse 定位"}
+    assert {chunk.metadata.get("topic") for chunk in chunks} == {"VueUse 定位"}
+    assert {chunk.metadata.get("category") for chunk in chunks} == {"基础"}
+    assert {chunk.metadata.get("source") for chunk in chunks} == {"vueuse.md"}
+    assert {chunk.metadata.get("kb_source") for chunk in chunks} == {"https://vueuse.org/guide/"}
+    assert {tuple(chunk.metadata.get("tags", [])) for chunk in chunks} == {("vault", "vueuse", "vue3")}
+
+
 def test_chunk_document_rejects_overlap_larger_than_chunk_size():
     document = SourceDocument(text="abc", metadata={"source": "a.md"})
 
