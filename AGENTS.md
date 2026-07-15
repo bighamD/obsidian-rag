@@ -74,7 +74,7 @@ docs/assets/rag-v3-4-planner-flow.svg
 已完成到：
 
 ```text
-V3.12 MCP Integration
+V3.12.1 AgentRuntime/Core Extraction
 ```
 
 V3.12 在 V3.11 Skill System 之后增加标准化外部工具协议：
@@ -99,6 +99,20 @@ V3.12 仍然不做：
 - 不让 LLM 自动选择 MCP Tool，当前先显式调用。
 - 不执行 Skill `scripts/`，不开放 Shell 或任意文件写入。
 - 不实现 Permission Policy、Sandbox、MCP resources/prompts 或生产级 Session Pool。
+
+V3.12.1 已完成：
+
+- 将稳定 Agent schemas、Planner、Context、Memory、Compaction、Tool Registry 和 AgentService 提升到 `obsidian_rag/core/`。
+- V3.10、V3.10.2、V3.11 当前主线不再直接依赖 V3.8.1 AgentService/schemas。
+- 本地 Tool 与 V3.12 MCP Tool 通过统一 Registry 被发现和显式执行。
+- 最终 Answer 支持安全的 `answer_delta`、TTFT/生成耗时与非流式回退，不展示 `reasoning_content`。
+- Agent Console 在单个 assistant 气泡中增量展示，并在终态补齐 sources、Run 和 Memory。
+- 提供独立 `obsidian_rag/v3_12_1/`、FastAPI JSON/SSE、CLI、测试、文档、SVG 和断点配置。
+
+V3.12.1 仍然不做：
+
+- 不改变 Prompt、检索、Evidence 或 Memory 语义。
+- 不实现 fast path、Permission、Sandbox、Shell、MCP Session Pool 或自动高风险 Tool 选择。
 
 V3.10.3 和 V3.11.1-V3.11.3 是已完成的扩展学习版本，不改变当前主线。下一阶段建议：
 

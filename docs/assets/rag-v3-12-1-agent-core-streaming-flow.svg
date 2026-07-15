@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1180" height="690" viewBox="0 0 1180 690" role="img" aria-labelledby="title desc">
+  <title id="title">V3.12.1 Agent Core Streaming flow</title>
+  <desc id="desc">Version adapters call a shared agent core. The answer node streams visible content as answer delta events while aggregating the final answer for memory and the terminal response. Local and MCP tools share a registry.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#475569"/></marker>
+    <style>.bg{fill:#f8fafc}.box{fill:#fff;stroke:#64748b;stroke-width:2}.blue{fill:#eff6ff;stroke:#2563eb;stroke-width:2}.green{fill:#ecfdf5;stroke:#059669;stroke-width:2}.purple{fill:#f5f3ff;stroke:#7c3aed;stroke-width:2}.orange{fill:#fff7ed;stroke:#ea580c;stroke-width:2}.title{font:700 24px system-ui,sans-serif;fill:#0f172a}.label{font:600 16px system-ui,sans-serif;fill:#0f172a}.small{font:14px system-ui,sans-serif;fill:#475569}.line{stroke:#475569;stroke-width:2;fill:none;marker-end:url(#arrow)}</style>
+  </defs>
+  <rect class="bg" width="1180" height="690" rx="24"/>
+  <text class="title" x="590" y="42" text-anchor="middle">V3.12.1 AgentRuntime / Core + Visible Answer Streaming</text>
+
+  <rect class="blue" x="55" y="85" width="235" height="120" rx="12"/>
+  <text class="label" x="172" y="116" text-anchor="middle">Version Adapters</text>
+  <text class="small" x="172" y="143" text-anchor="middle">V3.10 Production</text>
+  <text class="small" x="172" y="166" text-anchor="middle">V3.10.2 SSE</text>
+  <text class="small" x="172" y="189" text-anchor="middle">V3.11 Skill</text>
+
+  <path class="line" d="M290 145H365"/>
+  <rect class="purple" x="365" y="70" width="450" height="150" rx="14"/>
+  <text class="label" x="590" y="104" text-anchor="middle">obsidian_rag/core</text>
+  <text class="small" x="590" y="133" text-anchor="middle">Planner → Tool Executor → Evidence → Context</text>
+  <text class="small" x="590" y="159" text-anchor="middle">Memory Reader / Compaction / Writer</text>
+  <text class="small" x="590" y="185" text-anchor="middle">Stable AgentRequest / Response / Event / ToolResult</text>
+
+  <path class="line" d="M815 145H890"/>
+  <rect class="orange" x="890" y="85" width="235" height="120" rx="12"/>
+  <text class="label" x="1007" y="116" text-anchor="middle">Unified Tool Registry</text>
+  <text class="small" x="1007" y="145" text-anchor="middle">local::search_notes</text>
+  <text class="small" x="1007" y="171" text-anchor="middle">server::mcp_tool</text>
+  <text class="small" x="1007" y="194" text-anchor="middle">explicit execution only</text>
+
+  <path class="line" d="M590 220V280"/>
+  <rect class="blue" x="390" y="280" width="400" height="82" rx="12"/>
+  <text class="label" x="590" y="313" text-anchor="middle">synthesize_answer</text>
+  <text class="small" x="590" y="340" text-anchor="middle">OpenAI-compatible stream=True, content only</text>
+
+  <path class="line" d="M490 362V420H290"/>
+  <path class="line" d="M690 362V420H890"/>
+
+  <rect class="green" x="80" y="420" width="420" height="108" rx="12"/>
+  <text class="label" x="290" y="452" text-anchor="middle">SSE answer_delta</text>
+  <text class="small" x="290" y="480" text-anchor="middle">message_id + sequence + visible delta</text>
+  <text class="small" x="290" y="505" text-anchor="middle">Agent Console updates one assistant bubble</text>
+
+  <rect class="purple" x="680" y="420" width="420" height="108" rx="12"/>
+  <text class="label" x="890" y="452" text-anchor="middle">Aggregate final answer</text>
+  <text class="small" x="890" y="480" text-anchor="middle">Memory write + JSON response</text>
+  <text class="small" x="890" y="505" text-anchor="middle">run_succeeded remains authoritative</text>
+
+  <path class="line" d="M290 528V585H590"/>
+  <path class="line" d="M890 528V585H590"/>
+  <rect class="green" x="365" y="585" width="450" height="72" rx="12"/>
+  <text class="label" x="590" y="615" text-anchor="middle">Frontend reconciliation</text>
+  <text class="small" x="590" y="640" text-anchor="middle">final text + sources + run + memory, no duplicate message</text>
+
+  <text class="small" x="42" y="672">Boundary: no reasoning_content, no Permission/Sandbox, no fast path, no MCP Session Pool</text>
+</svg>

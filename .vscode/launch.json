@@ -665,6 +665,43 @@
 			"args": ["mcp-v3-12", "call", "rag", "list_collections", "--arguments", "{}"],
 			"subProcess": true,
 			"justMyCode": true
+		},
+		{
+			"name": "V3.12.1 API server: Agent Core Streaming",
+			"type": "debugpy",
+			"request": "launch",
+			"module": "uvicorn",
+			"console": "integratedTerminal",
+			"cwd": "${workspaceFolder}",
+			"python": "${workspaceFolder}/.venv/bin/python",
+			"envFile": "${workspaceFolder}/.env",
+			"args": ["obsidian_rag.v3_12_1.app:app", "--host", "127.0.0.1", "--port", "8020"],
+			"subProcess": true,
+			"justMyCode": true
+		},
+		{
+			"name": "V3.12.1 CLI SSE: first turn",
+			"type": "debugpy",
+			"request": "launch",
+			"module": "obsidian_rag.cli",
+			"console": "integratedTerminal",
+			"cwd": "${workspaceFolder}",
+			"python": "${workspaceFolder}/.venv/bin/python",
+			"envFile": "${workspaceFolder}/.env",
+			"args": ["agent-v3-12-1", "ask", "剩菜可以保存多久？", "--conversation-id", "conv_core_stream_demo", "--collection", "food_safety"],
+			"justMyCode": true
+		},
+		{
+			"name": "V3.12.1 CLI SSE: follow-up",
+			"type": "debugpy",
+			"request": "launch",
+			"module": "obsidian_rag.cli",
+			"console": "integratedTerminal",
+			"cwd": "${workspaceFolder}",
+			"python": "${workspaceFolder}/.venv/bin/python",
+			"envFile": "${workspaceFolder}/.env",
+			"args": ["agent-v3-12-1", "ask", "那冷冻的话呢？", "--conversation-id", "conv_core_stream_demo", "--collection", "food_safety"],
+			"justMyCode": true
 		}
 		// {
 		// 	"name": "V3.7 agent ask: context builder",
