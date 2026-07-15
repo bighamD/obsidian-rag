@@ -8,7 +8,7 @@
 
 - 默认用中文回答。
 - 命令、文件名、配置项、API 名称保留英文原文。
-- 解释学习概念时优先结合本仓库已有版本：`v0`、`v1`、`v2`、`v3`、`v3_1`、`v3_2`、`v3_3`、`v3_4`、`v3_5`、`v3_6`、`v3_7`、`v3_8`、`v3_8_1`、`v3_9`、`v3_10`、`v3_10_1`、`v3_10_2`、`v3_10_3`、`v3_11`。
+- 解释学习概念时优先结合本仓库已有版本：`v0`、`v1`、`v2`、`v3`、`v3_1`、`v3_2`、`v3_3`、`v3_4`、`v3_5`、`v3_6`、`v3_7`、`v3_8`、`v3_8_1`、`v3_9`、`v3_10`、`v3_10_1`、`v3_10_2`、`v3_10_3`、`v3_11`、`v3_12`。
 
 ## 提交习惯
 
@@ -74,36 +74,36 @@ docs/assets/rag-v3-4-planner-flow.svg
 已完成到：
 
 ```text
-V3.11 Skill System
-```
-
-V3.11 在已有 V3.8.1 Agentic RAG 前增加 Skill Registry、LLM Skill Router 和渐进式加载：
-
-```text
-Skill Registry -> Skill Router -> load selected SKILL.md
-               -> SkillAwarePlannerService -> V3.8.1 Agentic RAG
-               -> Production Run / JSON / SSE
-```
-
-V3.11 已完成：
-
-- 在 `skills/` 提供 `SKILL.md` 示例，并只在 Registry 阶段读取 front matter 元数据。
-- LLM Router 选择零个或一个 Skill；支持 `no_skill`、`disabled`、`forced`、`invalid_selection` 和 `router_error` 分支。
-- 选中的 Skill 正文才会加载，并通过 `SkillAwarePlannerService` 注入 Planner；Skill 不执行 Tool。
-- 提供独立 `obsidian_rag/v3_11/`、FastAPI Swagger、`/agent/ask`、`/agent/ask/stream`、CLI 和 `launch.json`。
-- 复用 V3.10 Run Store、V3.10.2 EventBus/SSE 和 V3.8.1 的 RAG、Evidence、Context、Memory 主链路。
-- 补充学习文档、文件职责、Swagger payload、正常/条件分支、断点说明和 SVG 流程图。
-
-V3.11 仍然不做：
-
-- 不接 MCP、Permission、Sandbox、Shell 或文件写入。
-- 不展示 chain-of-thought，不让 Skill 绕过 `ToolRegistry`。
-- 不重写 V3.8.1 Agent，也不把 Skill 误当成 Tool Calling。
-
-V3.10.3 已完成，是额外的 LangGraph Advanced Patterns 学习版本，保留为独立目录和端口，不改变 V3.11 主线。下一阶段建议：
-
-```text
 V3.12 MCP Integration
+```
+
+V3.12 在 V3.11 Skill System 之后增加标准化外部工具协议：
+
+```text
+FastAPI / CLI -> McpClientManager -> initialize -> tools/list -> tools/call
+              -> Demo MCP Server / RAG MCP Server
+              -> McpToolDefinition / McpToolCallResponse
+```
+
+V3.12 已完成：
+
+- 使用官方 Python `mcp` SDK 和 `stdio` Transport。
+- 实现 `initialize`、`tools/list`、`tools/call` 和短生命周期 `ClientSession`。
+- 提供低风险 Demo MCP Server，以及暴露 `search_notes`、`list_collections` 的 RAG MCP Server。
+- 将远端 Tool Schema 和 Call Result 适配为稳定的本地 Pydantic 契约。
+- 提供独立 `obsidian_rag/v3_12/`、FastAPI Swagger JSON、CLI 和 `launch.json`。
+- 补充学习文档、文件职责、Swagger payload、条件分支、断点说明和 SVG 流程图。
+
+V3.12 仍然不做：
+
+- 不让 LLM 自动选择 MCP Tool，当前先显式调用。
+- 不执行 Skill `scripts/`，不开放 Shell 或任意文件写入。
+- 不实现 Permission Policy、Sandbox、MCP resources/prompts 或生产级 Session Pool。
+
+V3.10.3 和 V3.11.1-V3.11.3 是已完成的扩展学习版本，不改变当前主线。下一阶段建议：
+
+```text
+V3.13 Permission Policy
 ```
 
 ## CodeGraph

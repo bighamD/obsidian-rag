@@ -1,0 +1,87 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="760" viewBox="0 0 1280 760" role="img" aria-labelledby="title desc">
+  <title id="title">V3.12 MCP Integration flow</title>
+  <desc id="desc">FastAPI or CLI uses an MCP client manager to initialize stdio sessions, discover tools, call tools, and adapt results from demo and RAG MCP servers.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#475569"/>
+    </marker>
+    <marker id="soft-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#94a3b8"/>
+    </marker>
+  </defs>
+
+  <rect width="1280" height="760" fill="#f8fafc"/>
+  <text x="640" y="46" text-anchor="middle" font-family="Arial, sans-serif" font-size="28" font-weight="700" fill="#0f172a">V3.12 MCP Integration</text>
+  <text x="640" y="76" text-anchor="middle" font-family="Arial, sans-serif" font-size="15" fill="#475569">标准协议负责发现和调用工具；Permission 与 Sandbox 仍在后续版本</text>
+
+  <rect x="42" y="118" width="248" height="430" rx="8" fill="#ffffff" stroke="#bfdbfe" stroke-width="2"/>
+  <rect x="42" y="118" width="248" height="56" rx="8" fill="#eff6ff" stroke="#bfdbfe" stroke-width="2"/>
+  <text x="166" y="153" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" font-weight="700" fill="#1d4ed8">Host</text>
+  <text x="70" y="214" font-family="Arial, sans-serif" font-size="16" font-weight="700" fill="#0f172a">FastAPI / CLI</text>
+  <text x="70" y="250" font-family="Arial, sans-serif" font-size="14" fill="#334155">GET /mcp/servers</text>
+  <text x="70" y="282" font-family="Arial, sans-serif" font-size="14" fill="#334155">GET /mcp/tools</text>
+  <text x="70" y="314" font-family="Arial, sans-serif" font-size="14" fill="#334155">POST /mcp/call</text>
+  <rect x="70" y="354" width="192" height="106" rx="8" fill="#f8fafc" stroke="#cbd5e1"/>
+  <text x="88" y="382" font-family="Arial, sans-serif" font-size="14" font-weight="700" fill="#334155">显式调用</text>
+  <text x="88" y="410" font-family="Arial, sans-serif" font-size="13" fill="#64748b">server_name</text>
+  <text x="88" y="434" font-family="Arial, sans-serif" font-size="13" fill="#64748b">tool_name + arguments</text>
+  <text x="70" y="510" font-family="Arial, sans-serif" font-size="13" fill="#64748b">本版不让 LLM 自动选 Tool</text>
+
+  <rect x="352" y="118" width="536" height="430" rx="8" fill="#ffffff" stroke="#bbf7d0" stroke-width="2"/>
+  <rect x="352" y="118" width="536" height="56" rx="8" fill="#f0fdf4" stroke="#bbf7d0" stroke-width="2"/>
+  <text x="620" y="153" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" font-weight="700" fill="#047857">MCP Client + Adapter</text>
+
+  <circle cx="404" cy="226" r="21" fill="#dcfce7" stroke="#22c55e" stroke-width="2"/>
+  <text x="404" y="233" text-anchor="middle" font-family="Arial, sans-serif" font-size="15" font-weight="700" fill="#166534">1</text>
+  <rect x="444" y="196" width="382" height="60" rx="8" fill="#ffffff" stroke="#86efac" stroke-width="2"/>
+  <text x="466" y="221" font-family="Arial, sans-serif" font-size="16" font-weight="700" fill="#166534">stdio_client + initialize</text>
+  <text x="466" y="243" font-family="Arial, sans-serif" font-size="13" fill="#475569">启动子进程，协商 MCP protocol version</text>
+
+  <circle cx="404" cy="316" r="21" fill="#fef9c3" stroke="#eab308" stroke-width="2"/>
+  <text x="404" y="323" text-anchor="middle" font-family="Arial, sans-serif" font-size="15" font-weight="700" fill="#854d0e">2</text>
+  <rect x="444" y="286" width="382" height="60" rx="8" fill="#ffffff" stroke="#fde047" stroke-width="2"/>
+  <text x="466" y="311" font-family="Arial, sans-serif" font-size="16" font-weight="700" fill="#854d0e">tools/list</text>
+  <text x="466" y="333" font-family="Arial, sans-serif" font-size="13" fill="#475569">读取名称、描述、inputSchema 和 annotations</text>
+
+  <circle cx="404" cy="406" r="21" fill="#ffedd5" stroke="#fb923c" stroke-width="2"/>
+  <text x="404" y="413" text-anchor="middle" font-family="Arial, sans-serif" font-size="15" font-weight="700" fill="#9a3412">3</text>
+  <rect x="444" y="376" width="382" height="60" rx="8" fill="#ffffff" stroke="#fdba74" stroke-width="2"/>
+  <text x="466" y="401" font-family="Arial, sans-serif" font-size="16" font-weight="700" fill="#9a3412">tools/call</text>
+  <text x="466" y="423" font-family="Arial, sans-serif" font-size="13" fill="#475569">发送 arguments，接收 Content Blocks / isError</text>
+
+  <circle cx="404" cy="496" r="21" fill="#ede9fe" stroke="#8b5cf6" stroke-width="2"/>
+  <text x="404" y="503" text-anchor="middle" font-family="Arial, sans-serif" font-size="15" font-weight="700" fill="#6d28d9">4</text>
+  <rect x="444" y="466" width="382" height="60" rx="8" fill="#ffffff" stroke="#c4b5fd" stroke-width="2"/>
+  <text x="466" y="491" font-family="Arial, sans-serif" font-size="16" font-weight="700" fill="#6d28d9">Schema / Result Adapter</text>
+  <text x="466" y="513" font-family="Arial, sans-serif" font-size="13" fill="#475569">转换为稳定 ToolDefinition、ToolResult 和 trace</text>
+
+  <path d="M404 247 L404 295" stroke="#475569" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+  <path d="M404 337 L404 385" stroke="#475569" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+  <path d="M404 427 L404 475" stroke="#475569" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+
+  <rect x="950" y="118" width="288" height="200" rx="8" fill="#ffffff" stroke="#fed7aa" stroke-width="2"/>
+  <rect x="950" y="118" width="288" height="56" rx="8" fill="#fff7ed" stroke="#fed7aa" stroke-width="2"/>
+  <text x="1094" y="153" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" font-weight="700" fill="#c2410c">Demo MCP Server</text>
+  <text x="978" y="214" font-family="Arial, sans-serif" font-size="15" font-weight="700" fill="#0f172a">只读测试 Tools</text>
+  <text x="978" y="248" font-family="Arial, sans-serif" font-size="13" fill="#475569">lookup_food_temperature</text>
+  <text x="978" y="276" font-family="Arial, sans-serif" font-size="13" fill="#475569">get_server_time</text>
+
+  <rect x="950" y="348" width="288" height="200" rx="8" fill="#ffffff" stroke="#ddd6fe" stroke-width="2"/>
+  <rect x="950" y="348" width="288" height="56" rx="8" fill="#f5f3ff" stroke="#ddd6fe" stroke-width="2"/>
+  <text x="1094" y="383" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" font-weight="700" fill="#6d28d9">RAG MCP Server</text>
+  <text x="978" y="444" font-family="Arial, sans-serif" font-size="15" font-weight="700" fill="#0f172a">现有能力对外暴露</text>
+  <text x="978" y="478" font-family="Arial, sans-serif" font-size="13" fill="#475569">search_notes</text>
+  <text x="978" y="506" font-family="Arial, sans-serif" font-size="13" fill="#475569">list_collections</text>
+
+  <path d="M290 330 L352 330" stroke="#475569" stroke-width="2.5" fill="none" marker-end="url(#arrow)"/>
+  <path d="M888 256 L950 218" stroke="#475569" stroke-width="2.5" fill="none" marker-end="url(#arrow)"/>
+  <path d="M888 410 L950 448" stroke="#475569" stroke-width="2.5" fill="none" marker-end="url(#arrow)"/>
+  <text x="920" y="322" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#64748b">stdio</text>
+
+  <rect x="126" y="604" width="1028" height="100" rx="8" fill="#fff1f2" stroke="#fda4af" stroke-width="2" stroke-dasharray="7 6"/>
+  <text x="640" y="638" text-anchor="middle" font-family="Arial, sans-serif" font-size="17" font-weight="700" fill="#be123c">V3.12 的安全边界</text>
+  <text x="640" y="668" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#475569">只读 MCP Tool；没有 allow / confirm / deny，没有宿主机 Shell，没有 Skill script 执行</text>
+  <text x="640" y="692" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" fill="#64748b">V3.13 Permission Policy -> V3.14 Sandbox Execution</text>
+
+  <path d="M1094 548 C1094 580 1034 596 968 618" stroke="#94a3b8" stroke-width="2" fill="none" stroke-dasharray="6 6" marker-end="url(#soft-arrow)"/>
+</svg>
