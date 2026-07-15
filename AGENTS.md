@@ -1,3 +1,5 @@
+@RTK.md
+
 # AGENTS.md
 
 # 禁用superpowers skill（十分重要， 仅在用户明确要求才启用）
@@ -6,7 +8,7 @@
 
 - 默认用中文回答。
 - 命令、文件名、配置项、API 名称保留英文原文。
-- 解释学习概念时优先结合本仓库已有版本：`v0`、`v1`、`v2`、`v3`、`v3_1`、`v3_2`、`v3_3`、`v3_4`、`v3_5`、`v3_6`、`v3_7`、`v3_8`、`v3_8_1`、`v3_9`、`v3_10`、`v3_10_1`。
+- 解释学习概念时优先结合本仓库已有版本：`v0`、`v1`、`v2`、`v3`、`v3_1`、`v3_2`、`v3_3`、`v3_4`、`v3_5`、`v3_6`、`v3_7`、`v3_8`、`v3_8_1`、`v3_9`、`v3_10`、`v3_10_1`、`v3_10_2`、`v3_10_3`、`v3_11`。
 
 ## 提交习惯
 
@@ -46,6 +48,7 @@ docs/harness-learning-roadmap.md
 - 当前优先返回 JSON response。
 - 暂不默认实现 SSE，除非用户明确要求。
 - Swagger payload 要在文档中给出可直接测试的示例。
+- 实施或修改版本后不要自动启动 Swagger/API 服务，由用户自主启动和调试；除非用户明确要求启动服务。
 
 ## 版本边界
 
@@ -71,38 +74,37 @@ docs/assets/rag-v3-4-planner-flow.svg
 已完成到：
 
 ```text
-V3.10.2 Run Event Streaming
+V3.11 Skill System
 ```
 
-当前 V3.10.2 在复用的 V3.10.1 Vue 3 会话工作台上增加 SSE 运行事件：
+V3.11 在已有 V3.8.1 Agentic RAG 前增加 Skill Registry、LLM Skill Router 和渐进式加载：
 
 ```text
-Vue Agent Console -> /api proxy -> V3.10.2 FastAPI
-                  -> EventBus / SSE -> V3.8.1 AgentService.ask_with_events()
-                  -> ProductionAskResponse -> Chat / Run Inspector
+Skill Registry -> Skill Router -> load selected SKILL.md
+               -> SkillAwarePlannerService -> V3.8.1 Agentic RAG
+               -> Production Run / JSON / SSE
 ```
 
-V3.10.2 会：
+V3.11 已完成：
 
-- 复用 `frontend/v3_10_1_agent_console/` 的 Vite + Vue 3 + TypeScript Agent Console。
-- 用 SSE 实时消费 Run、节点、工具和 trace 事实，并在终态事件中接收完整 `ProductionAskResponse`。
-- 通过 `localStorage` 保存浏览器近期会话，并通过 `/console/conversations/{conversation_id}` 读取 SQLite Memory 快照。
-- 保留 Swagger JSON、CLI 和 V3.10 Runtime；不改 Planner、Tool、Memory 或 Prompt 策略。
-- 使用 Vite `/api` proxy 指向 `127.0.0.1:8014`，开发环境不需要新增 CORS。
+- 在 `skills/` 提供 `SKILL.md` 示例，并只在 Registry 阶段读取 front matter 元数据。
+- LLM Router 选择零个或一个 Skill；支持 `no_skill`、`disabled`、`forced`、`invalid_selection` 和 `router_error` 分支。
+- 选中的 Skill 正文才会加载，并通过 `SkillAwarePlannerService` 注入 Planner；Skill 不执行 Tool。
+- 提供独立 `obsidian_rag/v3_11/`、FastAPI Swagger、`/agent/ask`、`/agent/ask/stream`、CLI 和 `launch.json`。
+- 复用 V3.10 Run Store、V3.10.2 EventBus/SSE 和 V3.8.1 的 RAG、Evidence、Context、Memory 主链路。
+- 补充学习文档、文件职责、Swagger payload、正常/条件分支、断点说明和 SVG 流程图。
 
-V3.10.2 仍然不做：
+V3.11 仍然不做：
 
-- 不展示 chain-of-thought，不展示模型隐藏推理。
-- 当前只做节点级事件流，不做 LLM token-by-token 生成。
-- 不做多用户会话管理、Run 持久化或新的 Agent 推理策略。
+- 不接 MCP、Permission、Sandbox、Shell 或文件写入。
+- 不展示 chain-of-thought，不让 Skill 绕过 `ToolRegistry`。
+- 不重写 V3.8.1 Agent，也不把 Skill 误当成 Tool Calling。
 
-下一阶段建议：
+V3.10.3 已完成，是额外的 LangGraph Advanced Patterns 学习版本，保留为独立目录和端口，不改变 V3.11 主线。下一阶段建议：
 
 ```text
-V3.10.3 LangGraph Advanced Patterns
+V3.12 MCP Integration
 ```
-
-V3.10.3 将学习 Subgraph、Parallel/Send、Command、Retry Policy、State History 和 messages 流；JSON 与 SSE 接口继续保留。
 
 ## CodeGraph
 
@@ -112,5 +114,3 @@ In repositories indexed by CodeGraph (a `.codegraph/` directory exists at the re
 - **Shell** (always works): `codegraph explore "<symbol names or question>"` prints the same output.
 
 If there is no `.codegraph/` directory, skip CodeGraph entirely — indexing is the user's decision.
-
-@RTK.md

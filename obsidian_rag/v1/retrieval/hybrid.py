@@ -42,6 +42,9 @@ def reciprocal_rank_fusion(
 
 def _result_key(result: SearchResult) -> str:
     metadata = result.chunk.metadata
+    node_id = metadata.get("node_id")
+    if node_id:
+        return f"node_id:{node_id}"
     chunk_id = metadata.get("chunk_id")
     if chunk_id:
         return f"chunk_id:{chunk_id}"

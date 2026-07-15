@@ -2,6 +2,113 @@
 	"version": "0.2.0",
 	"configurations": [
 		{
+			"name": "V3.10.3 API server: LangGraph Advanced Patterns",
+			"type": "debugpy",
+			"request": "launch",
+			"module": "uvicorn",
+			"console": "integratedTerminal",
+			"cwd": "${workspaceFolder}",
+			"python": "${workspaceFolder}/.venv/bin/python",
+			"envFile": "${workspaceFolder}/.env",
+			"args": [
+				"obsidian_rag.v3_10_3.app:app",
+				"--host",
+				"127.0.0.1",
+				"--port",
+				"8015"
+			],
+			"justMyCode": true
+		},
+		{
+			"name": "V3.10.3 SSE: parallel Send + RetryPolicy",
+			"type": "debugpy",
+			"request": "launch",
+			"module": "obsidian_rag.cli",
+			"console": "integratedTerminal",
+			"cwd": "${workspaceFolder}",
+			"python": "${workspaceFolder}/.venv/bin/python",
+			"envFile": "${workspaceFolder}/.env",
+			"args": [
+				"agent-v3-10-3",
+				"ask",
+				"帮我总结生鸡肉处理、厨房清洁、剩菜保存三类食品安全建议",
+				"--conversation-id",
+				"conv_v3103_learning",
+				"--thread-id",
+				"thread_v3103_parallel_retry",
+				"--max-steps",
+				"6",
+				"--simulate-transient-search-failure",
+				"--api-base",
+				"http://127.0.0.1:8015"
+			],
+			"justMyCode": true
+		},
+		{
+			"name": "V3.10.3 JSON: memory first turn",
+			"type": "debugpy",
+			"request": "launch",
+			"module": "obsidian_rag.cli",
+			"console": "integratedTerminal",
+			"cwd": "${workspaceFolder}",
+			"python": "${workspaceFolder}/.venv/bin/python",
+			"envFile": "${workspaceFolder}/.env",
+			"args": [
+				"agent-v3-10-3",
+				"ask",
+				"食品温度计怎么使用？",
+				"--conversation-id",
+				"conv_v3103_learning",
+				"--thread-id",
+				"thread_v3103_first",
+				"--json",
+				"--api-base",
+				"http://127.0.0.1:8015"
+			],
+			"justMyCode": true
+		},
+		{
+			"name": "V3.10.3 JSON: memory follow-up turn",
+			"type": "debugpy",
+			"request": "launch",
+			"module": "obsidian_rag.cli",
+			"console": "integratedTerminal",
+			"cwd": "${workspaceFolder}",
+			"python": "${workspaceFolder}/.venv/bin/python",
+			"envFile": "${workspaceFolder}/.env",
+			"args": [
+				"agent-v3-10-3",
+				"ask",
+				"那测鸡肉时应该插在哪里？",
+				"--conversation-id",
+				"conv_v3103_learning",
+				"--thread-id",
+				"thread_v3103_follow_up",
+				"--json",
+				"--api-base",
+				"http://127.0.0.1:8015"
+			],
+			"justMyCode": true
+		},
+		{
+			"name": "V3.10.3 CLI: state history",
+			"type": "debugpy",
+			"request": "launch",
+			"module": "obsidian_rag.cli",
+			"console": "integratedTerminal",
+			"cwd": "${workspaceFolder}",
+			"python": "${workspaceFolder}/.venv/bin/python",
+			"envFile": "${workspaceFolder}/.env",
+			"args": [
+				"agent-v3-10-3",
+				"history",
+				"thread_v3103_first",
+				"--api-base",
+				"http://127.0.0.1:8015"
+			],
+			"justMyCode": true
+		},
+		{
 			"name": "V3.10.2 API server: SSE event streaming",
 			"type": "debugpy",
 			"request": "launch",
@@ -685,6 +792,84 @@
 				"RAG_DEBUG_BREAKPOINTS": "ingest.after_load,ingest.after_chunks,ingest.after_embeddings,qdrant.before_upsert,ingest.after_upsert"
 			},
 			"args": ["ingest", "--recreate"],
+			"justMyCode": true
+		},
+		{
+			"name": "V3.11.1 API server: Docling Structured Ingestion",
+			"type": "debugpy",
+			"request": "launch",
+			"module": "uvicorn",
+			"console": "integratedTerminal",
+			"cwd": "${workspaceFolder}",
+			"python": "${workspaceFolder}/.venv/bin/python",
+			"envFile": "${workspaceFolder}/.env",
+			"args": ["obsidian_rag.v3_11_1.app:app", "--host", "127.0.0.1", "--port", "8016"],
+			"justMyCode": true
+		},
+		{
+			"name": "V3.11.1 CLI: Docling chunks preview",
+			"type": "debugpy",
+			"request": "launch",
+			"module": "obsidian_rag.cli",
+			"console": "integratedTerminal",
+			"cwd": "${workspaceFolder}",
+			"python": "${workspaceFolder}/.venv/bin/python",
+			"envFile": "${workspaceFolder}/.env",
+			"env": {
+				"RAG_DEBUG_BREAKPOINTS": "v3_11_1.chunks.after_docling"
+			},
+			"args": ["documents-v3-11-1", "chunks", "${workspaceFolder}/knowledge"],
+			"justMyCode": true
+		},
+		{
+			"name": "V3.11.1 CLI: recreate Docling index",
+			"type": "debugpy",
+			"request": "launch",
+			"module": "obsidian_rag.cli",
+			"console": "integratedTerminal",
+			"cwd": "${workspaceFolder}",
+			"python": "${workspaceFolder}/.venv/bin/python",
+			"envFile": "${workspaceFolder}/.env",
+			"env": {
+				"RAG_DOCUMENT_PARSER": "docling",
+				"RAG_DEBUG_BREAKPOINTS": "ingest.after_load,ingest.after_chunks,ingest.after_embeddings,qdrant.before_upsert,ingest.after_upsert"
+			},
+			"args": ["documents-v3-11-1", "ingest", "${workspaceFolder}/knowledge", "--recreate"],
+			"justMyCode": true
+		},
+		{
+			"name": "V3.11.2 API server: Chunking Framework Comparison",
+			"type": "debugpy",
+			"request": "launch",
+			"module": "uvicorn",
+			"console": "integratedTerminal",
+			"cwd": "${workspaceFolder}",
+			"python": "${workspaceFolder}/.venv/bin/python",
+			"envFile": "${workspaceFolder}/.env",
+			"args": ["obsidian_rag.v3_11_2.app:app", "--host", "127.0.0.1", "--port", "8017"],
+			"justMyCode": true
+		},
+		{
+			"name": "V3.11.2 CLI: LangChain vs LlamaIndex",
+			"type": "debugpy",
+			"request": "launch",
+			"module": "obsidian_rag.cli",
+			"console": "integratedTerminal",
+			"cwd": "${workspaceFolder}",
+			"python": "${workspaceFolder}/.venv/bin/python",
+			"envFile": "${workspaceFolder}/.env",
+			"env": {
+				"RAG_DEBUG_BREAKPOINTS": "v3_11_2.compare.after_docling,v3_11_2.compare.after_langchain,v3_11_2.compare.after_llama_hierarchical,v3_11_2.compare.after_llama_semantic"
+			},
+			"args": [
+				"chunking-v3-11-2",
+				"compare",
+				"部署失败时应该如何回滚？",
+				"--path",
+				"${workspaceFolder}/knowledge/manual.pdf",
+				"--top-k",
+				"4"
+			],
 			"justMyCode": true
 		}
 	]

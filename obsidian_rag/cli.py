@@ -49,6 +49,14 @@ from obsidian_rag.llm import OpenAIChatClient
 from obsidian_rag.v3_11.agent.service import SkillAgentService
 from obsidian_rag.v3_11.schemas import SkillAskRequest
 from obsidian_rag.v3_11.skills.registry import SkillRegistry
+from obsidian_rag.v3_11_1.schemas import (
+    DoclingIngestRequest,
+    DoclingPathRequest,
+    DoclingSearchRequest,
+)
+from obsidian_rag.v3_11_1.service import DoclingLearningService
+from obsidian_rag.v3_11_2.schemas import FrameworkCompareRequest
+from obsidian_rag.v3_11_2.service import FrameworkComparisonService
 
 
 def _add_production_ask_arguments(parser, memory_db_help: str) -> None:
@@ -239,6 +247,73 @@ def main() -> None:
     agent3102_ask_parser = agent3102_subparsers.add_parser("ask", help="Call the V3.10.2 SSE endpoint and print events")
     _add_production_ask_arguments(agent3102_ask_parser, "V3.10.2 SSE SQLite Memory DB path")
     agent3102_ask_parser.add_argument("--api-base", default="http://127.0.0.1:8014", help="V3.10.2 API base URL")
+
+    agent311_parser = subparsers.add_parser("agent-v3-11", help="Run V3.11 Skill System Agent")
+    agent311_subparsers = agent311_parser.add_subparsers(dest="agent311_command", required=True)
+    agent311_ask_parser = agent311_subparsers.add_parser(
+        "ask",
+        help="Discover Skills, route with LLM, lazy-load the selected SKILL.md, and run Agentic RAG",
+    )
+    _add_production_ask_arguments(agent311_ask_parser, "V3.11 Skill System MySQL Memory DB path")
+    agent311_ask_parser.add_argument("--skill-name", help="Force one Skill for deterministic debugging")
+    agent311_ask_parser.add_argument("--disable-skill-router", action="store_true")
+    agent311_ask_parser.add_argument("--skill-root", type=Path, default=Path("skills"))
+    agent311_skills_parser = agent311_subparsers.add_parser("skills", help="Inspect local Skill Registry")
+    agent311_skills_subparsers = agent311_skills_parser.add_subparsers(
+        dest="agent311_skills_command",
+        required=True,
+    )
+    agent311_list_parser = agent311_skills_subparsers.add_parser("list", help="List discovered Skill manifests")
+    agent311_list_parser.add_argument("--skill-root", type=Path, default=Path("skills"))
+
+    documents3111_parser = subparsers.add_parser(
+        "documents-v3-11-1",
+        help="Learn Docling conversion, HybridChunker and shared structured ingest",
+    )
+    documents3111_subparsers = documents3111_parser.add_subparsers(
+        dest="documents3111_command",
+        required=True,
+    )
+    documents3111_convert = documents3111_subparsers.add_parser("convert", help="Convert one file to DoclingDocument")
+    documents3111_convert.add_argument("path", type=Path, nargs="?")
+    documents3111_chunks = documents3111_subparsers.add_parser("chunks", help="Preview Docling HybridChunker output")
+    documents3111_chunks.add_argument("path", type=Path, nargs="?")
+    documents3111_ingest = documents3111_subparsers.add_parser("ingest", help="Rebuild shared Qdrant with Docling chunks")
+    documents3111_ingest.add_argument("path", type=Path, nargs="?")
+    documents3111_ingest.add_argument("--recreate", action="store_true")
+    documents3111_search = documents3111_subparsers.add_parser("search", help="Search the shared Docling index")
+    documents3111_search.add_argument("query")
+    documents3111_search.add_argument("--top-k", type=int, default=5)
+    documents3111_search.add_argument("--mode", choices=["dense", "keyword", "hybrid"], default="hybrid")
+
+    chunking3112_parser = subparsers.add_parser(
+        "chunking-v3-11-2",
+        help="Compare LangChain and LlamaIndex chunking/retrieval strategies",
+    )
+    chunking3112_subparsers = chunking3112_parser.add_subparsers(dest="chunking3112_command", required=True)
+    chunking3112_compare = chunking3112_subparsers.add_parser("compare", help="Run all three request-scoped strategies")
+    chunking3112_compare.add_argument("query")
+    chunking3112_compare.add_argument("--path", type=Path)
+    chunking3112_compare.add_argument("--top-k", type=int, default=4)
+    chunking3112_compare.add_argument("--langchain-parent-chars", type=int, default=2000)
+    chunking3112_compare.add_argument("--langchain-child-chars", type=int, default=400)
+    chunking3112_compare.add_argument("--llama-parent-tokens", type=int, default=1024)
+    chunking3112_compare.add_argument("--llama-child-tokens", type=int, default=256)
+    chunking3112_compare.add_argument("--semantic-breakpoint-percentile", type=int, default=95)
+
+    agent3103_parser = subparsers.add_parser("agent-v3-10-3", help="Run V3.10.3 LangGraph Advanced Patterns")
+    agent3103_subparsers = agent3103_parser.add_subparsers(dest="agent3103_command", required=True)
+    agent3103_ask_parser = agent3103_subparsers.add_parser("ask", help="Call the Advanced Graph JSON or SSE endpoint")
+    _add_production_ask_arguments(agent3103_ask_parser, "已迁移到 MySQL，此参数仅为旧 CLI 兼容保留")
+    agent3103_ask_parser.add_argument("--thread-id", help="LangGraph Checkpointer thread_id")
+    agent3103_ask_parser.add_argument("--max-parallel-searches", type=int, default=4)
+    agent3103_ask_parser.add_argument("--simulate-transient-search-failure", action="store_true")
+    agent3103_ask_parser.add_argument("--json", action="store_true", help="使用同步 JSON 接口而不是 SSE")
+    agent3103_ask_parser.add_argument("--api-base", default="http://127.0.0.1:8015")
+    agent3103_history_parser = agent3103_subparsers.add_parser("history", help="Read LangGraph State History")
+    agent3103_history_parser.add_argument("thread_id")
+    agent3103_history_parser.add_argument("--limit", type=int, default=20)
+    agent3103_history_parser.add_argument("--api-base", default="http://127.0.0.1:8015")
 
     args = parser.parse_args()
     config = load_config()
@@ -472,6 +547,89 @@ def main() -> None:
             filter_path=args.filter_path,
             context_max_chunks=args.context_max_chunks,
             context_token_budget=args.context_token_budget,
+            api_base=args.api_base,
+        )
+        return
+
+    if args.command == "agent-v3-11" and args.agent311_command == "ask":
+        run_agent311_ask(
+            question=args.question,
+            config=config,
+            conversation_id=args.conversation_id,
+            memory_window=args.memory_window,
+            memory_compaction_enabled=not args.disable_memory_compaction,
+            memory_compaction_trigger_turns=args.memory_compaction_trigger_turns,
+            memory_compaction_trigger_tokens=args.memory_compaction_trigger_tokens,
+            top_k=args.top_k,
+            mode=args.mode,
+            max_steps=args.max_steps,
+            max_retries=args.max_retries,
+            filter_path=args.filter_path,
+            context_max_chunks=args.context_max_chunks,
+            context_token_budget=args.context_token_budget,
+            skill_name=args.skill_name,
+            skill_router_enabled=not args.disable_skill_router,
+            skill_root=args.skill_root,
+        )
+        return
+
+    if args.command == "agent-v3-11" and args.agent311_command == "skills" and args.agent311_skills_command == "list":
+        run_agent311_list(args.skill_root)
+        return
+
+    if args.command == "documents-v3-11-1":
+        run_documents3111(
+            command=args.documents3111_command,
+            config=config,
+            path=getattr(args, "path", None),
+            recreate=getattr(args, "recreate", False),
+            query=getattr(args, "query", None),
+            top_k=getattr(args, "top_k", 5),
+            mode=getattr(args, "mode", "hybrid"),
+        )
+        return
+
+    if args.command == "chunking-v3-11-2" and args.chunking3112_command == "compare":
+        run_chunking3112_compare(
+            config=config,
+            query=args.query,
+            path=args.path,
+            top_k=args.top_k,
+            langchain_parent_chars=args.langchain_parent_chars,
+            langchain_child_chars=args.langchain_child_chars,
+            llama_parent_tokens=args.llama_parent_tokens,
+            llama_child_tokens=args.llama_child_tokens,
+            semantic_breakpoint_percentile=args.semantic_breakpoint_percentile,
+        )
+        return
+
+    if args.command == "agent-v3-10-3" and args.agent3103_command == "ask":
+        run_agent3103_ask(
+            question=args.question,
+            conversation_id=args.conversation_id,
+            memory_window=args.memory_window,
+            memory_compaction_enabled=not args.disable_memory_compaction,
+            memory_compaction_trigger_turns=args.memory_compaction_trigger_turns,
+            memory_compaction_trigger_tokens=args.memory_compaction_trigger_tokens,
+            top_k=args.top_k,
+            mode=args.mode,
+            max_steps=args.max_steps,
+            max_retries=args.max_retries,
+            filter_path=args.filter_path,
+            context_max_chunks=args.context_max_chunks,
+            context_token_budget=args.context_token_budget,
+            thread_id=args.thread_id,
+            max_parallel_searches=args.max_parallel_searches,
+            simulate_transient_search_failure=args.simulate_transient_search_failure,
+            stream=not args.json,
+            api_base=args.api_base,
+        )
+        return
+
+    if args.command == "agent-v3-10-3" and args.agent3103_command == "history":
+        run_agent3103_history(
+            thread_id=args.thread_id,
+            limit=args.limit,
             api_base=args.api_base,
         )
         return
@@ -1253,6 +1411,263 @@ def run_agent3102_stream(
                 if final_response:
                     print("\nAnswer:")
                     print(final_response.get("answer", "").strip())
+
+
+def run_chunking3112_compare(
+    config: RagConfig,
+    query: str,
+    path: Path | None = None,
+    top_k: int = 4,
+    langchain_parent_chars: int = 2000,
+    langchain_child_chars: int = 400,
+    llama_parent_tokens: int = 1024,
+    llama_child_tokens: int = 256,
+    semantic_breakpoint_percentile: int = 95,
+    service: FrameworkComparisonService | None = None,
+) -> None:
+    """运行 V3.11.2 三框架策略对比并打印统一 JSON。"""
+
+    service = service or FrameworkComparisonService(config)
+    response = service.compare(
+        FrameworkCompareRequest(
+            path=str(path) if path else None,
+            query=query,
+            top_k=top_k,
+            langchain_parent_chars=langchain_parent_chars,
+            langchain_child_chars=langchain_child_chars,
+            llama_parent_tokens=llama_parent_tokens,
+            llama_child_tokens=llama_child_tokens,
+            semantic_breakpoint_percentile=semantic_breakpoint_percentile,
+        )
+    )
+    print(response.model_dump_json(indent=2))
+
+
+def run_documents3111(
+    command: str,
+    config: RagConfig,
+    path: Path | None = None,
+    recreate: bool = False,
+    query: str | None = None,
+    top_k: int = 5,
+    mode: SearchMode = "hybrid",
+    service: DoclingLearningService | None = None,
+) -> None:
+    """运行 V3.11.1 Docling 学习入口，并打印结构化 JSON。"""
+
+    service = service or DoclingLearningService(config)
+    path_value = str(path) if path else None
+    if command == "convert":
+        response = service.convert(DoclingPathRequest(path=path_value))
+    elif command == "chunks":
+        response = service.chunks(DoclingPathRequest(path=path_value))
+    elif command == "ingest":
+        response = service.ingest(DoclingIngestRequest(path=path_value, recreate=recreate))
+    elif command == "search" and query:
+        response = service.search(DoclingSearchRequest(query=query, top_k=top_k, mode=mode))
+    else:
+        raise ValueError(f"Unsupported V3.11.1 command: {command}")
+    print(response.model_dump_json(indent=2))
+
+
+def run_agent311_list(skill_root: Path) -> None:
+    """打印 V3.11 Registry 发现的 Skill 元数据，不加载正文。"""
+
+    registry = SkillRegistry(skill_root)
+    manifests = registry.discover()
+    print(f"Skill root: {registry.root}")
+    print(f"Discovered: {len(manifests)}")
+    for manifest in manifests:
+        print(f"- {manifest.name} v{manifest.version} | {manifest.description}")
+        if manifest.triggers:
+            print(f"  triggers: {', '.join(manifest.triggers)}")
+    if registry.errors:
+        print("Errors:")
+        for error in registry.errors:
+            print(f"- {error}")
+
+
+def run_agent311_ask(
+    question: str,
+    config: RagConfig,
+    conversation_id: str | None = None,
+    memory_window: int = 3,
+    memory_compaction_enabled: bool = True,
+    memory_compaction_trigger_turns: int = 4,
+    memory_compaction_trigger_tokens: int = 3000,
+    top_k: int = 5,
+    mode: SearchMode = "hybrid",
+    max_steps: int = 4,
+    max_retries: int = 1,
+    filter_path: str | None = None,
+    context_max_chunks: int = 6,
+    context_token_budget: int = 4000,
+    skill_name: str | None = None,
+    skill_router_enabled: bool = True,
+    skill_root: Path = Path("skills"),
+    agent_service=None,
+) -> None:
+    """直接运行 V3.11 Skill Agent，打印 Skill 层和底层 Agent 事实。"""
+
+    if agent_service is None:
+        registry = SkillRegistry(skill_root)
+        registry.discover()
+        agent = SkillAgentService(
+            retrieval_service=RetrievalService(config),
+            registry=registry,
+            chat_client_factory=lambda: OpenAIChatClient(
+                api_key=config.api_key,
+                base_url=config.base_url,
+                model=config.chat_model,
+            ),
+            memory_store=MySQLConversationMemoryStore(),
+        )
+    else:
+        agent = agent_service
+
+    response = agent.ask(
+        SkillAskRequest(
+            question=question,
+            conversation_id=conversation_id,
+            memory_window=memory_window,
+            memory_compaction_enabled=memory_compaction_enabled,
+            memory_compaction_trigger_turns=memory_compaction_trigger_turns,
+            memory_compaction_trigger_tokens=memory_compaction_trigger_tokens,
+            top_k=top_k,
+            mode=mode,
+            filters=SearchFilters(path=filter_path) if filter_path else None,
+            max_steps=max_steps,
+            max_retries=max_retries,
+            context_max_chunks=context_max_chunks,
+            context_token_budget=context_token_budget,
+            skill_name=skill_name,
+            skill_router_enabled=skill_router_enabled,
+        )
+    )
+    selection = response.skill_selection
+    print(f"Skill: {selection.status} | {selection.selected_skill or '-'}")
+    print(f"Reason: {selection.reason}")
+    if response.loaded_skill:
+        print(
+            f"Loaded: {response.loaded_skill.name} | {response.loaded_skill.path} | "
+            f"estimated_tokens={response.loaded_skill.estimated_tokens}"
+        )
+    print(f"\nAnswer:\n{response.agent_response.answer.strip()}")
+    if response.agent_response.sources:
+        _print_sources(response.agent_response.sources)
+    print("\nSkill graph path:")
+    print(" -> ".join(response.graph_path))
+    print("\nSkill trace:")
+    for index, event in enumerate(response.trace, start=1):
+        selected = f" | skill={event.selected_skill}" if event.selected_skill else ""
+        print(f"{index}. {event.node_name}:{event.event_type}{selected} | {event.reason}")
+
+
+def run_agent3103_ask(
+    question: str,
+    conversation_id: str | None = None,
+    memory_window: int = 3,
+    memory_compaction_enabled: bool = True,
+    memory_compaction_trigger_turns: int = 4,
+    memory_compaction_trigger_tokens: int = 3000,
+    top_k: int = 5,
+    mode: SearchMode = "hybrid",
+    max_steps: int = 4,
+    max_retries: int = 1,
+    filter_path: str | None = None,
+    context_max_chunks: int = 6,
+    context_token_budget: int = 4000,
+    thread_id: str | None = None,
+    max_parallel_searches: int = 4,
+    simulate_transient_search_failure: bool = False,
+    stream: bool = True,
+    api_base: str = "http://127.0.0.1:8015",
+) -> None:
+    """调用 V3.10.3 Advanced Graph，并打印 messages/custom/updates 事件。"""
+
+    payload = {
+        "question": question,
+        "conversation_id": conversation_id,
+        "memory_window": memory_window,
+        "memory_compaction_enabled": memory_compaction_enabled,
+        "memory_compaction_trigger_turns": memory_compaction_trigger_turns,
+        "memory_compaction_trigger_tokens": memory_compaction_trigger_tokens,
+        "top_k": top_k,
+        "mode": mode,
+        "filters": {"path": filter_path} if filter_path else None,
+        "max_steps": max_steps,
+        "max_retries": max_retries,
+        "context_max_chunks": context_max_chunks,
+        "context_token_budget": context_token_budget,
+        "thread_id": thread_id,
+        "max_parallel_searches": max_parallel_searches,
+        "simulate_transient_search_failure": simulate_transient_search_failure,
+    }
+    base = api_base.rstrip("/")
+    if not stream:
+        response = httpx.post(f"{base}/advanced/ask", json=payload, timeout=None)
+        response.raise_for_status()
+        result = response.json()
+        print(f"Run: {result['run_id']} | Thread: {result['thread_id']}")
+        print(result["answer"].strip())
+        print("Graph path: " + " -> ".join(result.get("graph_path", [])))
+        return
+
+    current_event = "message"
+    answer_started = False
+    with httpx.stream(
+        "POST",
+        f"{base}/advanced/ask/stream",
+        json=payload,
+        headers={"Accept": "text/event-stream"},
+        timeout=None,
+    ) as response:
+        response.raise_for_status()
+        print("V3.10.3 LangGraph stream")
+        for line in response.iter_lines():
+            if line.startswith("event:"):
+                current_event = line.split(":", 1)[1].strip()
+                continue
+            if not line.startswith("data:"):
+                continue
+            event = json.loads(line.split(":", 1)[1].strip())
+            data = event.get("data", {})
+            if current_event == "answer_delta":
+                if not answer_started:
+                    print("\nAnswer stream:")
+                    answer_started = True
+                print(data.get("delta", ""), end="", flush=True)
+                continue
+            if answer_started:
+                print()
+                answer_started = False
+            print(f"- {current_event}: {event.get('detail', '')}")
+            if current_event == "run_succeeded":
+                final_response = data.get("response", {})
+                print(f"Thread: {final_response.get('thread_id', '-')}")
+
+
+def run_agent3103_history(
+    thread_id: str,
+    limit: int = 20,
+    api_base: str = "http://127.0.0.1:8015",
+) -> None:
+    """读取 V3.10.3 InMemorySaver 的轻量 State History。"""
+
+    response = httpx.get(
+        f"{api_base.rstrip('/')}/advanced/history/{thread_id}",
+        params={"limit": limit},
+        timeout=30,
+    )
+    response.raise_for_status()
+    payload = response.json()
+    print(f"Thread: {payload['thread_id']} | checkpoints={len(payload['entries'])}")
+    for entry in payload["entries"]:
+        print(
+            f"- checkpoint={entry.get('checkpoint_id') or '-'} "
+            f"next={','.join(entry.get('next_nodes', [])) or '-'} "
+            f"path={len(entry.get('graph_path', []))}"
+        )
 
 
 def run_agent381_compact(

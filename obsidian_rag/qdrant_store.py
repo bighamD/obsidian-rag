@@ -92,6 +92,9 @@ class QdrantVectorStore:
 
 
 def _stable_point_key(chunk: TextChunk) -> str:
+    node_id = chunk.metadata.get("node_id")
+    if node_id:
+        return str(node_id)
     source = chunk.metadata.get("source", "")
     chunk_index = chunk.metadata.get("chunk_index", "")
     return f"{source}:{chunk_index}:{chunk.text[:80]}"

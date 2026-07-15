@@ -101,7 +101,10 @@ def keyword_index_path(db_path: Path) -> Path:
 
 
 def _searchable_text(item: KeywordIndexItem) -> str:
-    metadata_values = " ".join(str(value) for value in item.metadata.values() if value is not None)
+    hidden_keys = {"docling", "raw_chunk_text", "parent_text", "matched_child_text", "pages"}
+    metadata_values = " ".join(
+        str(value) for key, value in item.metadata.items() if key not in hidden_keys and value is not None
+    )
     return f"{metadata_values}\n{item.text}"
 
 
