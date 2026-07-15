@@ -2,11 +2,13 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from obsidian_rag.adaptive_chunking import ADAPTIVE_CHUNK_SCHEMA_VERSION, adaptive_parent_child_chunks
 from obsidian_rag.config import RagConfig, require_api_key
 from obsidian_rag.debugging import debug_breakpoint
-from obsidian_rag.docling_ingestion import DoclingIngestion
+from obsidian_rag.docling_ingestion import DOCLING_CHUNK_SCHEMA_VERSION, DoclingBatch, DoclingIngestion
 from obsidian_rag.embeddings import HashEmbeddingClient, OllamaEmbeddingClient, OpenAIEmbeddingClient
 from obsidian_rag.llm import OpenAIChatClient
+from obsidian_rag.parent_retrieval import expand_parent_results
 from obsidian_rag.prompting import build_rag_messages
 from obsidian_rag.qdrant_store import QdrantVectorStore
 from obsidian_rag.schema import SearchResult
@@ -52,11 +54,12 @@ def make_docling_ingestion(config: RagConfig) -> DoclingIngestion:
 
 
 def ingest_path(path: Path, config: RagConfig, recreate: bool = False) -> tuple[int, int]:
-    batch = make_docling_ingestion(config).convert_and_chunk_path(path)
+    ingestion = make_docling_ingestion(config)
+    batch = ingestion.convert_and_chunk_path(path)
     if batch.errors and not batch.conversions:
         raise RuntimeError("Docling failed to convert every document: " + "; ".join(batch.errors))
     document_count = len(batch.conversions)
-    chunks = batch.chunks
+    chunks = build_ingestion_chunks(batch, config, ingestion)
     debug_breakpoint(
         "ingest.after_load",
         path=path,
@@ -86,18 +89,50 @@ def ingest_path(path: Path, config: RagConfig, recreate: bool = False) -> tuple[
     return document_count, len(chunks)
 
 
-def search(query: str, config: RagConfig, top_k: int = 5) -> list[SearchResult]:
+def build_ingestion_chunks(batch: DoclingBatch, config: RagConfig, ingestion: DoclingIngestion) -> list:
+    if config.chunk_strategy == "docling_hybrid":
+        return batch.chunks
+    if config.chunk_strategy == "adaptive_parent_child":
+        return adaptive_parent_child_chunks(
+            batch,
+            ingestion.chunker.tokenizer.count_tokens,
+            parent_tokens=config.parent_chunk_tokens,
+            child_tokens=config.child_chunk_tokens,
+            child_overlap=config.child_chunk_overlap,
+        )
+    raise ValueError(f"Unsupported RAG_CHUNK_STRATEGY: {config.chunk_strategy}")
+
+
+def active_chunk_schema_version(config: RagConfig) -> str:
+    if config.chunk_strategy == "adaptive_parent_child":
+        return ADAPTIVE_CHUNK_SCHEMA_VERSION
+    if config.chunk_strategy == "docling_hybrid":
+        return DOCLING_CHUNK_SCHEMA_VERSION
+    raise ValueError(f"Unsupported RAG_CHUNK_STRATEGY: {config.chunk_strategy}")
+
+
+def search(query: str, config: RagConfig, top_k: int = 5, *, expand_parents: bool = True) -> list[SearchResult]:
     embeddings = make_embedding_client(config)
     store = make_store(config)
     try:
         store.ensure_collection(recreate=False)
         query_vector = embeddings.embed_query(query)
         debug_breakpoint("search.after_query_embedding", query=query, vector_dimensions=len(query_vector), vector_head=query_vector[:5])
-        results = store.search(query_vector, top_k=top_k)
+        recall_k = max(top_k * 3, top_k) if expand_parents else top_k
+        results = store.search(query_vector, top_k=recall_k)
     finally:
         store.close()
     debug_breakpoint("search.after_retrieval", query=query, result_count=len(results), first_result=results[0] if results else None)
-    return results
+    if not expand_parents:
+        return results
+    expanded = list(expand_parent_results(results, top_k))
+    debug_breakpoint(
+        "search.after_parent_expansion",
+        query=query,
+        result_count=len(expanded),
+        first_result=expanded[0] if expanded else None,
+    )
+    return expanded
 
 
 def answer(question: str, config: RagConfig, top_k: int = 5) -> tuple[str, list[SearchResult]]:

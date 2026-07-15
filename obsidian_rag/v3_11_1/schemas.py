@@ -36,26 +36,32 @@ class DoclingConvertResponse(BaseModel):
 
 
 class DoclingChunkView(BaseModel):
-    """Docling HybridChunker 原始 chunk 与 embedding 文本投影。"""
+    """Docling 解析后最终写入索引的 child 与 parent 调试投影。"""
 
     node_id: str = Field(description="映射到 Qdrant point 的稳定节点 ID。")
+    parent_id: str | None = Field(default=None, description="child 所属 parent ID；旧 HybridChunker 模式可能为空。")
+    child_index: int | None = Field(default=None, description="当前 child 在 parent 内的顺序。")
     source: str = Field(description="源文件路径。")
     chunk_id: str | None = Field(default=None, description="文档 YAML 或编号标题提供的业务引用 ID，例如 KB-072、VU-001。")
     heading_path: list[str] = Field(description="Docling meta 中的标题路径。")
     page_numbers: list[int] = Field(description="Docling provenance 中涉及的页码。")
     raw_text: str = Field(description="HybridChunker 产生的原始 chunk.text。")
-    contextualized_text: str = Field(description="HybridChunker.contextualize() 生成、实际用于 embedding 的文本。")
+    contextualized_text: str = Field(description="实际用于 embedding 的短 parent 或带标题路径 child 文本。")
+    parent_text: str = Field(description="检索命中 child 后最终返回给 LLM 的完整 parent 文本。")
     metadata: dict[str, Any] = Field(description="写入 Qdrant payload 的完整 metadata 调试投影。")
 
 
 class DoclingChunksResponse(BaseModel):
-    """只读转换与 HybridChunker 预览；不会写入索引。"""
+    """只读转换与最终摄取 chunks 预览；不会写入索引。"""
 
     documents: list[DoclingConversionSummary] = Field(description="成功转换的 DoclingDocument 摘要。")
     chunks: list[DoclingChunkView] = Field(description="生成的全部 Docling chunks。")
     errors: list[str] = Field(description="目录转换中跳过的失败文件和错误。")
     tokenizer_model: str = Field(description="HybridChunker 使用的 HuggingFace tokenizer。")
     max_tokens: int = Field(description="HybridChunker 的 token 上限。")
+    chunk_strategy: str = Field(description="docling_hybrid 或 adaptive_parent_child。")
+    parent_tokens: int = Field(description="adaptive parent 最大 token 数。")
+    child_tokens: int = Field(description="用于 embedding 的 child 最大 token 数。")
 
 
 class DoclingIngestRequest(BaseModel):
@@ -76,7 +82,7 @@ class DoclingIngestResponse(BaseModel):
     """共享 Qdrant/keyword index 写入结果。"""
 
     document_count: int = Field(description="Docling 成功转换的文档数。")
-    chunk_count: int = Field(description="写入索引的 HybridChunker chunk 数。")
+    chunk_count: int = Field(description="写入 Qdrant 的检索 child/point 数量。")
     parser: str = Field(description="共享 pipeline 固定使用的文档解析框架，当前为 docling。")
     chunk_schema_version: str = Field(description="写入 metadata 的 chunk schema 版本。")
     recreated: bool = Field(description="是否重建了 Qdrant collection。")
@@ -110,10 +116,13 @@ class DoclingSearchHit(BaseModel):
     source: str = Field(description="源文件路径。")
     score: float = Field(description="当前检索模式的排序分数。")
     node_id: str | None = Field(default=None, description="Docling chunk 映射后的节点 ID。")
+    parent_id: str | None = Field(default=None, description="命中 child 所属的 parent ID。")
     chunk_id: str | None = Field(default=None, description="知识库中可选的业务引用 ID，例如 KB-072、VU-001。")
     heading_path: list[str] = Field(description="标题路径。")
     page_numbers: list[int] = Field(description="页码定位。")
     contextualized_text: str = Field(description="检索命中的实际 embedding/context 文本。")
+    matched_child_text: str = Field(description="真正参与 dense/keyword 检索并命中的 child 文本。")
+    returned_parent_text: str = Field(description="按 parent_id 去重后最终返回的完整上下文。")
     raw_text: str = Field(description="HybridChunker 原始文本，仅用于对比调试。")
     metadata: dict[str, Any] = Field(description="完整 metadata。")
 
@@ -134,7 +143,10 @@ class DoclingRuntimeResponse(BaseModel):
     parser: str = Field(description="共享 V0 固定使用的文档解析框架，当前为 docling。")
     converter: str = Field(description="文档转换组件。")
     chunker: str = Field(description="切片组件。")
+    chunk_strategy: str = Field(description="当前摄取使用的切片策略。")
     tokenizer_model: str = Field(description="HybridChunker tokenizer。")
     max_tokens: int = Field(description="HybridChunker token 上限。")
+    parent_tokens: int = Field(description="adaptive parent 最大 token 数。")
+    child_tokens: int = Field(description="adaptive child 最大 token 数。")
     chunk_schema_version: str = Field(description="Docling chunk schema 版本。")
     semantic_chunking: bool = Field(description="是否包含语义切片；V3.11.1 固定为 false。")

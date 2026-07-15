@@ -250,6 +250,8 @@ VueUse 各章节使用高度重复的模板，纯语义切分容易把多个 Hoo
 
 V3.11.1 Qdrant 中的 point 数和这里的 child/leaf/node 数采用不同切片单位，不能直接用数量比较优劣。当前 V3.11.2 也尚未把 Docling HybridChunker 作为第四条 baseline。
 
+本次实验后的生产迁移结论已经落到 V3.11.1：保留 Docling Parser，以通用 `heading_path` 聚合形成 parent，复用 LangChain recursive splitter 处理超长内容，并在共享 Qdrant/keyword/hybrid 链路中执行 child 召回、parent 返回。V3.11.2 本身仍保持无持久化的比较实验。
+
 ## 如何判断哪个更适合
 
 不要只看 chunk 数。至少使用同一批 V2 问题对比：

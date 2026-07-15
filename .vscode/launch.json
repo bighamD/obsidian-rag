@@ -521,7 +521,7 @@
 			"envFile": "${workspaceFolder}/.env",
 			"env": {
 				"RAG_DOCUMENT_PARSER": "docling",
-				"RAG_DEBUG_BREAKPOINTS": "ingest.after_load,ingest.after_chunks,ingest.after_embeddings,qdrant.before_upsert,ingest.after_upsert"
+				"RAG_DEBUG_BREAKPOINTS": "ingest.after_load,adaptive.after_groups,adaptive.after_chunks,ingest.after_chunks,ingest.after_embeddings,qdrant.before_upsert,ingest.after_upsert"
 			},
 			"args": [
 				"documents-v3-11-1",
@@ -543,7 +543,7 @@
 			"python": "${workspaceFolder}/.venv/bin/python",
 			"envFile": "${workspaceFolder}/.env",
 			"env": {
-				"RAG_DEBUG_BREAKPOINTS": "search.after_query_embedding,qdrant.after_search,search.after_retrieval"
+				"RAG_DEBUG_BREAKPOINTS": "search.after_query_embedding,qdrant.after_search,search.after_retrieval,search.after_parent_expansion"
 			},
 			"args": ["documents-v3-11-1", "search", "核心结论是什么？", "--collection", "food_safety"],
 			"justMyCode": true

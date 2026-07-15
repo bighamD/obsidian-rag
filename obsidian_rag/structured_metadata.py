@@ -25,9 +25,15 @@ SYSTEM_METADATA_KEYS = {
     "chunk_index",
     "document_parser",
     "chunk_schema_version",
+    "chunk_strategy",
     "heading_path",
     "page_numbers",
     "raw_chunk_text",
+    "parent_id",
+    "parent_text",
+    "parent_token_count",
+    "child_index",
+    "child_token_count",
     "docling",
 }
 

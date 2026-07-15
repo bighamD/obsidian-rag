@@ -775,8 +775,10 @@ V3.11.1 是 V3.12 MCP 前的数据基础插入版本，不改变 V3.11 Skill Sys
 
 ```text
 multi-format files -> Docling DocumentConverter -> DoclingDocument
-                   -> HybridChunker -> TextChunk adapter
-                   -> existing Embedding / Qdrant / KeywordIndex
+                   -> HybridChunker atomic blocks + heading_path
+                   -> adaptive parent-child (default)
+                   -> child Embedding / Qdrant / KeywordIndex
+                   -> parent expansion
 ```
 
 学习重点：
@@ -784,13 +786,14 @@ multi-format files -> Docling DocumentConverter -> DoclingDocument
 - Docling 如何统一 PDF、Markdown、DOCX、PPTX、XLSX、HTML、CSV 和图片等输入。
 - `DoclingDocument`、layout/OCR/table/provenance metadata 的职责。
 - `HybridChunker` 如何结合文档结构与 tokenizer 上限。
-- `chunk.text` 与 `contextualize(chunk)` 的区别。
+- 为什么不能把每个 Docling block 一对一当成生产 chunk。
+- 如何通用合并同父小块、递归拆分超长 parent，并保持 child 召回、parent 返回。
 - 为什么框架输出仍需要映射到稳定的本地 `TextChunk` contract。
 
 版本边界：
 
-- 不自研 Document Tree、PDF Parser、OCR 或递归切片算法。
-- 不实现父子检索或语义切片；这些由 V3.11.2 对比。
+- 不自研 Document Tree、PDF Parser 或 OCR；超长文本切分复用 LangChain `RecursiveCharacterTextSplitter`。
+- V3.11.2 的 LangChain Parent 实验结论已经迁移到共享摄取/检索；LlamaIndex Hierarchical 与 Semantic 仍只保留实验。
 - 共享 V0 ingest 固定使用 Docling；旧 loader/字符切片不再作为运行时 backend，已有索引切换时需要 recreate。
 
 ### V3.11.2 Chunking Framework Comparison

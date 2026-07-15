@@ -58,6 +58,11 @@ class FakeAdapter:
                 "raw_chunk_text": "Safe handling.",
             },
         )
+        self.chunker = type(
+            "Chunker",
+            (),
+            {"tokenizer": type("Tokenizer", (), {"count_tokens": staticmethod(lambda text: len(text))})()},
+        )()
 
     def convert_file(self, path):
         return self.conversion
@@ -73,7 +78,8 @@ def test_service_and_api_preview_docling_chunks(tmp_path: Path):
 
     response = service.chunks(DoclingPathRequest(path=str(source)))
     assert response.documents[0].title == "Food"
-    assert response.chunks[0].raw_text == "Safe handling."
+    assert response.chunks[0].raw_text.endswith("Safe handling.")
+    assert response.chunks[0].parent_text == "# Food\n\nSafe handling."
 
     app.dependency_overrides[get_docling_service] = lambda: service
     try:
@@ -81,7 +87,8 @@ def test_service_and_api_preview_docling_chunks(tmp_path: Path):
     finally:
         app.dependency_overrides.clear()
     assert api_response.status_code == 200
-    assert api_response.json()["chunks"][0]["node_id"] == "n1"
+    assert api_response.json()["chunks"][0]["node_id"]
+    assert api_response.json()["chunks"][0]["parent_id"]
 
 
 def test_cli_prints_v3_11_1_json(tmp_path: Path, capsys):
