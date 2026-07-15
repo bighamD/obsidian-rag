@@ -11,6 +11,9 @@ from obsidian_rag.debugging import debug_breakpoint
 from obsidian_rag.schema import SearchResult, TextChunk
 
 
+QDRANT_UPSERT_BATCH_SIZE = 128
+
+
 class QdrantVectorStore:
     def __init__(
         self,
@@ -63,9 +66,17 @@ class QdrantVectorStore:
             )
             for chunk, vector in zip(chunks, vectors, strict=True)
         ]
-        if points:
-            self.client.upsert(collection_name=self.collection_name, points=points)
-        debug_breakpoint("qdrant.after_upsert", collection=self.collection_name, point_count=len(points))
+        for start in range(0, len(points), QDRANT_UPSERT_BATCH_SIZE):
+            self.client.upsert(
+                collection_name=self.collection_name,
+                points=points[start : start + QDRANT_UPSERT_BATCH_SIZE],
+            )
+        debug_breakpoint(
+            "qdrant.after_upsert",
+            collection=self.collection_name,
+            point_count=len(points),
+            batch_count=(len(points) + QDRANT_UPSERT_BATCH_SIZE - 1) // QDRANT_UPSERT_BATCH_SIZE,
+        )
 
     def search(self, query_vector: list[float], top_k: int = 5) -> list[SearchResult]:
         response = self.client.query_points(

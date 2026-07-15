@@ -2,6 +2,7 @@ export type SearchMode = "dense" | "keyword" | "hybrid";
 export type RunStatus = "queued" | "running" | "succeeded" | "failed";
 
 export interface AgentOptions {
+  collection: string;
   memoryWindow: number;
   memoryCompactionEnabled: boolean;
   memoryCompactionTriggerTurns: number;
@@ -17,6 +18,7 @@ export interface AgentOptions {
 export interface AgentAskPayload {
   question: string;
   conversation_id: string;
+  collection: string | null;
   memory_window: number;
   memory_compaction_enabled: boolean;
   memory_compaction_trigger_turns: number;
@@ -180,6 +182,7 @@ export interface AgentResponse {
   run_id: string;
   conversation_id: string;
   question: string;
+  collection: string;
   answer: string;
   used_retrieval: boolean;
   sources: string[];

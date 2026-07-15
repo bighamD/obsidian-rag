@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1180" height="650" viewBox="0 0 1180 650" role="img" aria-labelledby="title desc">
+  <title id="title">V3.11.3 Collection Router flow</title>
+  <desc id="desc">A question is routed by explicit selection, disabled fallback, or an LLM router to a limited set of collections. Each selected collection runs hybrid retrieval and results are fused with cross-collection reciprocal rank fusion.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#475569"/>
+    </marker>
+    <style>
+      .bg{fill:#f8fafc}.box{fill:#fff;stroke:#64748b;stroke-width:2}.accent{fill:#eff6ff;stroke:#2563eb;stroke-width:2}.success{fill:#ecfdf5;stroke:#059669;stroke-width:2}.warn{fill:#fff7ed;stroke:#ea580c;stroke-width:2}.title{font:700 24px system-ui,sans-serif;fill:#0f172a}.label{font:600 16px system-ui,sans-serif;fill:#0f172a}.small{font:14px system-ui,sans-serif;fill:#475569}.line{stroke:#475569;stroke-width:2;fill:none;marker-end:url(#arrow)}
+    </style>
+  </defs>
+  <rect class="bg" width="1180" height="650" rx="24"/>
+  <text class="title" x="590" y="42" text-anchor="middle">V3.11.3 Collection Router</text>
+
+  <rect class="accent" x="455" y="70" width="270" height="64" rx="12"/>
+  <text class="label" x="590" y="98" text-anchor="middle">Question + optional collection</text>
+  <text class="small" x="590" y="120" text-anchor="middle">router_enabled / max_collections</text>
+
+  <path class="line" d="M590 134 V174"/>
+  <rect class="box" x="455" y="174" width="270" height="64" rx="12"/>
+  <text class="label" x="590" y="202" text-anchor="middle">Knowledge Base Registry</text>
+  <text class="small" x="590" y="224" text-anchor="middle">enabled candidates only</text>
+
+  <path class="line" d="M590 238 V278"/>
+  <rect class="accent" x="455" y="278" width="270" height="70" rx="12"/>
+  <text class="label" x="590" y="307" text-anchor="middle">CollectionRouterService._select</text>
+  <text class="small" x="590" y="331" text-anchor="middle">fixed priority and validation</text>
+
+  <path class="line" d="M455 313 H275 V375"/>
+  <path class="line" d="M590 348 V375"/>
+  <path class="line" d="M725 313 H905 V375"/>
+
+  <rect class="success" x="125" y="375" width="300" height="78" rx="12"/>
+  <text class="label" x="275" y="405" text-anchor="middle">explicit</text>
+  <text class="small" x="275" y="429" text-anchor="middle">validate collection, skip LLM</text>
+
+  <rect class="warn" x="440" y="375" width="300" height="78" rx="12"/>
+  <text class="label" x="590" y="405" text-anchor="middle">router disabled</text>
+  <text class="small" x="590" y="429" text-anchor="middle">use RAG_COLLECTION</text>
+
+  <rect class="accent" x="755" y="375" width="300" height="78" rx="12"/>
+  <text class="label" x="905" y="405" text-anchor="middle">LLM Collection Router</text>
+  <text class="small" x="905" y="429" text-anchor="middle">select 0..max candidates</text>
+
+  <path class="line" d="M275 453 V493 H590"/>
+  <path class="line" d="M590 453 V493"/>
+  <path class="line" d="M905 453 V493 H590"/>
+
+  <rect class="box" x="390" y="493" width="400" height="66" rx="12"/>
+  <text class="label" x="590" y="521" text-anchor="middle">Per-collection dense / keyword / hybrid</text>
+  <text class="small" x="590" y="544" text-anchor="middle">limited parallel fan-out, partial failure preserved</text>
+
+  <path class="line" d="M590 559 V586"/>
+  <rect class="success" x="390" y="586" width="400" height="48" rx="12"/>
+  <text class="label" x="590" y="616" text-anchor="middle">Cross-collection RRF → JSON + trace</text>
+
+  <text class="small" x="38" y="620">no_collection / invalid_selection / router_error stop before retrieval</text>
+</svg>

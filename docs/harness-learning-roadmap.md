@@ -114,6 +114,9 @@ V3.10.1 Agent Console：用户能以会话界面查看答案、来源、Plan 和
 V3.10.2 Run Event Streaming：前端能实时接收节点和工具事件，不展示 chain-of-thought（已完成）
 V3.10.3 LangGraph Advanced Patterns：系统能组合子图、并行步骤、动态路由、原生重试和消息流（已完成）
 V3.11 Skill System：系统能选择并渐进式加载任务方法（已完成）
+V3.11.1 Docling Structured Ingestion：系统能把多格式文档解析为统一结构并切片（已完成）
+V3.11.2 Chunking Framework Comparison：系统能对比父子、层级自动合并和语义切片（已完成）
+V3.11.3 Collection Router：系统能在有限知识库范围内路由并融合多库检索（已完成）
 V3.12 MCP Integration：系统能接入标准化外部工具并对外提供 RAG 工具
 V3.13 Permission Policy：系统能在执行前判断 allow / confirm / deny
 V3.14 Sandbox Execution：系统能在隔离环境中执行文件和 Shell 工具
@@ -811,6 +814,31 @@ LlamaIndex SemanticSplitterNodeParser + VectorStoreIndex
 
 - compare 不修改共享 Qdrant，不调用 Answer LLM，不新增 SSE。
 - 实验结果必须通过 V2 Hit Rate、MRR、Source Recall 和 Context 完整性复测后，才能决定是否接入共享检索。
+- 完成后回到既定 V3.12 MCP Integration 主线。
+
+### V3.11.3 Collection Router
+
+V3.11.3 是 V3.12 MCP 前的查询路由专项插入版本：
+
+```text
+question -> explicit collection or LLM Collection Router
+         -> limited collection scope
+         -> per-collection hybrid retrieval
+         -> cross-collection RRF
+```
+
+学习重点：
+
+- 用 YAML Registry 管理知识库 ID、物理 collection 和路由描述。
+- 显式 collection 优先，自动路由只从启用 candidates 中选择有限范围。
+- 多 collection 分别复用现有 dense、keyword、hybrid 检索。
+- 原始分数不可直接跨库比较，因此使用第二层 rank-only RRF。
+- 单库失败不影响其他库结果，并通过 trace 暴露选择和融合过程。
+
+版本边界：
+
+- JSON-first，只提供 Registry、route、search 和 CLI，不接完整 Agent、Memory、Skill Runtime 或 SSE。
+- 不实现 ACL、租户隔离、Qdrant sparse、reranker 或自动扫描全部 collection。
 - 完成后回到既定 V3.12 MCP Integration 主线。
 
 ## Phase 9：MCP Integration

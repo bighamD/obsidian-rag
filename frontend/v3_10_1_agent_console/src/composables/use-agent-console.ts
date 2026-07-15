@@ -23,6 +23,7 @@ const MAX_SESSIONS = 12;
 const MAX_MESSAGES_PER_SESSION = 40;
 
 const defaultOptions: AgentOptions = {
+  collection: "food_safety",
   memoryWindow: 3,
   memoryCompactionEnabled: true,
   memoryCompactionTriggerTurns: 4,
@@ -136,7 +137,7 @@ export function useAgentConsole() {
 
     try {
       const result = await streamAgent(
-        toPayload(trimmedQuestion, activeConversationId.value, options),
+        buildAgentAskPayload(trimmedQuestion, activeConversationId.value, options),
         (event) => applyStreamEvent(event),
       );
       response.value = result;
@@ -196,10 +197,15 @@ export function useAgentConsole() {
   };
 }
 
-function toPayload(question: string, conversationId: string, options: AgentOptions): AgentAskPayload {
+export function buildAgentAskPayload(
+  question: string,
+  conversationId: string,
+  options: AgentOptions,
+): AgentAskPayload {
   return {
     question,
     conversation_id: conversationId,
+    collection: options.collection.trim() || null,
     memory_window: options.memoryWindow,
     memory_compaction_enabled: options.memoryCompactionEnabled,
     memory_compaction_trigger_turns: options.memoryCompactionTriggerTurns,

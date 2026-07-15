@@ -57,6 +57,11 @@ from obsidian_rag.v3_11_1.schemas import (
 from obsidian_rag.v3_11_1.service import DoclingLearningService
 from obsidian_rag.v3_11_2.schemas import FrameworkCompareRequest
 from obsidian_rag.v3_11_2.service import FrameworkComparisonService
+from obsidian_rag.v3_11_3.dependencies import get_registry_path
+from obsidian_rag.v3_11_3.registry import KnowledgeBaseRegistry
+from obsidian_rag.v3_11_3.router import CollectionRouter
+from obsidian_rag.v3_11_3.schemas import CollectionRouteRequest, CollectionSearchRequest
+from obsidian_rag.v3_11_3.service import CollectionRouterService
 
 
 def _add_production_ask_arguments(parser, memory_db_help: str) -> None:
@@ -307,6 +312,31 @@ def main() -> None:
     chunking3112_compare.add_argument("--llama-parent-tokens", type=int, default=1024)
     chunking3112_compare.add_argument("--llama-child-tokens", type=int, default=256)
     chunking3112_compare.add_argument("--semantic-breakpoint-percentile", type=int, default=95)
+
+    collections3113_parser = subparsers.add_parser(
+        "collections-v3-11-3",
+        help="Route questions to one or more knowledge-base collections and run cross-collection retrieval",
+    )
+    collections3113_subparsers = collections3113_parser.add_subparsers(
+        dest="collections3113_command",
+        required=True,
+    )
+    collections3113_list = collections3113_subparsers.add_parser("list", help="List Knowledge Base Registry entries")
+    collections3113_list.add_argument("--registry", type=Path)
+    collections3113_route = collections3113_subparsers.add_parser("route", help="Run Collection Router only")
+    collections3113_route.add_argument("question")
+    collections3113_route.add_argument("--collection")
+    collections3113_route.add_argument("--disable-router", action="store_true")
+    collections3113_route.add_argument("--max-collections", type=int, default=2)
+    collections3113_route.add_argument("--registry", type=Path)
+    collections3113_search = collections3113_subparsers.add_parser("search", help="Route and search selected collections")
+    collections3113_search.add_argument("question")
+    collections3113_search.add_argument("--collection")
+    collections3113_search.add_argument("--disable-router", action="store_true")
+    collections3113_search.add_argument("--max-collections", type=int, default=2)
+    collections3113_search.add_argument("--top-k", type=int, default=5)
+    collections3113_search.add_argument("--mode", choices=["dense", "keyword", "hybrid"], default="hybrid")
+    collections3113_search.add_argument("--registry", type=Path)
 
     agent3103_parser = subparsers.add_parser("agent-v3-10-3", help="Run V3.10.3 LangGraph Advanced Patterns")
     agent3103_subparsers = agent3103_parser.add_subparsers(dest="agent3103_command", required=True)
@@ -615,6 +645,20 @@ def main() -> None:
             llama_parent_tokens=args.llama_parent_tokens,
             llama_child_tokens=args.llama_child_tokens,
             semantic_breakpoint_percentile=args.semantic_breakpoint_percentile,
+        )
+        return
+
+    if args.command == "collections-v3-11-3":
+        run_collections3113(
+            command=args.collections3113_command,
+            config=config,
+            question=getattr(args, "question", None),
+            collection=getattr(args, "collection", None),
+            router_enabled=not getattr(args, "disable_router", False),
+            max_collections=getattr(args, "max_collections", 2),
+            top_k=getattr(args, "top_k", 5),
+            mode=getattr(args, "mode", "hybrid"),
+            registry_path=getattr(args, "registry", None),
         )
         return
 
@@ -1485,6 +1529,62 @@ def run_documents3111(
         response = service.search(DoclingSearchRequest(query=query, top_k=top_k, mode=mode, collection=collection))
     else:
         raise ValueError(f"Unsupported V3.11.1 command: {command}")
+    print(response.model_dump_json(indent=2))
+
+
+def run_collections3113(
+    command: str,
+    config: RagConfig,
+    question: str | None = None,
+    collection: str | None = None,
+    router_enabled: bool = True,
+    max_collections: int = 2,
+    top_k: int = 5,
+    mode: SearchMode = "hybrid",
+    registry_path: Path | None = None,
+    service: CollectionRouterService | None = None,
+) -> None:
+    """运行 V3.11.3 Registry、Collection Router 和多库检索 JSON CLI。"""
+
+    if service is None:
+        registry = KnowledgeBaseRegistry(registry_path or get_registry_path())
+        registry.load()
+        service = CollectionRouterService(
+            config=config,
+            registry=registry,
+            retrieval_service=RetrievalService(config),
+            router=CollectionRouter(
+                chat_client_factory=lambda: OpenAIChatClient(
+                    api_key=config.api_key,
+                    base_url=config.base_url,
+                    model=config.chat_model,
+                )
+            ),
+        )
+    if command == "list":
+        response = service.list_collections()
+    elif command == "route" and question:
+        response = service.route(
+            CollectionRouteRequest(
+                question=question,
+                collection=collection,
+                router_enabled=router_enabled,
+                max_collections=max_collections,
+            )
+        )
+    elif command == "search" and question:
+        response = service.search(
+            CollectionSearchRequest(
+                question=question,
+                collection=collection,
+                router_enabled=router_enabled,
+                max_collections=max_collections,
+                top_k=top_k,
+                mode=mode,
+            )
+        )
+    else:
+        raise ValueError(f"Unsupported V3.11.3 command: {command}")
     print(response.model_dump_json(indent=2))
 
 
