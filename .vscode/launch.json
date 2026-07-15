@@ -606,6 +606,65 @@
 			},
 			"args": ["collections-v3-11-3", "search", "鸡肉怎么做更安全？", "--max-collections", "2", "--top-k", "5", "--mode", "hybrid"],
 			"justMyCode": true
+		},
+		{
+			"name": "V3.12 API server: MCP Integration",
+			"type": "debugpy",
+			"request": "launch",
+			"module": "uvicorn",
+			"console": "integratedTerminal",
+			"cwd": "${workspaceFolder}",
+			"python": "${workspaceFolder}/.venv/bin/python",
+			"envFile": "${workspaceFolder}/.env",
+			"args": ["obsidian_rag.v3_12.app:app", "--host", "127.0.0.1", "--port", "8019"],
+			"subProcess": true,
+			"justMyCode": true
+		},
+		{
+			"name": "V3.12 CLI: tools/list demo Server",
+			"type": "debugpy",
+			"request": "launch",
+			"module": "obsidian_rag.cli",
+			"console": "integratedTerminal",
+			"cwd": "${workspaceFolder}",
+			"python": "${workspaceFolder}/.venv/bin/python",
+			"envFile": "${workspaceFolder}/.env",
+			"args": ["mcp-v3-12", "tools", "--server", "demo"],
+			"subProcess": true,
+			"justMyCode": true
+		},
+		{
+			"name": "V3.12 CLI: tools/call food temperature",
+			"type": "debugpy",
+			"request": "launch",
+			"module": "obsidian_rag.cli",
+			"console": "integratedTerminal",
+			"cwd": "${workspaceFolder}",
+			"python": "${workspaceFolder}/.venv/bin/python",
+			"envFile": "${workspaceFolder}/.env",
+			"args": [
+				"mcp-v3-12",
+				"call",
+				"demo",
+				"lookup_food_temperature",
+				"--arguments",
+				"{\"food\":\"chicken\"}"
+			],
+			"subProcess": true,
+			"justMyCode": true
+		},
+		{
+			"name": "V3.12 CLI: call RAG list_collections",
+			"type": "debugpy",
+			"request": "launch",
+			"module": "obsidian_rag.cli",
+			"console": "integratedTerminal",
+			"cwd": "${workspaceFolder}",
+			"python": "${workspaceFolder}/.venv/bin/python",
+			"envFile": "${workspaceFolder}/.env",
+			"args": ["mcp-v3-12", "call", "rag", "list_collections", "--arguments", "{}"],
+			"subProcess": true,
+			"justMyCode": true
 		}
 		// {
 		// 	"name": "V3.7 agent ask: context builder",

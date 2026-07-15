@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import asyncio
 import json
 from pathlib import Path
 
@@ -62,6 +63,8 @@ from obsidian_rag.v3_11_3.registry import KnowledgeBaseRegistry
 from obsidian_rag.v3_11_3.router import CollectionRouter
 from obsidian_rag.v3_11_3.schemas import CollectionRouteRequest, CollectionSearchRequest
 from obsidian_rag.v3_11_3.service import CollectionRouterService
+from obsidian_rag.v3_12.dependencies import get_mcp_service
+from obsidian_rag.v3_12.schemas import McpCallRequest
 
 
 def _add_production_ask_arguments(parser, memory_db_help: str) -> None:
@@ -337,6 +340,18 @@ def main() -> None:
     collections3113_search.add_argument("--top-k", type=int, default=5)
     collections3113_search.add_argument("--mode", choices=["dense", "keyword", "hybrid"], default="hybrid")
     collections3113_search.add_argument("--registry", type=Path)
+
+    mcp312_parser = subparsers.add_parser("mcp-v3-12", help="Learn MCP Client/Server and explicit Tool calls")
+    mcp312_subparsers = mcp312_parser.add_subparsers(dest="mcp312_command", required=True)
+    mcp312_subparsers.add_parser("servers", help="List configured stdio MCP Servers")
+    mcp312_tools = mcp312_subparsers.add_parser("tools", help="Run tools/list against one or all MCP Servers")
+    mcp312_tools.add_argument("--server", dest="server_name")
+    mcp312_call = mcp312_subparsers.add_parser("call", help="Run tools/call against one MCP Server")
+    mcp312_call.add_argument("server_name")
+    mcp312_call.add_argument("tool_name")
+    mcp312_call.add_argument("--arguments", default="{}", help="JSON object passed to the MCP Tool")
+    mcp312_subparsers.add_parser("serve-demo", help="Run the low-risk demo MCP Server over stdio")
+    mcp312_subparsers.add_parser("serve-rag", help="Expose local RAG read-only tools over stdio")
 
     agent3103_parser = subparsers.add_parser("agent-v3-10-3", help="Run V3.10.3 LangGraph Advanced Patterns")
     agent3103_subparsers = agent3103_parser.add_subparsers(dest="agent3103_command", required=True)
@@ -662,6 +677,15 @@ def main() -> None:
         )
         return
 
+    if args.command == "mcp-v3-12":
+        run_mcp312(
+            command=args.mcp312_command,
+            server_name=getattr(args, "server_name", None),
+            tool_name=getattr(args, "tool_name", None),
+            arguments_json=getattr(args, "arguments", "{}"),
+        )
+        return
+
     if args.command == "agent-v3-10-3" and args.agent3103_command == "ask":
         run_agent3103_ask(
             question=args.question,
@@ -692,6 +716,51 @@ def main() -> None:
             api_base=args.api_base,
         )
         return
+
+
+def run_mcp312(
+    command: str,
+    server_name: str | None = None,
+    tool_name: str | None = None,
+    arguments_json: str = "{}",
+) -> None:
+    """运行 V3.12 MCP 学习命令，并输出稳定 JSON。"""
+
+    if command == "serve-demo":
+        from obsidian_rag.v3_12.servers.demo_server import mcp
+
+        mcp.run(transport="stdio")
+        return
+    if command == "serve-rag":
+        from obsidian_rag.v3_12.servers.rag_server import mcp
+
+        mcp.run(transport="stdio")
+        return
+
+    service = get_mcp_service()
+    if command == "servers":
+        payload = [server.model_dump(mode="json") for server in service.list_servers()]
+    elif command == "tools":
+        payload = asyncio.run(service.list_tools(server_name)).model_dump(mode="json")
+    elif command == "call" and server_name and tool_name:
+        try:
+            arguments = json.loads(arguments_json)
+        except json.JSONDecodeError as exc:
+            raise ValueError(f"--arguments 必须是合法 JSON object: {exc}") from exc
+        if not isinstance(arguments, dict):
+            raise ValueError("--arguments 必须解析为 JSON object")
+        payload = asyncio.run(
+            service.call_tool(
+                McpCallRequest(
+                    server_name=server_name,
+                    tool_name=tool_name,
+                    arguments=arguments,
+                )
+            )
+        ).model_dump(mode="json")
+    else:
+        raise ValueError(f"Unsupported V3.12 MCP command: {command}")
+    print(json.dumps(payload, ensure_ascii=False, indent=2))
 
 
 def run_retrieval_eval(
