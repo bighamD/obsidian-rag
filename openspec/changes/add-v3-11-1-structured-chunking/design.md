@@ -8,14 +8,15 @@ V0 `ingest_path()` 是所有后续版本共用的数据入口。仓库已有 `Te
 
 - 使用 Docling `DocumentConverter` 处理本地多格式文件。
 - 在 preview 中直接展示 `DoclingDocument` 摘要、原始 chunk metadata 和 contextualized text。
-- 使用 `HybridChunker` 作为唯一主切片实现，并映射到仓库 `TextChunk`。
+- 使用 `HybridChunker` 作为结构 block 来源，默认通过 adaptive parent-child 生成最终 `TextChunk`。
 - 让共享 V0 ingest 固定使用 Docling，移除旧 loader/chunker 的运行时回退。
 - 复用现有向量库、关键词索引、检索和评估链路。
 
 **Non-Goals:**
 
-- 不自研 Markdown/PDF Parser、Document Tree、递归切片或 OCR。
-- 不在本版本实现 LangChain ParentDocumentRetriever、LlamaIndex AutoMerging 或语义切片。
+- 不自研 Markdown/PDF Parser、Document Tree 或 OCR。
+- 不引入 LangChain 内存 docstore；只复用 recursive splitter 和 parent-child 模式，继续使用现有 Qdrant/keyword 数据面。
+- 不迁移 LlamaIndex AutoMerging 或语义切片。
 - 不提供旧索引迁移或双写。
 - 不新增 SSE，不修改 V3.11 Skill System。
 
@@ -29,22 +30,22 @@ V0 `ingest_path()` 是所有后续版本共用的数据入口。仓库已有 `Te
 
 `ingest_path()` 直接通过 Docling 从文件路径产生 `TextChunk`，不再保留 parser 选择器与旧 loader/chunker 回退。V3.11.1 API 和共享摄取链路使用同一条 Docling 路径。
 
-### 3. 使用 Docling 官方 HybridChunker
+### 3. Docling blocks 后增加 adaptive parent-child
 
-使用 `HuggingFaceTokenizer.from_pretrained(model_name, max_tokens)` 配置 token 上限，再传给 `HybridChunker`。embedding 文本使用 `chunker.contextualize(chunk)`；`chunk.text`、headings、captions、origin、doc_items provenance 作为调试 metadata 保留。
+使用 `HybridChunker` 获取原子 blocks、heading path 和 provenance。通用策略选择最浅的重复标题层作为 parent 边界，合并同父小块；parent 超限时使用 LangChain recursive splitter，child 超限时再递归切分。短 parent 直接作为单 child。
 
 ### 4. 只做薄适配
 
-每个 Docling chunk 映射为：
+每个最终 child 映射为：
 
-- `TextChunk.text`：contextualized text，直接用于 embedding/keyword search。
+- `TextChunk.text`：短 parent 或带标题 breadcrumb 的 child，用于 embedding/keyword search。
 - `metadata.source`：相对源路径。
 - `metadata.node_id`：source + chunk index 的稳定 UUID。
-- `metadata.docling`：Docling chunk meta 的 JSON 投影。
+- `metadata.parent_id/parent_text`：child 召回后返回完整上下文。
 - `metadata.heading_path/page_numbers`：从 Docling meta 提取的常用定位字段。
-- `metadata.chunk_schema_version=docling-v1`。
+- `metadata.chunk_schema_version=parent-child-v1`。
 
-不额外复制 Docling 内部树模型。
+检索先在 child 级完成；hybrid 在 child 级执行 RRF，最后按 `parent_id` 去重并返回 parent。
 
 ### 5. V3.11.1 学习接口
 
@@ -58,7 +59,8 @@ V0 `ingest_path()` 是所有后续版本共用的数据入口。仓库已有 `Te
 
 - [Docling 安装和模型体积较大] → 文档明确首次运行会下载模型；延迟构造避免无关命令启动成本。
 - [HybridChunker tokenizer 与实际 embedding tokenizer 不完全一致] → tokenizer/model/max_tokens 显式展示，V2 evaluation 负责验证效果。
-- [不同格式的 Docling metadata 不完全一致] → 保存原始 JSON，并只提取稳定公共字段。
+- [不同格式的 Docling metadata 不完全一致] → 只依赖稳定的 heading path/page/source，缺少标题时按顺序和 token 阈值组合。
+- [parent payload 在多个 child 中重复] → 第一版优先保持单 collection 和可调试性；数据量显著增长后再拆独立 parent store。
 - [OCR/布局转换耗时] → preview 支持文件级输入；目录 ingest 按文件顺序处理并记录失败路径。
 
 ## Migration Plan

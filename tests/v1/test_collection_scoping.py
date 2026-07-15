@@ -37,7 +37,7 @@ def test_hybrid_retrieval_uses_same_explicit_collection_for_dense_and_keyword(tm
     _save_keyword_index(keyword_index_path(config.db_path, "recipes"), "recipes.md", "菜谱 番茄 意面")
     dense_collections: list[str] = []
 
-    def fake_dense_search(query, request_config, top_k=5):
+    def fake_dense_search(query, request_config, top_k=5, **kwargs):
         dense_collections.append(request_config.collection_name)
         return [
             SearchResult(

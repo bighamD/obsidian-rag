@@ -1,4 +1,5 @@
 from pathlib import Path
+from dataclasses import replace
 
 from obsidian_rag.config import RagConfig
 from obsidian_rag.pipeline import answer, ingest_path, make_store
@@ -66,7 +67,8 @@ def test_ingest_path_always_uses_docling(monkeypatch, tmp_path: Path):
     monkeypatch.setattr("obsidian_rag.pipeline.make_store", lambda config: FakeStore())
     monkeypatch.setattr("obsidian_rag.pipeline._write_keyword_index", lambda *args, **kwargs: None)
 
-    assert ingest_path(tmp_path, _config(tmp_path / "qdrant"), recreate=True) == (1, 1)
+    config = replace(_config(tmp_path / "qdrant"), chunk_strategy="docling_hybrid")
+    assert ingest_path(tmp_path, config, recreate=True) == (1, 1)
     assert captured == {
         "path": tmp_path,
         "texts": ["Docling chunk"],

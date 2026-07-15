@@ -28,6 +28,10 @@ class RagConfig:
     vault_path: Path | None
     docling_tokenizer_model: str = "sentence-transformers/all-MiniLM-L6-v2"
     chunk_token_size: int = 512
+    chunk_strategy: str = "adaptive_parent_child"
+    parent_chunk_tokens: int = 1000
+    child_chunk_tokens: int = 400
+    child_chunk_overlap: int = 40
 
 
 def load_config() -> RagConfig:
@@ -50,6 +54,10 @@ def load_config() -> RagConfig:
             "sentence-transformers/all-MiniLM-L6-v2",
         ),
         chunk_token_size=int(os.getenv("RAG_CHUNK_TOKENS", "512")),
+        chunk_strategy=os.getenv("RAG_CHUNK_STRATEGY", "adaptive_parent_child").strip().lower(),
+        parent_chunk_tokens=int(os.getenv("RAG_PARENT_CHUNK_TOKENS", "1000")),
+        child_chunk_tokens=int(os.getenv("RAG_CHILD_CHUNK_TOKENS", "400")),
+        child_chunk_overlap=int(os.getenv("RAG_CHILD_CHUNK_OVERLAP", "40")),
     )
 
 

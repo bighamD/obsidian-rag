@@ -15,3 +15,9 @@
 - [x] 3.1 Add adapter, service, API and CLI tests with framework fakes
 - [x] 3.2 Add guide, file responsibilities, payloads, branches, breakpoint table and SVG
 - [x] 3.3 Update roadmap, verify focused checks and reconcile line numbers
+
+## 4. Production parent-child migration
+
+- [x] 4.1 Add generic heading-path grouping, small-block merge and recursive parent/child splitting
+- [x] 4.2 Persist child vectors with parent metadata and expand dense/keyword/hybrid results after ranking
+- [x] 4.3 Add regression tests, VueUse real-document validation, updated guide and SVG

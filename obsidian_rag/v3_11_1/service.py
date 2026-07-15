@@ -4,8 +4,8 @@ from pathlib import Path
 
 from obsidian_rag.config import RagConfig, resolve_ingest_path, with_collection
 from obsidian_rag.debugging import debug_breakpoint
-from obsidian_rag.docling_ingestion import DOCLING_CHUNK_SCHEMA_VERSION, DoclingConversion, DoclingIngestion
-from obsidian_rag.pipeline import ingest_path
+from obsidian_rag.docling_ingestion import DoclingConversion, DoclingIngestion
+from obsidian_rag.pipeline import active_chunk_schema_version, build_ingestion_chunks, ingest_path
 from obsidian_rag.v1.services.retrieval_service import RetrievalService
 from obsidian_rag.v3_11_1.schemas import (
     DoclingChunkView,
@@ -23,7 +23,7 @@ from obsidian_rag.v3_11_1.schemas import (
 
 
 class DoclingLearningService:
-    """V3.11.1 编排层；框架算法由 Docling 提供，本层只做转换、映射和观察。"""
+    """V3.11.1 编排层；Docling 解析后执行共享 adaptive parent-child 摄取与检索。"""
 
     def __init__(self, config: RagConfig, adapter: DoclingIngestion | None = None):
         self.config = config
@@ -49,18 +49,23 @@ class DoclingLearningService:
     def chunks(self, request: DoclingPathRequest) -> DoclingChunksResponse:
         path = self._resolve_path(request.path)
         batch = self.adapter.convert_and_chunk_path(path)
+        chunks = build_ingestion_chunks(batch, self.config, self.adapter)
         debug_breakpoint(
             "v3_11_1.chunks.after_docling",
             document_count=len(batch.conversions),
-            chunk_count=len(batch.chunks),
+            chunk_count=len(chunks),
+            chunk_strategy=self.config.chunk_strategy,
             errors=batch.errors,
         )
         return DoclingChunksResponse(
             documents=[_summary(item) for item in batch.conversions],
-            chunks=[_chunk_view(chunk) for chunk in batch.chunks],
+            chunks=[_chunk_view(chunk) for chunk in chunks],
             errors=batch.errors,
             tokenizer_model=self.config.docling_tokenizer_model,
             max_tokens=self.config.chunk_token_size,
+            chunk_strategy=self.config.chunk_strategy,
+            parent_tokens=self.config.parent_chunk_tokens,
+            child_tokens=self.config.child_chunk_tokens,
         )
 
     def ingest(self, request: DoclingIngestRequest) -> DoclingIngestResponse:
@@ -71,7 +76,7 @@ class DoclingLearningService:
             document_count=document_count,
             chunk_count=chunk_count,
             parser="docling",
-            chunk_schema_version=DOCLING_CHUNK_SCHEMA_VERSION,
+            chunk_schema_version=active_chunk_schema_version(request_config),
             recreated=request.recreate,
             collection=request_config.collection_name,
         )
@@ -93,10 +98,13 @@ class DoclingLearningService:
                     source=str(metadata.get("source", "unknown")),
                     score=float(result.score),
                     node_id=_optional_str(metadata.get("node_id")),
+                    parent_id=_optional_str(metadata.get("parent_id")),
                     chunk_id=_optional_str(metadata.get("chunk_id")),
                     heading_path=[str(item) for item in metadata.get("heading_path", [])],
                     page_numbers=[int(item) for item in metadata.get("page_numbers", [])],
                     contextualized_text=result.chunk.text,
+                    matched_child_text=str(metadata.get("matched_child_text") or result.chunk.text),
+                    returned_parent_text=str(metadata.get("returned_parent_text") or result.chunk.text),
                     raw_text=str(metadata.get("raw_chunk_text") or result.chunk.text),
                     metadata=metadata,
                 )
@@ -108,10 +116,13 @@ class DoclingLearningService:
             version="v3.11.1",
             parser="docling",
             converter="Docling DocumentConverter",
-            chunker="Docling HybridChunker",
+            chunker="Docling blocks + LangChain RecursiveCharacterTextSplitter",
+            chunk_strategy=self.config.chunk_strategy,
             tokenizer_model=self.config.docling_tokenizer_model,
             max_tokens=self.config.chunk_token_size,
-            chunk_schema_version=DOCLING_CHUNK_SCHEMA_VERSION,
+            parent_tokens=self.config.parent_chunk_tokens,
+            child_tokens=self.config.child_chunk_tokens,
+            chunk_schema_version=active_chunk_schema_version(self.config),
             semantic_chunking=False,
         )
 
@@ -135,12 +146,15 @@ def _chunk_view(chunk) -> DoclingChunkView:
     metadata = chunk.metadata
     return DoclingChunkView(
         node_id=str(metadata.get("node_id", "")),
+        parent_id=_optional_str(metadata.get("parent_id")),
+        child_index=int(metadata["child_index"]) if metadata.get("child_index") is not None else None,
         source=str(metadata.get("source", "unknown")),
         chunk_id=_optional_str(metadata.get("chunk_id")),
         heading_path=[str(item) for item in metadata.get("heading_path", [])],
         page_numbers=[int(item) for item in metadata.get("page_numbers", [])],
         raw_text=str(metadata.get("raw_chunk_text") or ""),
         contextualized_text=chunk.text,
+        parent_text=str(metadata.get("parent_text") or chunk.text),
         metadata=metadata,
     )
 

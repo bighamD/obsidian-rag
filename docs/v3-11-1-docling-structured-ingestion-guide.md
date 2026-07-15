@@ -16,19 +16,24 @@ PDF / Markdown / DOCX / PPTX / XLSX / HTML / CSV / Image
                        DoclingDocument
                               │
                               ▼
-          HybridChunker + HuggingFaceTokenizer
+          HybridChunker 原子 blocks + heading_path
                               │
                               ▼
-                     TextChunk adapter
+        adaptive parent-child（默认）/ raw hybrid
                               │
                               ▼
-          Embedding -> Qdrant + KeywordIndex
+        Child Embedding -> Qdrant + KeywordIndex
+                              │
+                              ▼
+                命中 Child -> 返回 Parent
 ```
 
 - 使用 Docling `DocumentConverter` 处理框架支持的本地格式。
 - 用 `DoclingDocument.export_to_markdown()` 展示统一文档结果。
-- 使用官方 `HybridChunker`，不自研递归切片算法。
-- 同时保留 `chunk.text` 与 `HybridChunker.contextualize()`。
+- 使用官方 `HybridChunker` 产生带 `heading_path`、页码和 provenance 的原子 blocks，但默认不再一对一写入 Qdrant。
+- 使用 V3.11.2 验证过的 LangChain `RecursiveCharacterTextSplitter` 处理超长 parent/child，并由通用结构规则合并同一父章节的小 blocks。
+- 短 parent 直接作为一个检索 child；长 parent 才生成多个 child，所有 child 通过 `parent_id` 指向完整上下文。
+- dense、keyword、hybrid 都先检索 child，最终按 `parent_id` 去重并返回 `parent_text`。
 - 将 headings、captions、origin、doc_items provenance 和页码映射到 metadata。
 - 从标题块内的 fenced YAML 提取可选业务 metadata；`chunk_id` 不限制为 `KB-` 前缀，兼容 `KB-072`、`VU-001` 等引用 ID。
 - 通过共享 V0 pipeline 写入现有 Qdrant 与 keyword index。
@@ -37,7 +42,7 @@ PDF / Markdown / DOCX / PPTX / XLSX / HTML / CSV / Image
 
 ## 当前版本不做什么
 
-- 不实现 LangChain ParentDocumentRetriever。
+- 不直接运行 LangChain `ParentDocumentRetriever` 的内存 docstore；当前沿用仓库 Qdrant/keyword 数据面，并实现相同的 child 召回、parent 返回模式。
 - 不实现 LlamaIndex AutoMergingRetriever 或 SemanticSplitter。
 - 不重新实现 PDF Layout、OCR、表格识别或 Markdown AST。
 - 不改写 V3.11 Skill Registry、Router、Planner 或 Agent 的决策逻辑；Agent 仅复用请求级 collection 检索能力。
@@ -52,16 +57,21 @@ PDF / Markdown / DOCX / PPTX / XLSX / HTML / CSV / Image
 | 格式 | Markdown、PDF | Docling 当前支持的多格式 |
 | 文档模型 | 扁平 `SourceDocument.text` | `DoclingDocument` |
 | PDF | `pypdf.extract_text()` | Docling layout/OCR pipeline |
-| Chunk | 自定义字符窗口 | Docling `HybridChunker` |
-| 长度 | 字符数 | tokenizer token 上限 |
+| Chunk | 自定义字符窗口 | Docling blocks + adaptive parent-child |
+| 长度 | 字符数 | tokenizer token 阈值，结构优先、长度兜底 |
 | 表格 | 普通文本 | Docling table item + provenance |
-| Embedding 文本 | chunk 原文 | `contextualize(chunk)` |
+| Embedding 文本 | chunk 原文 | 短 parent 或带标题路径的 child |
+| 检索上下文 | 命中什么返回什么 | child 召回、parent 去重返回 |
 
 ## 配置
 
 ```dotenv
 RAG_DOCLING_TOKENIZER_MODEL=sentence-transformers/all-MiniLM-L6-v2
 RAG_CHUNK_TOKENS=512
+RAG_CHUNK_STRATEGY=adaptive_parent_child
+RAG_PARENT_CHUNK_TOKENS=1000
+RAG_CHILD_CHUNK_TOKENS=400
+RAG_CHILD_CHUNK_OVERLAP=40
 # 默认知识库；单次 ingest/search 可用 collection 参数覆盖
 RAG_COLLECTION=obsidian_notes
 ```
@@ -88,7 +98,7 @@ API 入口：
 
 返回 `DoclingDocument` 的标题、状态、页数、结构项数量和 Markdown 预览，不执行 chunk 或入库。
 
-### 2. Preview HybridChunker
+### 2. Preview 最终摄取 chunks
 
 `POST /documents/chunks`
 
@@ -102,9 +112,10 @@ API 入口：
 
 | 字段 | 含义 |
 | --- | --- |
-| `raw_text` | Docling `chunk.text` 原始内容 |
-| `contextualized_text` | 实际用于 embedding 的 headings/captions + text |
-| `metadata.docling` | Docling chunk meta 的 JSON 投影，仅用于调试和定位 |
+| `raw_text` | 当前 child 未加 breadcrumb 前的文本 |
+| `contextualized_text` | 实际用于 embedding 的 child 文本 |
+| `parent_text` | child 命中后最终返回的完整结构 parent |
+| `parent_id` | 多个 child 共享的 parent 标识 |
 | `heading_path` | 标题路径 |
 | `page_numbers` | provenance 中提取的页码 |
 | `node_id` | 映射到 Qdrant point 的稳定 ID |
@@ -121,7 +132,7 @@ API 入口：
 }
 ```
 
-本版本 chunk schema 为 `docling-v1`，首次 ingest 应使用 `recreate=true`。它只会覆盖当前指定的 Qdrant collection 及其 keyword index；不会删除源文件或其他 collection。省略 `recreate` 时，新 chunks 会增量写入当前 collection，并合并到该 collection 的 keyword index。已有索引需要重新 ingest，才会获得新增的业务 metadata。
+默认 chunk schema 为 `parent-child-v1`；切回 `RAG_CHUNK_STRATEGY=docling_hybrid` 时仍使用 `docling-v1`。首次切换策略必须使用 `recreate=true`。它只会覆盖当前指定的 Qdrant collection 及其 keyword index；不会删除源文件或其他 collection。
 
 ### 业务 metadata 约定
 
@@ -154,6 +165,14 @@ source: https://vueuse.org/guide/
 }
 ```
 
+关键响应字段：
+
+| 字段 | 含义 |
+| --- | --- |
+| `matched_child_text` | 真正参与 dense/keyword 匹配的文本 |
+| `returned_parent_text` | 按 `parent_id` 去重后返回给 LLM 的完整上下文 |
+| `contextualized_text` | 当前最终返回上下文，兼容已有调用方 |
+
 ## CLI
 
 ```bash
@@ -177,10 +196,16 @@ CLI / Swagger
   -> DocumentConverter.convert
   -> DoclingDocument
   -> HybridChunker.chunk
-  -> HybridChunker.contextualize
-  -> TextChunk(metadata.docling)
-  -> embedding
+  -> 带 heading_path/page 的原子 blocks
+  -> adaptive_parent_child
+       -> 同父小块聚合为 parent
+       -> 超长 parent 递归切分
+       -> 短 parent = 单 child / 长 parent = 多 child
+  -> child embedding
   -> Qdrant + KeywordIndex
+  -> 检索 child
+  -> RRF（hybrid）
+  -> 按 parent_id 去重并返回 parent_text
 ```
 
 ## 条件分支
@@ -195,15 +220,21 @@ CLI / Swagger
 | 标题块含 `chunk_id` YAML | 将 `chunk_id`、title、tags、source 等 metadata 绑定到该标题路径的 chunks |
 | 标题块不含业务 YAML | 仍正常切片；无编号标题时不伪造 `chunk_id` |
 | tokenizer/model 首次使用 | 可能下载模型，耗时高于后续运行 |
+| `RAG_CHUNK_STRATEGY=docling_hybrid` | 保留 V3.11.1 原始学习基线，每个 Docling block 直接入库 |
+| 同父 blocks 总长度不超过 child 上限 | 聚合后的 parent 直接作为一个 Qdrant point |
+| parent 超过 child 上限 | 生成多个检索 child，共享 `parent_id` 和 `parent_text` |
+| parent 超过 parent 上限 | LangChain recursive splitter 按标题、段落、句子、token 依次兜底拆分 |
 
 ## 文件职责
 
 | 文件 | 作用 |
 | --- | --- |
 | `obsidian_rag/docling_ingestion.py` | Docling Converter/HybridChunker 薄适配和 TextChunk metadata 映射 |
+| `obsidian_rag/adaptive_chunking.py` | 通用 heading_path 分组、小块聚合、超长递归切分和 parent-child metadata |
+| `obsidian_rag/parent_retrieval.py` | child 命中后按 parent_id 去重并返回完整 parent |
 | `obsidian_rag/structured_metadata.py` | Markdown 标题块 YAML metadata 的提取、规范化和 Docling heading path 匹配 |
 | `obsidian_rag/pipeline.py` | 固定执行 Docling convert/chunk，然后按请求 collection 统一 embed/upsert、关闭 embedded Qdrant client 并维护 keyword index |
-| `obsidian_rag/config.py` | tokenizer、token 上限和请求级 collection 配置 |
+| `obsidian_rag/config.py` | chunk strategy、parent/child token 阈值和请求级 collection 配置 |
 | `obsidian_rag/v3_11_1/schemas.py` | Swagger 输入输出职责与字段中文说明 |
 | `obsidian_rag/v3_11_1/service.py` | convert/chunks/ingest/search 学习编排 |
 | `obsidian_rag/v3_11_1/routes/` | FastAPI JSON 路由 |
@@ -214,16 +245,18 @@ CLI / Swagger
 
 | 顺序 | 文件行号与函数 | 观察变量 |
 | --- | --- | --- |
-| 1 | `v3_11_1/service.py:66` `DoclingLearningService.ingest()` | `request.collection`、`request_config.collection_name`、`path`、`request.recreate` |
-| 2 | `config.py:69` `with_collection()` | `selected`、返回副本的 `collection_name`，确认不修改共享 config |
-| 3 | `pipeline.py:54` `ingest_path()` | `config.collection_name`、`document_count`、`chunks` |
+| 1 | `v3_11_1/service.py:71` `DoclingLearningService.ingest()` | `request.collection`、`request_config.collection_name`、`path`、`request.recreate` |
+| 2 | `config.py:77` `with_collection()` | `selected`、返回副本的 `collection_name`，确认不修改共享 config |
+| 3 | `pipeline.py:56` `ingest_path()` | `config.collection_name`、`document_count`、`chunks` |
 | 4 | `docling_ingestion.py:129` `convert_and_chunk_path()` | `files`、`conversions`、`chunks`、`errors` |
 | 5 | `docling_ingestion.py:77` `convert_file()` | `result.status`、`document`、`markdown` |
 | 6 | `docling_ingestion.py:93` `chunk_conversion()` | `chunk.text`、`contextualized`、`docling_meta`、结构化业务 metadata |
-| 7 | `pipeline.py:15` `make_embedding_client()` | embedding provider/model |
-| 8 | `qdrant_store.py:41` `ensure_collection()` | `collection_name`、`recreate` |
-| 9 | `qdrant_store.py:51` `upsert()` | point payload、`node_id`、vector dimensions |
-| 10 | `pipeline.py:128` `_write_keyword_index()` | `config.collection_name`、collection 对应 keyword index 路径与增量合并行为 |
+| 7 | `pipeline.py:92` `build_ingestion_chunks()` | `chunk_strategy`、原始 blocks 和最终 children |
+| 8 | `adaptive_chunking.py:22` `adaptive_parent_child_chunks()` | `group`、`parent_text`、`child_parts`、`parent_id` |
+| 9 | `pipeline.py:17` `make_embedding_client()` | embedding provider/model |
+| 10 | `qdrant_store.py:51` `upsert()` | child payload、`parent_id`、vector dimensions |
+| 11 | `pipeline.py:163` `_write_keyword_index()` | collection 对应 keyword index 和 child 文本 |
+| 12 | `parent_retrieval.py:7` `expand_parent_results()` | `matched_child`、`parent_text`、parent 去重 |
 
 行号已经按版本完成时的代码核对。后续代码变化后，应优先按函数名重新定位。
 
@@ -233,6 +266,7 @@ CLI / Swagger
 - service/API/CLI 测试不下载真实模型，也不连接 Qdrant。
 - 共享 V0 pipeline smoke 使用临时 embedded Qdrant，验证 food_safety / recipes 的 dense、keyword、hybrid 隔离，以及 `recreate` 不影响另一 collection。
 - 真正的布局/OCR 效果必须用本地代表性 PDF/图片执行 chunks preview 后再评估。
+- VueUse 真实文档验证：`622` 个 Docling blocks 被聚合为 `107` parents / `109` Qdrant children；`VU-057` 从 6 个碎块收敛为 1 个 `260-token` 完整章节。
 - 本版本不会自动启动 API；由用户自行运行 Swagger 和断点调试。
 
 ## 下一版本
