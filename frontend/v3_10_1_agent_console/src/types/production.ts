@@ -239,8 +239,10 @@ export interface AgentResponse {
     mode: "complete" | "stream" | "fallback";
     message_id: string | null;
     llm_ttft_ms: number | null;
+    llm_reasoning_ttft_ms: number | null;
     llm_generation_ms: number;
     visible_character_count: number;
+    reasoning_character_count: number;
   };
   graph_path: string[];
   trace: AgentTraceStep[];
@@ -281,6 +283,9 @@ export interface ConsoleMessage {
   run?: ProductionAskResponse;
   streamMessageId?: string;
   streamSequence?: number;
+  reasoningMessageId?: string;
+  reasoningSequence?: number;
+  reasoningText?: string;
   isStreaming?: boolean;
   streamError?: string;
   progress?: AgentProgress;

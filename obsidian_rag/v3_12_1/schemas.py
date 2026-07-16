@@ -22,7 +22,9 @@ class CoreStreamConfigResponse(BaseModel):
     json_endpoint: str = Field(description="返回完整结构化响应的同步 JSON 接口。")
     stream_endpoint: str = Field(description="推送节点事件、answer_delta 和终态响应的 SSE 接口。")
     answer_delta_enabled: bool = Field(description="是否启用最终可见答案增量。")
-    hidden_reasoning_exposed: bool = Field(description="是否会向客户端暴露模型隐藏推理；本版固定为 false。")
+    reasoning_delta_enabled: bool = Field(description="是否按环境配置请求并转发 CPA reasoning_content。")
+    reasoning_effort: str | None = Field(description="reasoning 开启时传给 provider 的 effort；关闭时为空。")
+    hidden_reasoning_exposed: bool = Field(description="是否会向客户端暴露 CPA 学习调试 reasoning 流。")
 
 
 class UnifiedToolDefinition(BaseModel):

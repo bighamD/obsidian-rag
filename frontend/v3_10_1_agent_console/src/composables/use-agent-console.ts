@@ -172,6 +172,9 @@ export function useAgentConsole() {
     if (event.name === "answer_delta") {
       applyAnswerDelta(assistantDraft, event);
     }
+    if (event.name === "reasoning_delta") {
+      applyReasoningDelta(assistantDraft, event);
+    }
     if (event.data.run) {
       response.value = {
         run: event.data.run,
@@ -225,8 +228,27 @@ export function createStreamingAssistantDraft(): ConsoleMessage {
   const message = reactive(createMessage("assistant", ""));
   message.isStreaming = true;
   message.streamSequence = 0;
+  message.reasoningSequence = 0;
+  message.reasoningText = "";
   message.currentProgress = "正在生成回答…";
   return message;
+}
+
+export function applyReasoningDelta(message: ConsoleMessage, event: AgentStreamEvent): boolean {
+  const { message_id: messageId, sequence, delta } = event.data;
+  if (!messageId || typeof sequence !== "number" || !delta) {
+    return false;
+  }
+  if (message.reasoningMessageId && message.reasoningMessageId !== messageId) {
+    return false;
+  }
+  if (sequence <= (message.reasoningSequence ?? 0)) {
+    return false;
+  }
+  message.reasoningMessageId = messageId;
+  message.reasoningSequence = sequence;
+  message.reasoningText = `${message.reasoningText ?? ""}${delta}`;
+  return true;
 }
 
 export function applyProgressEvent(message: ConsoleMessage, event: AgentStreamEvent): boolean {

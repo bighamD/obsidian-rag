@@ -8,8 +8,16 @@ from obsidian_rag.v3_12_1.schemas import CoreAskRequest, CoreStreamConfigRespons
 class CoreRuntimeLearningService:
     """V3.12.1 教学门面：复用公共 Core 和现有 Production/SSE Runtime。"""
 
-    def __init__(self, runtime: StreamingAgentRuntimeService):
+    def __init__(
+        self,
+        runtime: StreamingAgentRuntimeService,
+        *,
+        reasoning_stream_enabled: bool = False,
+        reasoning_effort: str = "medium",
+    ):
         self.runtime = runtime
+        self.reasoning_stream_enabled = reasoning_stream_enabled
+        self.reasoning_effort = reasoning_effort
 
     def ask(self, request: CoreAskRequest) -> ProductionAskResponse:
         return self.runtime.ask(request)
@@ -25,5 +33,7 @@ class CoreRuntimeLearningService:
             json_endpoint="/agent/ask",
             stream_endpoint="/agent/ask/stream",
             answer_delta_enabled=True,
-            hidden_reasoning_exposed=False,
+            reasoning_delta_enabled=self.reasoning_stream_enabled,
+            reasoning_effort=self.reasoning_effort if self.reasoning_stream_enabled else None,
+            hidden_reasoning_exposed=self.reasoning_stream_enabled,
         )

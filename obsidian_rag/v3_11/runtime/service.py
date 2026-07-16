@@ -39,7 +39,7 @@ class SkillRuntimeService:
         event_record = {"value": record}
 
         def publish_event(name: str, payload: dict) -> None:
-            if name == "answer_delta":
+            if name in {"answer_delta", "reasoning_delta"}:
                 return
             event_record["value"] = self._append_event(
                 event_record["value"],
@@ -84,12 +84,12 @@ class SkillRuntimeService:
 
         def publish_event(name: str, payload: dict) -> None:
             nonlocal record
-            if name == "answer_delta":
+            if name in {"answer_delta", "reasoning_delta"}:
                 self._publish_record_event(
                     record,
                     name,
                     "running",
-                    "Answer LLM 产生最终可见文本增量。",
+                    _event_detail(name, payload),
                     payload,
                 )
                 return
@@ -195,6 +195,8 @@ class SkillRuntimeService:
 
 
 def _event_detail(name: str, payload: dict) -> str:
+    if name == "reasoning_delta":
+        return "Answer LLM 产生学习调试 reasoning 增量。"
     if name == "progress":
         return f"Agent 阶段 {payload.get('phase', 'unknown')}：{payload.get('status', 'running')}。"
     if name == "node_finished":

@@ -17,6 +17,7 @@ watch(
     props.messages.length,
     props.isRunning,
     props.messages.at(-1)?.text,
+    props.messages.at(-1)?.reasoningText,
     props.messages.at(-1)?.currentProgress,
   ],
   async () => {
@@ -47,6 +48,14 @@ watch(
         <p v-if="message.role === 'assistant' && message.isStreaming && message.currentProgress" class="message-progress">
           <LoaderCircle :size="14" class="spin" /> {{ message.currentProgress }}
         </p>
+        <details
+          v-if="message.role === 'assistant' && message.reasoningText"
+          class="reasoning-panel"
+          :open="message.isStreaming"
+        >
+          <summary>思考过程（学习调试） · {{ message.reasoningText.length }} 字</summary>
+          <pre>{{ message.reasoningText }}</pre>
+        </details>
         <div
           v-if="message.role === 'assistant' && message.text"
           class="message-content markdown"

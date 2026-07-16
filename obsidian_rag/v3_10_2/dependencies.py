@@ -23,6 +23,8 @@ def build_agent() -> AgentService:
             api_key=config.api_key,
             base_url=config.base_url,
             model=config.chat_model,
+            reasoning_stream_enabled=config.reasoning_stream_enabled,
+            reasoning_effort=config.reasoning_effort,
         ),
         memory_store=get_memory_store(),
     )

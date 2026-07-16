@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from obsidian_rag.config import RagConfig, resolve_ingest_path, validate_collection_name, with_collection
+from obsidian_rag.config import RagConfig, load_config, resolve_ingest_path, validate_collection_name, with_collection
 
 
 def _config(vault_path: Path | None = None) -> RagConfig:
@@ -43,6 +43,16 @@ def test_with_collection_returns_immutable_request_scoped_config():
     assert config.collection_name == "obsidian_notes"
     assert scoped.collection_name == "food_safety"
     assert scoped is not config
+
+
+def test_load_config_reads_reasoning_stream_switch(monkeypatch):
+    monkeypatch.setenv("RAG_REASONING_STREAM_ENABLED", "true")
+    monkeypatch.setenv("RAG_REASONING_EFFORT", "medium")
+
+    config = load_config()
+
+    assert config.reasoning_stream_enabled is True
+    assert config.reasoning_effort == "medium"
 
 
 @pytest.mark.parametrize("value", ["FoodSafety", "food safety", "food/safety", "", "-food"])

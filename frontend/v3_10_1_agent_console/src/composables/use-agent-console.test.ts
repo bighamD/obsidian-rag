@@ -4,6 +4,7 @@ import { nextTick, watchEffect } from "vue";
 import {
   applyAnswerDelta,
   applyProgressEvent,
+  applyReasoningDelta,
   buildAgentAskPayload,
   createStreamingAssistantDraft,
   markStreamError,
@@ -106,6 +107,22 @@ describe("answer delta", () => {
     expect(draft.text).toBe("");
   });
 
+  it("appends reasoning with an independent sequence and keeps answer isolated", () => {
+    const draft = message();
+    draft.reasoningSequence = 0;
+    draft.reasoningText = "";
+
+    expect(applyReasoningDelta(draft, { ...event(1, "先分析。"), name: "reasoning_delta" })).toBe(true);
+    expect(applyReasoningDelta(draft, { ...event(1, "重复"), name: "reasoning_delta" })).toBe(false);
+    expect(applyAnswerDelta(draft, event(1, "最终答案"))).toBe(true);
+    expect(applyReasoningDelta(draft, { ...event(2, "再检查。"), name: "reasoning_delta" })).toBe(true);
+
+    expect(draft.reasoningText).toBe("先分析。再检查。");
+    expect(draft.text).toBe("最终答案");
+    expect(draft.reasoningSequence).toBe(2);
+    expect(draft.streamSequence).toBe(1);
+  });
+
   it("creates a reactive draft so progress changes trigger the transcript", async () => {
     const draft = createStreamingAssistantDraft();
     let observedProgress = "";
@@ -130,6 +147,7 @@ describe("answer delta", () => {
 
   it("uses the final response as authoritative text without adding another message", () => {
     const draft = message();
+    draft.reasoningText = "学习调试 reasoning";
     applyAnswerDelta(draft, event(1, "部分"));
     const result = {
       run: {
@@ -150,6 +168,7 @@ describe("answer delta", () => {
     expect(draft.text).toBe("完整答案");
     expect(draft.sources).toEqual(["food.md"]);
     expect(draft.isStreaming).toBe(false);
+    expect(draft.reasoningText).toBe("学习调试 reasoning");
     expect(draft.summary).toEqual({
       collection: "food_safety",
       retrievalResultCount: 4,

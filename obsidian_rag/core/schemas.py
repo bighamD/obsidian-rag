@@ -349,8 +349,18 @@ class AnswerStreamMetrics(BaseModel):
     mode: Literal["complete", "stream", "fallback"] = Field(description="Answer 使用的生成模式。")
     message_id: str | None = Field(default=None, description="流式答案消息标识；非流式时可为空。")
     llm_ttft_ms: int | None = Field(default=None, ge=0, description="首个可见文本 chunk 延迟；非流式时为空。")
+    llm_reasoning_ttft_ms: int | None = Field(
+        default=None,
+        ge=0,
+        description="首个 reasoning chunk 延迟；未开启或 provider 不支持时为空。",
+    )
     llm_generation_ms: int = Field(default=0, ge=0, description="Answer LLM 生成阶段总耗时。")
     visible_character_count: int = Field(default=0, ge=0, description="最终可见答案字符数。")
+    reasoning_character_count: int = Field(
+        default=0,
+        ge=0,
+        description="学习调试 reasoning 字符数，不计入最终答案或 Memory。",
+    )
 
 
 class AgentProgressEvent(BaseModel):

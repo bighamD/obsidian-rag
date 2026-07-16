@@ -16,6 +16,7 @@ from obsidian_rag.v1.retrieval.models import RankedSearchResult
 from obsidian_rag.v1.schemas import to_search_hit
 from obsidian_rag.core.compaction import ConversationCompactor
 from obsidian_rag.core.context import ContextBuilder, build_memory_aware_planner_question
+from obsidian_rag.core.llm import ChatStreamDelta
 from obsidian_rag.core.mysql_memory import MySQLConversationMemoryStore
 from obsidian_rag.core.planner import PlannerService
 from obsidian_rag.core.schemas import (
@@ -774,25 +775,44 @@ def _generate_answer(
 
     message_id = f"msg_{run_id}"
     chunks: list[str] = []
+    reasoning_character_count = 0
     first_chunk_at: float | None = None
+    first_reasoning_at: float | None = None
+    answer_sequence = 0
+    reasoning_sequence = 0
     try:
-        for sequence, chunk in enumerate(stream(messages), start=1):
-            text = str(chunk or "")
-            if not text:
-                continue
-            if first_chunk_at is None:
-                first_chunk_at = perf_counter()
-            chunks.append(text)
-            _emit_agent_event(
-                event_sink,
-                "answer_delta",
-                {
-                    "message_id": message_id,
-                    "sequence": sequence,
-                    "delta": text,
-                    "node_name": "synthesize_answer",
-                },
-            )
+        for chunk in stream(messages):
+            reasoning_text, content_text = _stream_chunk_parts(chunk)
+            if reasoning_text:
+                reasoning_sequence += 1
+                reasoning_character_count += len(reasoning_text)
+                if first_reasoning_at is None:
+                    first_reasoning_at = perf_counter()
+                _emit_agent_event(
+                    event_sink,
+                    "reasoning_delta",
+                    {
+                        "message_id": message_id,
+                        "sequence": reasoning_sequence,
+                        "delta": reasoning_text,
+                        "node_name": "synthesize_answer",
+                    },
+                )
+            if content_text:
+                answer_sequence += 1
+                if first_chunk_at is None:
+                    first_chunk_at = perf_counter()
+                chunks.append(content_text)
+                _emit_agent_event(
+                    event_sink,
+                    "answer_delta",
+                    {
+                        "message_id": message_id,
+                        "sequence": answer_sequence,
+                        "delta": content_text,
+                        "node_name": "synthesize_answer",
+                    },
+                )
     except Exception:
         if chunks:
             raise
@@ -800,8 +820,12 @@ def _generate_answer(
         return answer, AnswerStreamMetrics(
             mode="fallback",
             message_id=message_id,
+            llm_reasoning_ttft_ms=(
+                max(0, round((first_reasoning_at - started) * 1000)) if first_reasoning_at else None
+            ),
             llm_generation_ms=max(0, round((perf_counter() - started) * 1000)),
             visible_character_count=len(answer),
+            reasoning_character_count=reasoning_character_count,
         )
 
     if not chunks:
@@ -809,8 +833,12 @@ def _generate_answer(
         return answer, AnswerStreamMetrics(
             mode="fallback",
             message_id=message_id,
+            llm_reasoning_ttft_ms=(
+                max(0, round((first_reasoning_at - started) * 1000)) if first_reasoning_at else None
+            ),
             llm_generation_ms=max(0, round((perf_counter() - started) * 1000)),
             visible_character_count=len(answer),
+            reasoning_character_count=reasoning_character_count,
         )
 
     answer = "".join(chunks).strip()
@@ -818,9 +846,23 @@ def _generate_answer(
         mode="stream",
         message_id=message_id,
         llm_ttft_ms=(max(0, round((first_chunk_at - started) * 1000)) if first_chunk_at else None),
+        llm_reasoning_ttft_ms=(
+            max(0, round((first_reasoning_at - started) * 1000)) if first_reasoning_at else None
+        ),
         llm_generation_ms=max(0, round((perf_counter() - started) * 1000)),
         visible_character_count=len(answer),
+        reasoning_character_count=reasoning_character_count,
     )
+
+
+def _stream_chunk_parts(chunk: Any) -> tuple[str, str]:
+    if isinstance(chunk, ChatStreamDelta):
+        if chunk.kind == "reasoning":
+            return chunk.text, ""
+        return "", chunk.text
+    if isinstance(chunk, str):
+        return "", chunk
+    return "", str(chunk or "")
 def _now() -> str:
     return datetime.now(timezone.utc).isoformat()
 

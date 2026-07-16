@@ -20,7 +20,9 @@ class FakeLearningService:
             json_endpoint="/agent/ask",
             stream_endpoint="/agent/ask/stream",
             answer_delta_enabled=True,
-            hidden_reasoning_exposed=False,
+            reasoning_delta_enabled=True,
+            reasoning_effort="medium",
+            hidden_reasoning_exposed=True,
         )
 
 
@@ -73,7 +75,9 @@ def test_v3_12_1_health_and_stream_config():
     assert health.status_code == 200
     assert health.json()["version"] == "v3.12.1"
     assert config.json()["answer_delta_enabled"] is True
-    assert config.json()["hidden_reasoning_exposed"] is False
+    assert config.json()["reasoning_delta_enabled"] is True
+    assert config.json()["reasoning_effort"] == "medium"
+    assert config.json()["hidden_reasoning_exposed"] is True
 
 
 def test_unified_registry_lists_local_tool_and_rejects_unknown():

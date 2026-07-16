@@ -2,6 +2,7 @@ from pathlib import Path
 
 from obsidian_rag.core.agent.service import AgentService
 from obsidian_rag.core.memory import SQLiteConversationMemoryStore
+from obsidian_rag.core.llm import ChatStreamDelta
 from obsidian_rag.core.schemas import AgentAskRequest, Plan, PlanResponse, PlanStep
 from obsidian_rag.schema import SearchResult, TextChunk
 
@@ -42,6 +43,17 @@ class StreamingChat:
     def stream(self, messages):
         yield "熟剩菜冷藏"
         yield "三至四天。"
+
+
+class ReasoningStreamingChat:
+    def complete(self, messages):
+        return "不应调用 complete"
+
+    def stream(self, messages):
+        yield ChatStreamDelta(kind="reasoning", text="先确认冷藏条件。")
+        yield ChatStreamDelta(kind="content", text="熟剩菜冷藏")
+        yield ChatStreamDelta(kind="reasoning", text="再补充时间范围。")
+        yield ChatStreamDelta(kind="content", text="三至四天。")
 
 
 class FallbackChat:
@@ -97,6 +109,24 @@ def test_core_publishes_stable_progress_with_retrieval_facts(tmp_path: Path):
     ]
     assert retrieval[-1]["result_count"] == 1
     assert all("正在" not in str(item) and "已找到" not in str(item) for item in progress)
+
+
+def test_core_streams_reasoning_separately_from_final_answer(tmp_path: Path):
+    events = []
+
+    response = _service(tmp_path, ReasoningStreamingChat()).ask_with_events(
+        AgentAskRequest(question="剩菜可以保存多久？"),
+        lambda name, payload: events.append((name, payload)),
+    )
+
+    reasoning = [payload for name, payload in events if name == "reasoning_delta"]
+    answer = [payload for name, payload in events if name == "answer_delta"]
+    assert [item["sequence"] for item in reasoning] == [1, 2]
+    assert "".join(item["delta"] for item in reasoning) == "先确认冷藏条件。再补充时间范围。"
+    assert "".join(item["delta"] for item in answer) == response.answer == "熟剩菜冷藏三至四天。"
+    assert response.answer_stream.reasoning_character_count == len("先确认冷藏条件。再补充时间范围。")
+    assert response.answer_stream.llm_reasoning_ttft_ms is not None
+    assert "先确认冷藏条件" not in response.answer
 
 
 def test_core_falls_back_before_first_chunk(tmp_path: Path):

@@ -32,6 +32,8 @@ class RagConfig:
     parent_chunk_tokens: int = 1000
     child_chunk_tokens: int = 400
     child_chunk_overlap: int = 40
+    reasoning_stream_enabled: bool = False
+    reasoning_effort: str = "medium"
 
 
 def load_config() -> RagConfig:
@@ -58,7 +60,16 @@ def load_config() -> RagConfig:
         parent_chunk_tokens=int(os.getenv("RAG_PARENT_CHUNK_TOKENS", "1000")),
         child_chunk_tokens=int(os.getenv("RAG_CHILD_CHUNK_TOKENS", "400")),
         child_chunk_overlap=int(os.getenv("RAG_CHILD_CHUNK_OVERLAP", "40")),
+        reasoning_stream_enabled=_env_bool("RAG_REASONING_STREAM_ENABLED", False),
+        reasoning_effort=os.getenv("RAG_REASONING_EFFORT", "medium").strip() or "medium",
     )
+
+
+def _env_bool(name: str, default: bool) -> bool:
+    value = os.getenv(name)
+    if value is None:
+        return default
+    return value.strip().lower() in {"1", "true", "yes", "on"}
 
 
 def require_api_key(config: RagConfig) -> None:

@@ -97,7 +97,7 @@ class StreamingAgentRuntimeService:
         def publish_agent_event(name: str, payload: dict) -> None:
             nonlocal record
             detail = _agent_event_detail(name, payload)
-            if name == "answer_delta":
+            if name in {"answer_delta", "reasoning_delta"}:
                 self._publish_record_event(record, name, "running", detail, payload)
                 return
             record = self._append_event(record, name, "running", detail, {"agent": payload})
@@ -203,6 +203,8 @@ def _agent_event_detail(name: str, payload: dict) -> str:
         return f"{node_name} 产生 {step_type} 事件。"
     if name == "answer_delta":
         return "Answer LLM 产生最终可见文本增量。"
+    if name == "reasoning_delta":
+        return "Answer LLM 产生学习调试 reasoning 增量。"
     if name == "progress":
         return f"Agent 阶段 {payload.get('phase', 'unknown')}：{payload.get('status', 'running')}。"
     return f"Agent 产生 {name} 事件。"
