@@ -129,6 +129,8 @@ RAG_REASONING_EFFORT=medium
 主要接口：
 
 - `GET /health`
+- `GET /console/config`：返回稳定 `console.v1` 契约和能力清单。
+- `GET /console/conversations/{conversation_id}`：读取公共 Core Memory 快照。
 - `GET /agent/stream/config`
 - `POST /agent/ask`
 - `POST /agent/ask/stream`
@@ -279,10 +281,14 @@ run_succeeded + full response
 
 页面只保留单行最新状态，不构建复杂时间线。reasoning 仅在开关开启并收到事件时显示为纯文本学习调试区；旧后端没有 reasoning_delta 时不渲染空区域。V3.12.1 不经过 Skill Runtime，因此不会显示“正在选择 Skill”。
 
+当前维护的 UI 位于 `frontend/agent_console/`，它不再按照学习版本命名。页面启动时必须先读取 `GET /console/config` 并确认 `contract_version=console.v1`；如果误连旧 Swagger，会显示明确的不兼容提示，并停止请求会话、Runs 和 SSE。
+
+Swagger 版本和 UI 版本采用不同节奏：后端继续通过独立版本目录学习；前端只在用户可见请求、响应、事件或交互契约发生不兼容变化时冻结里程碑快照。具体规则见 `frontend/snapshots/README.md`。
+
 VS Code/Cursor 可分别运行：
 
 - `V3.12.1 API server: Agent Core Streaming`
-- `V3.12.1 UI server: Agent Console`
+- `Agent Console UI: console.v1 (V3.12.1)`
 
 后者通过 `VITE_API_TARGET=http://127.0.0.1:8020` 将 `/api` 代理到 V3.12.1。
 
@@ -299,11 +305,12 @@ VS Code/Cursor 可分别运行：
 | `obsidian_rag/core/compaction.py` | 滚动摘要压缩 |
 | `obsidian_rag/core/tools.py` | 本地/MCP 共用 Tool Definition、Result 和 Registry |
 | `obsidian_rag/core/llm.py` | complete/stream Protocol |
+| `obsidian_rag/console_api/` | 稳定 `console.v1` schema、能力协商和 Conversation router |
 | `obsidian_rag/llm.py` | OpenAI-compatible complete、content stream 和 CPA reasoning_content 适配 |
 | `obsidian_rag/v3_12_1/tool_adapter.py` | V3.12 MCP Tool 到公共 Registry 的 Adapter |
 | `obsidian_rag/v3_12_1/service.py` | V3.12.1 教学门面 |
 | `obsidian_rag/v3_12_1/routes/` | JSON、SSE、Tool 和 health 路由 |
-| `frontend/.../use-agent-console.ts` | progress/reasoning reducer、assistant 草稿、独立 sequence 去重和终态对账 |
+| `frontend/agent_console/src/composables/use-agent-console.ts` | Console 契约校验、progress/reasoning reducer、assistant 草稿、独立 sequence 去重和终态对账 |
 | `tests/v3_12_1/` | Core streaming、依赖方向、API、Tool 和 CLI 测试 |
 
 ## 核心断点顺序

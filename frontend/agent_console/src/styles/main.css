@@ -52,7 +52,9 @@ h2 { margin: 2px 0 0; font-size: 15px; letter-spacing: 0; }
 .sidebar-footer { display: flex; align-items: center; gap: 7px; margin-top: auto; padding: 14px 5px 3px; color: #687588; font-size: 11px; }
 .connection-dot { width: 8px; height: 8px; border-radius: 50%; background: #9aa5b2; }.connection-dot.online { background: #10a37f; }.connection-dot.offline { background: #e05050; }
 
-.chat-pane { display: grid; grid-template-rows: 58px minmax(0, 1fr) auto; min-width: 0; min-height: 0; background: #fff; }
+.chat-pane { position: relative; display: grid; grid-template-rows: 58px minmax(0, 1fr) auto; min-width: 0; min-height: 0; background: #fff; }
+.compatibility-banner { position: absolute; z-index: 2; top: 74px; left: 50%; display: grid; gap: 3px; width: min(620px, calc(100% - 40px)); padding: 10px 12px; color: #73510b; background: #fff7dc; border: 1px solid #efd796; border-radius: 6px; box-shadow: 0 8px 24px rgba(55, 65, 81, 0.12); transform: translateX(-50%); }
+.compatibility-banner strong { font-size: 12px; }.compatibility-banner span { font-size: 11px; line-height: 1.45; }.compatibility-banner.incompatible { color: #9f3030; background: #fff0f0; border-color: #efbcbc; }
 .conversation-bar { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 0 22px; border-bottom: 1px solid #edf0f2; }
 .conversation-bar > div { display: grid; gap: 3px; min-width: 0; }.conversation-bar strong { overflow: hidden; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; font-weight: 580; text-overflow: ellipsis; white-space: nowrap; }
 .inline-error { max-width: 45%; overflow: hidden; color: #bc3d3d; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }

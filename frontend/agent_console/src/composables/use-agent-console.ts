@@ -2,6 +2,7 @@ import { computed, onMounted, reactive, ref, watch } from "vue";
 
 import {
   fetchConversation,
+  fetchConsoleConfig,
   fetchHealth,
   fetchRuns,
   normalizeProductionResponse,
@@ -12,6 +13,8 @@ import type {
   AgentAskPayload,
   AgentOptions,
   AgentProgress,
+  ConsoleCompatibilityStatus,
+  ConsoleConfigResponse,
   ConsoleMessage,
   ConsoleSession,
   MemorySnapshot,
@@ -19,7 +22,8 @@ import type {
   RunRecord,
 } from "@/types/production";
 
-const STORAGE_KEY = "obsidian-rag.v3.10.1.console-sessions";
+const STORAGE_KEY = "obsidian-rag.console.v1.sessions";
+const LEGACY_STORAGE_KEY = "obsidian-rag.v3.10.1.console-sessions";
 const MAX_SESSIONS = 12;
 const MAX_MESSAGES_PER_SESSION = 40;
 
@@ -45,6 +49,9 @@ export function useAgentConsole() {
   const memorySnapshot = ref<MemorySnapshot | null>(null);
   const isRunning = ref(false);
   const apiOnline = ref<boolean | null>(null);
+  const consoleConfig = ref<ConsoleConfigResponse | null>(null);
+  const compatibilityStatus = ref<ConsoleCompatibilityStatus>("checking");
+  const compatibilityError = ref("");
   const requestError = ref("");
   const options = reactive<AgentOptions>({ ...defaultOptions });
 
@@ -55,6 +62,7 @@ export function useAgentConsole() {
   const activeSession = computed(
     () => sessions.value.find((session) => session.id === activeConversationId.value) ?? sessions.value[0],
   );
+  const isConsoleCompatible = computed(() => compatibilityStatus.value === "compatible");
 
   watch(
     sessions,
@@ -67,7 +75,31 @@ export function useAgentConsole() {
   });
 
   async function refreshWorkspace() {
+    compatibilityStatus.value = "checking";
+    compatibilityError.value = "";
+    if (!(await refreshCompatibility())) {
+      apiOnline.value = false;
+      recentRuns.value = [];
+      memorySnapshot.value = null;
+      return;
+    }
     await Promise.all([refreshHealth(), refreshRuns(), hydrateConversation(activeConversationId.value)]);
+  }
+
+  async function refreshCompatibility(): Promise<boolean> {
+    try {
+      consoleConfig.value = await fetchConsoleConfig();
+      compatibilityStatus.value = "compatible";
+      options.memoryWindow = consoleConfig.value.default_memory_window;
+      return true;
+    } catch (error) {
+      consoleConfig.value = null;
+      compatibilityStatus.value = "incompatible";
+      compatibilityError.value = error instanceof Error
+        ? error.message
+        : "无法验证后端 Console 契约，请确认已启动 V3.12.1 / 8020。";
+      return false;
+    }
   }
 
   async function refreshHealth() {
@@ -105,6 +137,10 @@ export function useAgentConsole() {
   }
 
   async function selectConversation(conversationId: string) {
+    if (!isConsoleCompatible.value) {
+      requestError.value = compatibilityError.value;
+      return;
+    }
     activeConversationId.value = conversationId;
     requestError.value = "";
     await hydrateConversation(conversationId);
@@ -121,7 +157,10 @@ export function useAgentConsole() {
 
   async function submit(question: string) {
     const trimmedQuestion = question.trim();
-    if (!trimmedQuestion || isRunning.value) {
+    if (!trimmedQuestion || isRunning.value || !isConsoleCompatible.value) {
+      if (!isConsoleCompatible.value) {
+        requestError.value = compatibilityError.value;
+      }
       return;
     }
     const session = getSessionFrom(sessions.value, activeConversationId.value);
@@ -191,9 +230,13 @@ export function useAgentConsole() {
     activeConversationId,
     activeSession,
     apiOnline,
+    compatibilityError,
+    compatibilityStatus,
+    consoleConfig,
     createConversation,
     hydrateConversation,
     isRunning,
+    isConsoleCompatible,
     memorySnapshot,
     options,
     recentRuns,
@@ -396,7 +439,7 @@ function compactTitle(question: string): string {
 
 function loadSessions(): ConsoleSession[] {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = localStorage.getItem(STORAGE_KEY) ?? localStorage.getItem(LEGACY_STORAGE_KEY);
     if (!raw) {
       return [];
     }

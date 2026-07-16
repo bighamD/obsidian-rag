@@ -267,6 +267,28 @@ export interface ConsoleConversationResponse {
   memory_snapshot: MemorySnapshot;
 }
 
+export interface ConsoleConfigResponse {
+  contract_version: string;
+  backend_version: string;
+  features: {
+    json: boolean;
+    sse: boolean;
+    answer_delta: boolean;
+    reasoning_delta: boolean;
+    conversation_memory: boolean;
+    collections: boolean;
+  };
+  endpoints: {
+    ask: string;
+    stream: string;
+    conversation: string;
+    runs: string;
+  };
+  default_memory_window: number;
+}
+
+export type ConsoleCompatibilityStatus = "checking" | "compatible" | "incompatible";
+
 export interface ConsoleSession {
   id: string;
   title: string;

@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 
+from obsidian_rag.console_api import router as console_router
 from obsidian_rag.v3_10.routes import runs
 from obsidian_rag.v3_12_1.routes import agent, health, tools
 
@@ -14,3 +15,4 @@ app.include_router(health.router)
 app.include_router(agent.router)
 app.include_router(tools.router)
 app.include_router(runs.router)
+app.include_router(console_router)

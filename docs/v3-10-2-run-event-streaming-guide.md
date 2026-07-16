@@ -1,5 +1,7 @@
 # V3.10.2 Run Event Streaming 学习指南
 
+> 历史说明：本页记录 V3.10.2 当时对同一 Console 的 SSE 扩展，文中的 `frontend/v3_10_1_agent_console/` 是历史路径。当前维护中的 `frontend/agent_console/` 只支持 `console.v1 + V3.12.1/8020`；V3.10.2 里程碑代码可从提交 `9369a9c1f71d77a3a56167289f85cf1fb84accdb` 学习。
+
 ![V3.10.2 Run Event Streaming 流程](assets/rag-v3-10-2-run-event-streaming-flow.svg)
 
 ## 这一版学习什么

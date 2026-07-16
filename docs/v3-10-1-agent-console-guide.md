@@ -1,5 +1,7 @@
 # V3.10.1 Agent Console 学习指南
 
+> 历史说明：本页记录 V3.10.1 当时的 JSON Console，文中的 `frontend/v3_10_1_agent_console/` 是历史路径。当前维护中的前端已迁移到 `frontend/agent_console/`，只支持 `console.v1 + V3.12.1/8020`，不能直接连接 V3.10.1；V3.10.1 原始 UI 可从提交 `636544b630cdb582ff60cb14aa260f504b811591` 学习。
+
 ![V3.10.1 Agent Console 流程](assets/rag-v3-10-1-agent-console-flow.svg)
 
 ## 这一版学习什么

@@ -33,7 +33,7 @@ function updateOptions(value: AgentOptions) {
 <template>
   <div class="console-shell">
     <header class="app-header">
-      <div class="brand-lockup"><span class="brand-mark"><Bot :size="20" /></span><div><strong>Obsidian RAG</strong><span>Agent Console · V3.10.2 SSE</span></div></div>
+      <div class="brand-lockup"><span class="brand-mark"><Bot :size="20" /></span><div><strong>Obsidian RAG</strong><span>Agent Console · console.v1</span></div></div>
       <div class="header-actions">
         <button class="header-icon-button desktop-hidden" title="打开运行检查器" aria-label="打开运行检查器" @click="mobileInspectorOpen = true"><PanelRightOpen :size="19" /></button>
         <button class="header-icon-button" title="刷新工作区" aria-label="刷新工作区" @click="consoleState.refreshWorkspace"><RefreshCw :size="18" /></button>
@@ -53,6 +53,10 @@ function updateOptions(value: AgentOptions) {
       />
 
       <section class="chat-pane">
+        <div v-if="consoleState.compatibilityStatus.value !== 'compatible'" class="compatibility-banner" :class="consoleState.compatibilityStatus.value">
+          <strong>{{ consoleState.compatibilityStatus.value === 'checking' ? '正在验证 Console 契约' : '后端与当前 Console 不兼容' }}</strong>
+          <span>{{ consoleState.compatibilityStatus.value === 'checking' ? '正在读取 /console/config…' : consoleState.compatibilityError.value }}</span>
+        </div>
         <div class="conversation-bar">
           <div><p class="section-kicker">当前会话</p><strong>{{ consoleState.activeConversationId.value }}</strong></div>
           <span v-if="consoleState.requestError.value" class="inline-error">{{ consoleState.requestError.value }}</span>
@@ -60,6 +64,7 @@ function updateOptions(value: AgentOptions) {
         <ChatTranscript :is-running="consoleState.isRunning.value" :messages="activeMessages" />
         <ChatComposer
           v-model="question"
+          :disabled="!consoleState.isConsoleCompatible.value"
           :options="consoleState.options"
           :is-running="consoleState.isRunning.value"
           @submit="submitQuestion"

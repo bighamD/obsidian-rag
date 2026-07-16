@@ -1,5 +1,6 @@
-import { describe, expect, it } from "vitest";
-import { nextTick, watchEffect } from "vue";
+import { flushPromises, mount } from "@vue/test-utils";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { defineComponent, h, nextTick, watchEffect } from "vue";
 
 import {
   applyAnswerDelta,
@@ -9,6 +10,7 @@ import {
   createStreamingAssistantDraft,
   markStreamError,
   reconcileAssistantMessage,
+  useAgentConsole,
 } from "@/composables/use-agent-console";
 import type { AgentOptions, AgentStreamEvent, ConsoleMessage, ProductionAskResponse } from "@/types/production";
 
@@ -26,6 +28,59 @@ const options: AgentOptions = {
   contextMaxChunks: 4,
   contextTokenBudget: 4000,
 };
+
+beforeEach(() => {
+  localStorage.clear();
+});
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
+
+describe("Console contract startup", () => {
+  it("enables the workspace only after loading console.v1", async () => {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.endsWith("/console/config")) {
+        return jsonResponse(consoleManifest());
+      }
+      if (url.endsWith("/health")) {
+        return jsonResponse({ status: "ok", version: "v3.12.1" });
+      }
+      if (url.includes("/runs?")) {
+        return jsonResponse([]);
+      }
+      if (url.includes("/console/conversations/")) {
+        return jsonResponse(emptyConversation());
+      }
+      throw new Error(`Unexpected request: ${url}`);
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const { state, wrapper } = mountConsole();
+    await flushPromises();
+
+    expect(state.compatibilityStatus.value).toBe("compatible");
+    expect(state.isConsoleCompatible.value).toBe(true);
+    expect(state.consoleConfig.value?.backend_version).toBe("v3.12.1");
+    expect(fetchMock).toHaveBeenCalledTimes(4);
+    wrapper.unmount();
+  });
+
+  it("stops after an incompatible manifest without requesting workspace data", async () => {
+    const fetchMock = vi.fn(async () => jsonResponse({ ...consoleManifest(), contract_version: "console.v0" }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const { state, wrapper } = mountConsole();
+    await flushPromises();
+
+    expect(state.compatibilityStatus.value).toBe("incompatible");
+    expect(state.isConsoleCompatible.value).toBe(false);
+    expect(state.compatibilityError.value).toContain("需要 console.v1");
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    wrapper.unmount();
+  });
+});
 
 
 describe("buildAgentAskPayload", () => {
@@ -189,3 +244,60 @@ describe("answer delta", () => {
     expect(draft.isStreaming).toBe(false);
   });
 });
+
+function mountConsole() {
+  let state!: ReturnType<typeof useAgentConsole>;
+  const wrapper = mount(defineComponent({
+    setup() {
+      state = useAgentConsole();
+      return () => h("div");
+    },
+  }));
+  return { state, wrapper };
+}
+
+function jsonResponse(payload: unknown): Response {
+  return new Response(JSON.stringify(payload), {
+    status: 200,
+    headers: { "Content-Type": "application/json" },
+  });
+}
+
+function consoleManifest() {
+  return {
+    contract_version: "console.v1",
+    backend_version: "v3.12.1",
+    features: {
+      json: true,
+      sse: true,
+      answer_delta: true,
+      reasoning_delta: true,
+      conversation_memory: true,
+      collections: true,
+    },
+    endpoints: {
+      ask: "/agent/ask",
+      stream: "/agent/ask/stream",
+      conversation: "/console/conversations/{conversation_id}",
+      runs: "/runs",
+    },
+    default_memory_window: 3,
+  };
+}
+
+function emptyConversation() {
+  return {
+    conversation_id: "conv_web_test",
+    memory_snapshot: {
+      conversation_id: "conv_web_test",
+      window: 3,
+      recent_turns: [],
+      total_turn_count: 0,
+      loaded_turn_count: 0,
+      omitted_turn_count: 0,
+      summary_text: "",
+      summary_through_turn_id: null,
+      summary_updated_at: null,
+    },
+  };
+}

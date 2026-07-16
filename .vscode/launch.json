@@ -56,13 +56,6 @@
 			"justMyCode": true
 		},
 		{
-			"name": "V3.10.2 UI: Vite Agent Console SSE",
-			"type": "node-terminal",
-			"request": "launch",
-			"command": "VITE_API_TARGET=http://127.0.0.1:8014 npm run dev",
-			"cwd": "${workspaceFolder}/frontend/v3_10_1_agent_console"
-		},
-		{
 			"name": "V3.10.1 API server: Agent Console",
 			"type": "debugpy",
 			"request": "launch",
@@ -79,13 +72,6 @@
 				"8013"
 			],
 			"justMyCode": true
-		},
-		{
-			"name": "V3.10.1 UI: Vite Agent Console",
-			"type": "node-terminal",
-			"request": "launch",
-			"command": "VITE_API_TARGET=http://127.0.0.1:8013 npm run dev",
-			"cwd": "${workspaceFolder}/frontend/v3_10_1_agent_console"
 		},
 		{
 			"name": "V3.10 API server: production core",
@@ -220,11 +206,11 @@
 			"justMyCode": true
 		},
 		{
-			"name": "V3.12.1 UI server: Agent Console",
+			"name": "Agent Console UI: console.v1 (V3.12.1)",
 			"type": "node-terminal",
 			"request": "launch",
 			"command": "VITE_API_TARGET=http://127.0.0.1:8020 npm run dev",
-			"cwd": "${workspaceFolder}/frontend/v3_10_1_agent_console"
+			"cwd": "${workspaceFolder}/frontend/agent_console"
 		}
 	]
 }

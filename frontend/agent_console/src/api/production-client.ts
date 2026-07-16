@@ -1,6 +1,7 @@
 import type {
   AgentStreamEvent,
   AgentAskPayload,
+  ConsoleConfigResponse,
   ConsoleConversationResponse,
   ProductionAskResponse,
   RunRecord,
@@ -16,6 +17,42 @@ export class ApiError extends Error {
     this.name = "ApiError";
     this.status = status;
   }
+}
+
+export class ConsoleContractError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "ConsoleContractError";
+  }
+}
+
+export async function fetchConsoleConfig(): Promise<ConsoleConfigResponse> {
+  return parseConsoleConfig(await request<unknown>("/console/config"));
+}
+
+export function parseConsoleConfig(payload: unknown): ConsoleConfigResponse {
+  if (!isRecord(payload)) {
+    throw new ConsoleContractError("后端未返回有效的 Console 配置。");
+  }
+  if (payload.contract_version !== "console.v1") {
+    const detected = typeof payload.contract_version === "string" ? payload.contract_version : "未提供";
+    throw new ConsoleContractError(`后端 Console 契约不兼容：需要 console.v1，当前为 ${detected}。`);
+  }
+  const features = payload.features;
+  const endpoints = payload.endpoints;
+  if (!isRecord(features) || !isRecord(endpoints)) {
+    throw new ConsoleContractError("后端 console.v1 配置缺少 features 或 endpoints。");
+  }
+  const requiredFeatures = ["sse", "answer_delta", "conversation_memory", "collections"] as const;
+  const missingFeatures = requiredFeatures.filter((key) => features[key] !== true);
+  if (missingFeatures.length > 0) {
+    throw new ConsoleContractError(`后端 console.v1 缺少当前页面所需能力：${missingFeatures.join(", ")}。`);
+  }
+  const requiredEndpoints = ["ask", "stream", "conversation", "runs"] as const;
+  if (requiredEndpoints.some((key) => typeof endpoints[key] !== "string")) {
+    throw new ConsoleContractError("后端 console.v1 配置缺少必要 endpoint。");
+  }
+  return payload as unknown as ConsoleConfigResponse;
 }
 
 export async function askAgent(payload: AgentAskPayload): Promise<ProductionAskResponse> {
@@ -141,4 +178,8 @@ async function readErrorMessage(response: Response): Promise<string> {
   } catch {
     return `请求失败 (${response.status})`;
   }
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }

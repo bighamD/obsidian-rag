@@ -1,9 +1,12 @@
 import asyncio
 import sys
+from types import SimpleNamespace
 
 from fastapi.testclient import TestClient
 
 from obsidian_rag import cli
+from obsidian_rag.console_api.dependencies import get_console_config, get_console_memory_store
+from obsidian_rag.core.memory import SQLiteConversationMemoryStore
 from obsidian_rag.v3_12_1.app import app
 from obsidian_rag.v3_12_1.routes.agent import get_learning_service
 from obsidian_rag.v3_12_1.schemas import (
@@ -78,6 +81,53 @@ def test_v3_12_1_health_and_stream_config():
     assert config.json()["reasoning_delta_enabled"] is True
     assert config.json()["reasoning_effort"] == "medium"
     assert config.json()["hidden_reasoning_exposed"] is True
+
+
+def test_v3_12_1_console_reads_existing_conversation_and_returns_empty_snapshot(tmp_path):
+    memory_store = SQLiteConversationMemoryStore(tmp_path / "console-memory.sqlite3")
+    memory_store.append_turn("conv_console", "第一轮问题", "第一轮回答", ["food.md"], [])
+    app.dependency_overrides[get_console_memory_store] = lambda: memory_store
+    try:
+        client = TestClient(app)
+        existing = client.get("/console/conversations/conv_console?window=3")
+        missing = client.get("/console/conversations/conv_missing?window=3")
+    finally:
+        app.dependency_overrides.clear()
+
+    assert existing.status_code == 200
+    assert existing.json()["memory_snapshot"]["recent_turns"][0]["user_message"] == "第一轮问题"
+    assert missing.status_code == 200
+    assert missing.json()["memory_snapshot"]["recent_turns"] == []
+    assert missing.json()["memory_snapshot"]["total_turn_count"] == 0
+
+
+def test_v3_12_1_console_manifest_exposes_console_v1_contract():
+    app.dependency_overrides[get_console_config] = lambda: SimpleNamespace(reasoning_stream_enabled=True)
+    try:
+        response = TestClient(app).get("/console/config")
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "contract_version": "console.v1",
+        "backend_version": "v3.12.1",
+        "features": {
+            "json": True,
+            "sse": True,
+            "answer_delta": True,
+            "reasoning_delta": True,
+            "conversation_memory": True,
+            "collections": True,
+        },
+        "endpoints": {
+            "ask": "/agent/ask",
+            "stream": "/agent/ask/stream",
+            "conversation": "/console/conversations/{conversation_id}",
+            "runs": "/runs",
+        },
+        "default_memory_window": 3,
+    }
 
 
 def test_unified_registry_lists_local_tool_and_rejects_unknown():

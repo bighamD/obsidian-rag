@@ -644,7 +644,7 @@ examples:
 
 本次实现：
 
-- `frontend/v3_10_1_agent_console/` 使用 Vite、Vue 3、TypeScript 和 `lucide-vue-next`。
+- 当时的 `frontend/v3_10_1_agent_console/` 使用 Vite、Vue 3、TypeScript 和 `lucide-vue-next`；当前维护入口已迁移为 `frontend/agent_console/`。
 - 桌面端提供会话侧栏、对话主区和 Run Inspector；移动端将 Inspector 收为侧边抽屉。
 - 对话主区展示最终答案和来源；Inspector 分成概览、计划与工具、证据、上下文四个视图。
 - 通过浏览器 `localStorage` 保存近期会话 ID 和轻量消息；通过 `GET /console/conversations/{conversation_id}` 读取 V3.10 SQLite Memory 快照。
@@ -938,6 +938,8 @@ AgentRuntime/Core
 - 文档能画清楚 Core、Adapter、Production Runtime 和学习版本之间的依赖方向。
 
 V3.12.1 已完成：新增无版本号 `obsidian_rag/core/`，V3.10/V3.10.2/V3.11 主线不再直接依赖 V3.8.1 AgentService/schemas；本地 Tool 与 V3.12 MCP Tool 通过统一 Registry 被发现和显式执行；最终 Answer 支持 `answer_delta`、TTFT/生成耗时和非流式回退；Agent Console 使用单个 assistant 气泡增量展示并在终态补齐 sources、Run 和 Memory。Prompt、检索、Evidence 与 Memory 语义保持不变，不展示隐藏推理。
+
+当前 Agent Console 已从学习版本号中解耦：`frontend/agent_console/` 只连接 V3.12.1 / 8020 提供的 `console.v1`，启动时通过 `/console/config` 做能力协商。后续 Swagger 版本不会自动复制一套前端；只有用户可见 Console 契约出现不兼容里程碑时，才把上一套真实实现冻结到 `frontend/snapshots/`。
 
 ## Phase 10：Permission Policy
 
