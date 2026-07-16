@@ -1,8 +1,10 @@
-import { computed, onMounted, reactive, ref, watch } from "vue";
+import { computed, onMounted, reactive, ref } from "vue";
 
 import {
+  deleteConversation as deleteConversationRequest,
   fetchConversation,
   fetchConsoleConfig,
+  fetchConversations,
   fetchHealth,
   fetchRuns,
   normalizeProductionResponse,
@@ -15,6 +17,7 @@ import type {
   AgentProgress,
   ConsoleCompatibilityStatus,
   ConsoleConfigResponse,
+  ConsoleConversationSummary,
   ConsoleMessage,
   ConsoleSession,
   MemorySnapshot,
@@ -22,10 +25,9 @@ import type {
   RunRecord,
 } from "@/types/production";
 
-const STORAGE_KEY = "obsidian-rag.console.v1.sessions";
-const LEGACY_STORAGE_KEY = "obsidian-rag.v3.10.1.console-sessions";
-const MAX_SESSIONS = 12;
+const MAX_SESSIONS = 50;
 const MAX_MESSAGES_PER_SESSION = 40;
+const DISPLAY_HISTORY_WINDOW = 20;
 
 const defaultOptions: AgentOptions = {
   collection: "food_safety",
@@ -42,8 +44,9 @@ const defaultOptions: AgentOptions = {
 };
 
 export function useAgentConsole() {
-  const sessions = ref<ConsoleSession[]>(loadSessions());
-  const activeConversationId = ref(sessions.value[0]?.id ?? createConversationId());
+  const initialConversationId = createConversationId();
+  const sessions = ref<ConsoleSession[]>([newSession(initialConversationId)]);
+  const activeConversationId = ref(initialConversationId);
   const response = ref<ProductionAskResponse | null>(null);
   const recentRuns = ref<RunRecord[]>([]);
   const memorySnapshot = ref<MemorySnapshot | null>(null);
@@ -53,28 +56,23 @@ export function useAgentConsole() {
   const compatibilityStatus = ref<ConsoleCompatibilityStatus>("checking");
   const compatibilityError = ref("");
   const requestError = ref("");
+  const deletingConversationId = ref<string | null>(null);
   const options = reactive<AgentOptions>({ ...defaultOptions });
-
-  if (sessions.value.length === 0) {
-    sessions.value = [newSession(activeConversationId.value)];
-  }
 
   const activeSession = computed(
     () => sessions.value.find((session) => session.id === activeConversationId.value) ?? sessions.value[0],
   );
   const isConsoleCompatible = computed(() => compatibilityStatus.value === "compatible");
 
-  watch(
-    sessions,
-    (value) => saveSessions(value),
-    { deep: true },
-  );
-
   onMounted(async () => {
-    await refreshWorkspace();
+    await loadWorkspace(true);
   });
 
   async function refreshWorkspace() {
+    await loadWorkspace(false);
+  }
+
+  async function loadWorkspace(initial: boolean) {
     compatibilityStatus.value = "checking";
     compatibilityError.value = "";
     if (!(await refreshCompatibility())) {
@@ -83,7 +81,8 @@ export function useAgentConsole() {
       memorySnapshot.value = null;
       return;
     }
-    await Promise.all([refreshHealth(), refreshRuns(), hydrateConversation(activeConversationId.value)]);
+    await Promise.all([refreshHealth(), refreshRuns()]);
+    await refreshConversationList({ initial, hydrateActive: true });
   }
 
   async function refreshCompatibility(): Promise<boolean> {
@@ -119,18 +118,56 @@ export function useAgentConsole() {
     }
   }
 
+  async function refreshConversationList(
+    settings: { initial?: boolean; hydrateActive?: boolean } = {},
+  ): Promise<boolean> {
+    try {
+      const result = await fetchConversations(MAX_SESSIONS);
+      const existingById = new Map(sessions.value.map((session) => [session.id, session]));
+      const persisted = result.conversations.map((summary) => persistedSession(summary, existingById.get(summary.conversation_id)));
+
+      if (settings.initial) {
+        sessions.value = persisted.length > 0 ? persisted : [newSession(activeConversationId.value)];
+        activeConversationId.value = sessions.value[0].id;
+      } else {
+        const persistedIds = new Set(persisted.map((session) => session.id));
+        const temporary = sessions.value.filter(
+          (session) => !session.persisted && !persistedIds.has(session.id),
+        );
+        sessions.value = [...temporary, ...persisted].slice(0, MAX_SESSIONS);
+        if (sessions.value.length === 0) {
+          const session = newSession(createConversationId());
+          sessions.value = [session];
+          activeConversationId.value = session.id;
+        } else if (!getSessionFrom(sessions.value, activeConversationId.value)) {
+          activeConversationId.value = sessions.value[0].id;
+        }
+      }
+
+      if (settings.hydrateActive) {
+        await hydrateConversation(activeConversationId.value);
+      }
+      return true;
+    } catch (error) {
+      requestError.value = error instanceof Error ? error.message : "会话历史加载失败。";
+      return false;
+    }
+  }
+
   async function hydrateConversation(conversationId: string) {
     const session = getSessionFrom(sessions.value, conversationId);
     response.value = latestSessionRun(session);
+    if (!session?.persisted) {
+      memorySnapshot.value = null;
+      return;
+    }
     try {
-      const conversation = await fetchConversation(conversationId, options.memoryWindow);
+      const conversation = await fetchConversation(conversationId, DISPLAY_HISTORY_WINDOW);
       memorySnapshot.value = conversation.memory_snapshot;
-      if (session && session.messages.length === 0) {
-        session.messages = conversation.memory_snapshot.recent_turns.flatMap((turn) => [
-          createMessage("user", turn.user_message, turn.created_at),
-          createMessage("assistant", turn.assistant_message, turn.created_at, turn.sources),
-        ]);
-      }
+      session.messages = conversation.memory_snapshot.recent_turns.flatMap((turn) => [
+        createMessage("user", turn.user_message, turn.created_at),
+        createMessage("assistant", turn.assistant_message, turn.created_at, turn.sources),
+      ]);
     } catch {
       memorySnapshot.value = null;
     }
@@ -153,6 +190,41 @@ export function useAgentConsole() {
     response.value = null;
     memorySnapshot.value = null;
     requestError.value = "";
+  }
+
+  async function deleteConversation(conversationId: string) {
+    if (isRunning.value || deletingConversationId.value) {
+      return;
+    }
+    const session = getSessionFrom(sessions.value, conversationId);
+    if (!session) {
+      return;
+    }
+
+    deletingConversationId.value = conversationId;
+    requestError.value = "";
+    try {
+      if (session.persisted) {
+        await deleteConversationRequest(conversationId);
+      }
+      const wasActive = activeConversationId.value === conversationId;
+      sessions.value = sessions.value.filter((item) => item.id !== conversationId);
+      if (sessions.value.length === 0) {
+        const replacement = newSession(createConversationId());
+        sessions.value = [replacement];
+      }
+      if (wasActive) {
+        const replacement = sessions.value.find((item) => item.persisted) ?? sessions.value[0];
+        activeConversationId.value = replacement.id;
+        response.value = null;
+        memorySnapshot.value = null;
+        await hydrateConversation(activeConversationId.value);
+      }
+    } catch (error) {
+      requestError.value = error instanceof Error ? error.message : "删除会话失败。";
+    } finally {
+      deletingConversationId.value = null;
+    }
   }
 
   async function submit(question: string) {
@@ -193,7 +265,10 @@ export function useAgentConsole() {
         assistantDraft.run = result;
         assistantDraft.isStreaming = false;
       }
-      await refreshRuns();
+      await Promise.all([
+        refreshRuns(),
+        assistant?.memory_write.saved ? refreshConversationList() : Promise.resolve(false),
+      ]);
     } catch (error) {
       const message = error instanceof Error ? error.message : "请求失败。";
       requestError.value = message;
@@ -234,12 +309,15 @@ export function useAgentConsole() {
     compatibilityStatus,
     consoleConfig,
     createConversation,
+    deleteConversation,
+    deletingConversationId,
     hydrateConversation,
     isRunning,
     isConsoleCompatible,
     memorySnapshot,
     options,
     recentRuns,
+    refreshConversationList,
     refreshWorkspace,
     requestError,
     response,
@@ -389,7 +467,21 @@ function newSession(id: string): ConsoleSession {
     id,
     title: "新会话",
     updatedAt: new Date().toISOString(),
+    persisted: false,
     messages: [],
+  };
+}
+
+function persistedSession(
+  summary: ConsoleConversationSummary,
+  existing?: ConsoleSession,
+): ConsoleSession {
+  return {
+    id: summary.conversation_id,
+    title: summary.title,
+    updatedAt: summary.updated_at,
+    persisted: true,
+    messages: existing?.messages ?? [],
   };
 }
 
@@ -435,25 +527,4 @@ function latestSessionRun(session: ConsoleSession | undefined): ProductionAskRes
 
 function compactTitle(question: string): string {
   return question.length > 28 ? `${question.slice(0, 28)}...` : question;
-}
-
-function loadSessions(): ConsoleSession[] {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY) ?? localStorage.getItem(LEGACY_STORAGE_KEY);
-    if (!raw) {
-      return [];
-    }
-    const value = JSON.parse(raw) as ConsoleSession[];
-    return Array.isArray(value) ? value.slice(0, MAX_SESSIONS) : [];
-  } catch {
-    return [];
-  }
-}
-
-function saveSessions(sessions: ConsoleSession[]) {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(sessions.slice(0, MAX_SESSIONS)));
-  } catch {
-    // 浏览器的存储额度不足不影响当前会话继续运行。
-  }
 }

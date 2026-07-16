@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Activity, Plus, RefreshCw } from "lucide-vue-next";
+import { Activity, Plus, RefreshCw, Trash2 } from "lucide-vue-next";
 
 import type { ConsoleSession, RunRecord } from "@/types/production";
 import { formatDateTime, shortId, statusLabel } from "@/utils/format";
@@ -7,6 +7,8 @@ import { formatDateTime, shortId, statusLabel } from "@/utils/format";
 defineProps<{
   activeConversationId: string;
   apiOnline: boolean | null;
+  deletingConversationId: string | null;
+  isRunning: boolean;
   recentRuns: RunRecord[];
   sessions: ConsoleSession[];
 }>();
@@ -14,6 +16,7 @@ defineProps<{
 defineEmits<{
   select: [conversationId: string];
   create: [];
+  delete: [conversationId: string];
   refresh: [];
 }>();
 </script>
@@ -31,16 +34,28 @@ defineEmits<{
     </div>
 
     <nav class="session-list" aria-label="浏览器保存的会话">
-      <button
+      <div
         v-for="session in sessions"
         :key="session.id"
-        class="session-row"
+        class="session-item"
         :class="{ active: session.id === activeConversationId }"
-        @click="$emit('select', session.id)"
       >
-        <span class="session-title">{{ session.title }}</span>
-        <span class="session-meta">{{ formatDateTime(session.updatedAt) }}</span>
-      </button>
+        <button class="session-select" @click="$emit('select', session.id)">
+          <span class="session-title">{{ session.title }}</span>
+          <span class="session-meta">
+            {{ session.persisted ? formatDateTime(session.updatedAt) : '尚未保存' }}
+          </span>
+        </button>
+        <button
+          class="session-delete"
+          :disabled="isRunning || deletingConversationId !== null"
+          :title="session.persisted ? '删除会话及关联 Turns' : '删除临时会话'"
+          :aria-label="`删除会话 ${session.title}`"
+          @click.stop="$emit('delete', session.id)"
+        >
+          <Trash2 :size="14" />
+        </button>
+      </div>
     </nav>
 
     <section class="run-list-section" aria-label="近期运行">

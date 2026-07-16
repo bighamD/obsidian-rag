@@ -38,7 +38,10 @@ afterEach(() => {
 });
 
 describe("Console contract startup", () => {
-  it("enables the workspace only after loading console.v1", async () => {
+  it("loads server conversations and ignores obsolete localStorage sessions", async () => {
+    localStorage.setItem("obsidian-rag.console.v1.sessions", JSON.stringify([
+      { id: "conv_obsolete", title: "本地旧会话", updatedAt: "2026-01-01", messages: [] },
+    ]));
     const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
       const url = String(input);
       if (url.endsWith("/console/config")) {
@@ -50,8 +53,11 @@ describe("Console contract startup", () => {
       if (url.includes("/runs?")) {
         return jsonResponse([]);
       }
+      if (url.includes("/console/conversations?")) {
+        return jsonResponse(conversationList([conversationSummary("conv_server", "服务端会话")]));
+      }
       if (url.includes("/console/conversations/")) {
-        return jsonResponse(emptyConversation());
+        return jsonResponse(emptyConversation("conv_server"));
       }
       throw new Error(`Unexpected request: ${url}`);
     });
@@ -63,7 +69,11 @@ describe("Console contract startup", () => {
     expect(state.compatibilityStatus.value).toBe("compatible");
     expect(state.isConsoleCompatible.value).toBe(true);
     expect(state.consoleConfig.value?.backend_version).toBe("v3.12.1");
-    expect(fetchMock).toHaveBeenCalledTimes(4);
+    expect(state.sessions.value.map((session) => session.id)).toEqual(["conv_server"]);
+    expect(state.sessions.value[0].persisted).toBe(true);
+    expect(state.activeConversationId.value).toBe("conv_server");
+    expect(fetchMock).toHaveBeenCalledTimes(5);
+    expect(fetchMock.mock.calls.some(([input]) => String(input).includes("window=20"))).toBe(true);
     wrapper.unmount();
   });
 
@@ -78,6 +88,55 @@ describe("Console contract startup", () => {
     expect(state.isConsoleCompatible.value).toBe(false);
     expect(state.compatibilityError.value).toContain("需要 console.v1");
     expect(fetchMock).toHaveBeenCalledTimes(1);
+    wrapper.unmount();
+  });
+
+  it("creates a temporary session without calling the backend", async () => {
+    const fetchMock = workspaceFetchMock([conversationSummary("conv_server", "服务端会话")]);
+    vi.stubGlobal("fetch", fetchMock);
+    const { state, wrapper } = mountConsole();
+    await flushPromises();
+    const initialCallCount = fetchMock.mock.calls.length;
+
+    state.createConversation();
+
+    expect(state.activeSession.value.persisted).toBe(false);
+    expect(state.activeSession.value.title).toBe("新会话");
+    expect(fetchMock).toHaveBeenCalledTimes(initialCallCount);
+    wrapper.unmount();
+  });
+
+  it("deletes the active persisted conversation and selects the next one", async () => {
+    const fetchMock = workspaceFetchMock([
+      conversationSummary("conv_delete", "待删除会话"),
+      conversationSummary("conv_keep", "保留会话"),
+    ]);
+    vi.stubGlobal("fetch", fetchMock);
+    const { state, wrapper } = mountConsole();
+    await flushPromises();
+
+    await state.deleteConversation("conv_delete");
+
+    expect(state.sessions.value.map((session) => session.id)).toEqual(["conv_keep"]);
+    expect(state.activeConversationId.value).toBe("conv_keep");
+    expect(fetchMock.mock.calls.some(([input, init]) => (
+      String(input).endsWith("/console/conversations/conv_delete") && init?.method === "DELETE"
+    ))).toBe(true);
+    wrapper.unmount();
+  });
+
+  it("keeps the session when deletion fails", async () => {
+    const fetchMock = workspaceFetchMock([conversationSummary("conv_keep", "保留会话")], {
+      deleteStatus: 500,
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const { state, wrapper } = mountConsole();
+    await flushPromises();
+
+    await state.deleteConversation("conv_keep");
+
+    expect(state.sessions.value.map((session) => session.id)).toEqual(["conv_keep"]);
+    expect(state.requestError.value).toContain("删除失败");
     wrapper.unmount();
   });
 });
@@ -273,11 +332,13 @@ function consoleManifest() {
       answer_delta: true,
       reasoning_delta: true,
       conversation_memory: true,
+      conversation_management: true,
       collections: true,
     },
     endpoints: {
       ask: "/agent/ask",
       stream: "/agent/ask/stream",
+      conversations: "/console/conversations",
       conversation: "/console/conversations/{conversation_id}",
       runs: "/runs",
     },
@@ -285,11 +346,11 @@ function consoleManifest() {
   };
 }
 
-function emptyConversation() {
+function emptyConversation(conversationId: string) {
   return {
-    conversation_id: "conv_web_test",
+    conversation_id: conversationId,
     memory_snapshot: {
-      conversation_id: "conv_web_test",
+      conversation_id: conversationId,
       window: 3,
       recent_turns: [],
       total_turn_count: 0,
@@ -300,4 +361,56 @@ function emptyConversation() {
       summary_updated_at: null,
     },
   };
+}
+
+function conversationSummary(conversationId: string, title: string) {
+  return {
+    conversation_id: conversationId,
+    title,
+    turn_count: 1,
+    created_at: "26-07-16 20:00:00",
+    updated_at: "26-07-16 21:00:00",
+  };
+}
+
+function conversationList(conversations: ReturnType<typeof conversationSummary>[]) {
+  return { conversations };
+}
+
+function workspaceFetchMock(
+  conversations: ReturnType<typeof conversationSummary>[],
+  options: { deleteStatus?: number } = {},
+) {
+  return vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+    const url = String(input);
+    if (url.endsWith("/console/config")) {
+      return jsonResponse(consoleManifest());
+    }
+    if (url.endsWith("/health")) {
+      return jsonResponse({ status: "ok", version: "v3.12.1" });
+    }
+    if (url.includes("/runs?")) {
+      return jsonResponse([]);
+    }
+    if (url.includes("/console/conversations?")) {
+      return jsonResponse(conversationList(conversations));
+    }
+    if (init?.method === "DELETE" && url.includes("/console/conversations/")) {
+      if (options.deleteStatus && options.deleteStatus >= 400) {
+        return new Response(JSON.stringify({ detail: "删除失败" }), {
+          status: options.deleteStatus,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+      return jsonResponse({
+        conversation_id: url.split("/").pop(),
+        deleted: true,
+        deleted_turn_count: 1,
+      });
+    }
+    if (url.includes("/console/conversations/")) {
+      return jsonResponse(emptyConversation(url.split("/").pop()?.split("?")[0] ?? "conv_test"));
+    }
+    throw new Error(`Unexpected request: ${url}`);
+  });
 }

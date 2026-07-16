@@ -101,6 +101,34 @@ def test_v3_12_1_console_reads_existing_conversation_and_returns_empty_snapshot(
     assert missing.json()["memory_snapshot"]["total_turn_count"] == 0
 
 
+def test_v3_12_1_console_lists_and_deletes_conversation_with_turns(tmp_path):
+    memory_store = SQLiteConversationMemoryStore(tmp_path / "console-memory.sqlite3")
+    memory_store.append_turn("conv_old", "较早问题", "回答", [], [])
+    memory_store.append_turn("conv_delete", "需要删除的问题", "回答 1", [], [])
+    memory_store.append_turn("conv_delete", "第二轮", "回答 2", [], [])
+    app.dependency_overrides[get_console_memory_store] = lambda: memory_store
+    try:
+        client = TestClient(app)
+        listed = client.get("/console/conversations?limit=10")
+        deleted = client.delete("/console/conversations/conv_delete")
+        missing = client.delete("/console/conversations/conv_delete")
+        snapshot = client.get("/console/conversations/conv_delete?window=20")
+    finally:
+        app.dependency_overrides.clear()
+
+    assert listed.status_code == 200
+    listed_by_id = {item["conversation_id"]: item for item in listed.json()["conversations"]}
+    assert listed_by_id["conv_delete"]["title"] == "需要删除的问题"
+    assert listed_by_id["conv_delete"]["turn_count"] == 2
+    assert deleted.json() == {
+        "conversation_id": "conv_delete",
+        "deleted": True,
+        "deleted_turn_count": 2,
+    }
+    assert missing.status_code == 404
+    assert snapshot.json()["memory_snapshot"]["total_turn_count"] == 0
+
+
 def test_v3_12_1_console_manifest_exposes_console_v1_contract():
     app.dependency_overrides[get_console_config] = lambda: SimpleNamespace(reasoning_stream_enabled=True)
     try:
@@ -118,11 +146,13 @@ def test_v3_12_1_console_manifest_exposes_console_v1_contract():
             "answer_delta": True,
             "reasoning_delta": True,
             "conversation_memory": True,
+            "conversation_management": True,
             "collections": True,
         },
         "endpoints": {
             "ask": "/agent/ask",
             "stream": "/agent/ask/stream",
+            "conversations": "/console/conversations",
             "conversation": "/console/conversations/{conversation_id}",
             "runs": "/runs",
         },

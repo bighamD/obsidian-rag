@@ -1,9 +1,11 @@
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from obsidian_rag.config import RagConfig
 from obsidian_rag.console_api.dependencies import get_console_config, get_console_memory_store
 from obsidian_rag.console_api.schemas import (
     ConsoleConfigResponse,
+    ConsoleConversationDeleteResponse,
+    ConsoleConversationListResponse,
     ConsoleConversationResponse,
     ConsoleEndpoints,
     ConsoleFeatures,
@@ -24,15 +26,27 @@ def console_config(config: RagConfig = Depends(get_console_config)) -> ConsoleCo
             answer_delta=True,
             reasoning_delta=config.reasoning_stream_enabled,
             conversation_memory=True,
+            conversation_management=True,
             collections=True,
         ),
         endpoints=ConsoleEndpoints(
             ask="/agent/ask",
             stream="/agent/ask/stream",
+            conversations="/console/conversations",
             conversation="/console/conversations/{conversation_id}",
             runs="/runs",
         ),
         default_memory_window=3,
+    )
+
+
+@router.get("/conversations", response_model=ConsoleConversationListResponse)
+def list_conversations(
+    limit: int = Query(default=50, ge=1, le=200, description="最多返回多少条最近更新的会话。"),
+    memory_store=Depends(get_console_memory_store),
+) -> ConsoleConversationListResponse:
+    return ConsoleConversationListResponse(
+        conversations=memory_store.list_conversations(limit=limit),
     )
 
 
@@ -46,3 +60,20 @@ def get_conversation(
         conversation_id=conversation_id,
         memory_snapshot=memory_store.load_snapshot(conversation_id, window=window),
     )
+
+
+@router.delete(
+    "/conversations/{conversation_id}",
+    response_model=ConsoleConversationDeleteResponse,
+)
+def delete_conversation(
+    conversation_id: str,
+    memory_store=Depends(get_console_memory_store),
+) -> ConsoleConversationDeleteResponse:
+    result = memory_store.delete_conversation(conversation_id)
+    if not result.deleted:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"会话不存在：{conversation_id}",
+        )
+    return ConsoleConversationDeleteResponse.model_validate(result)

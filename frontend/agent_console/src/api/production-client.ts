@@ -2,6 +2,8 @@ import type {
   AgentStreamEvent,
   AgentAskPayload,
   ConsoleConfigResponse,
+  ConsoleConversationDeleteResponse,
+  ConsoleConversationListResponse,
   ConsoleConversationResponse,
   ProductionAskResponse,
   RunRecord,
@@ -43,12 +45,18 @@ export function parseConsoleConfig(payload: unknown): ConsoleConfigResponse {
   if (!isRecord(features) || !isRecord(endpoints)) {
     throw new ConsoleContractError("后端 console.v1 配置缺少 features 或 endpoints。");
   }
-  const requiredFeatures = ["sse", "answer_delta", "conversation_memory", "collections"] as const;
+  const requiredFeatures = [
+    "sse",
+    "answer_delta",
+    "conversation_memory",
+    "conversation_management",
+    "collections",
+  ] as const;
   const missingFeatures = requiredFeatures.filter((key) => features[key] !== true);
   if (missingFeatures.length > 0) {
     throw new ConsoleContractError(`后端 console.v1 缺少当前页面所需能力：${missingFeatures.join(", ")}。`);
   }
-  const requiredEndpoints = ["ask", "stream", "conversation", "runs"] as const;
+  const requiredEndpoints = ["ask", "stream", "conversations", "conversation", "runs"] as const;
   if (requiredEndpoints.some((key) => typeof endpoints[key] !== "string")) {
     throw new ConsoleContractError("后端 console.v1 配置缺少必要 endpoint。");
   }
@@ -153,6 +161,19 @@ export async function fetchConversation(
 ): Promise<ConsoleConversationResponse> {
   return request<ConsoleConversationResponse>(
     `/console/conversations/${encodeURIComponent(conversationId)}?window=${window}`,
+  );
+}
+
+export async function fetchConversations(limit = 50): Promise<ConsoleConversationListResponse> {
+  return request<ConsoleConversationListResponse>(`/console/conversations?limit=${limit}`);
+}
+
+export async function deleteConversation(
+  conversationId: string,
+): Promise<ConsoleConversationDeleteResponse> {
+  return request<ConsoleConversationDeleteResponse>(
+    `/console/conversations/${encodeURIComponent(conversationId)}`,
+    { method: "DELETE" },
   );
 }
 

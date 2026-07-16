@@ -267,6 +267,24 @@ export interface ConsoleConversationResponse {
   memory_snapshot: MemorySnapshot;
 }
 
+export interface ConsoleConversationSummary {
+  conversation_id: string;
+  title: string;
+  turn_count: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ConsoleConversationListResponse {
+  conversations: ConsoleConversationSummary[];
+}
+
+export interface ConsoleConversationDeleteResponse {
+  conversation_id: string;
+  deleted: boolean;
+  deleted_turn_count: number;
+}
+
 export interface ConsoleConfigResponse {
   contract_version: string;
   backend_version: string;
@@ -276,11 +294,13 @@ export interface ConsoleConfigResponse {
     answer_delta: boolean;
     reasoning_delta: boolean;
     conversation_memory: boolean;
+    conversation_management: boolean;
     collections: boolean;
   };
   endpoints: {
     ask: string;
     stream: string;
+    conversations: string;
     conversation: string;
     runs: string;
   };
@@ -293,6 +313,7 @@ export interface ConsoleSession {
   id: string;
   title: string;
   updatedAt: string;
+  persisted: boolean;
   messages: ConsoleMessage[];
 }
 

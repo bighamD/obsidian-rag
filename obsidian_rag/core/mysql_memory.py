@@ -12,7 +12,13 @@ from typing import Any, Iterator
 import pymysql
 from pymysql.connections import Connection
 
-from obsidian_rag.core.memory import MemoryCompactionCandidate, _china_time_text
+from obsidian_rag.core.memory import (
+    ConversationDeleteResult,
+    ConversationSummary,
+    MemoryCompactionCandidate,
+    _china_time_text,
+    _conversation_summary_from_row,
+)
 from obsidian_rag.core.schemas import MemorySnapshot, MemoryTurn, MemoryWriteResult
 
 
@@ -106,6 +112,56 @@ class MySQLConversationMemoryStore:
             ),
         )
 
+    def list_conversations(self, limit: int = 50) -> list[ConversationSummary]:
+        with self._session() as connection:
+            rows = self._fetchall(
+                connection,
+                """
+                SELECT c.conversation_id, c.created_at, c.updated_at,
+                       (SELECT COUNT(*) FROM turns counted
+                        WHERE counted.conversation_id = c.conversation_id) AS turn_count,
+                       (SELECT first_turn.user_message FROM turns first_turn
+                        WHERE first_turn.conversation_id = c.conversation_id
+                        ORDER BY first_turn.sequence_id ASC LIMIT 1) AS first_user_message
+                FROM conversations c
+                ORDER BY c.updated_at DESC, c.conversation_id DESC
+                LIMIT %s
+                """,
+                (limit,),
+            )
+        return [_conversation_summary_from_row(row) for row in rows]
+
+    def delete_conversation(self, conversation_id: str) -> ConversationDeleteResult:
+        with self._session() as connection:
+            conversation = self._fetchone(
+                connection,
+                "SELECT conversation_id FROM conversations WHERE conversation_id = %s",
+                (conversation_id,),
+            )
+            if conversation is None:
+                return ConversationDeleteResult(
+                    conversation_id=conversation_id,
+                    deleted=False,
+                    deleted_turn_count=0,
+                )
+            turn_count = int(
+                self._fetchone(
+                    connection,
+                    "SELECT COUNT(*) AS total FROM turns WHERE conversation_id = %s",
+                    (conversation_id,),
+                )["total"]
+            )
+            self._execute(
+                connection,
+                "DELETE FROM conversations WHERE conversation_id = %s",
+                (conversation_id,),
+            )
+        return ConversationDeleteResult(
+            conversation_id=conversation_id,
+            deleted=True,
+            deleted_turn_count=turn_count,
+        )
+
     def load_compaction_candidate(
         self,
         conversation_id: str,
@@ -195,7 +251,7 @@ class MySQLConversationMemoryStore:
         summary_text: str,
         summary_through_turn_id: str,
     ) -> None:
-        updated_at = datetime.now(timezone.utc).isoformat()
+        updated_at = _china_time_text(datetime.now(timezone.utc).isoformat())
         with self._session() as connection:
             self._execute(
                 connection,

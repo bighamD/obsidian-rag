@@ -130,7 +130,9 @@ RAG_REASONING_EFFORT=medium
 
 - `GET /health`
 - `GET /console/config`：返回稳定 `console.v1` 契约和能力清单。
+- `GET /console/conversations`：从 MySQL 按最近更新时间读取持久化会话列表。
 - `GET /console/conversations/{conversation_id}`：读取公共 Core Memory 快照。
+- `DELETE /console/conversations/{conversation_id}`：硬删除 Conversation，并通过事务级联删除关联 Turns。
 - `GET /agent/stream/config`
 - `POST /agent/ask`
 - `POST /agent/ask/stream`
@@ -282,6 +284,10 @@ run_succeeded + full response
 页面只保留单行最新状态，不构建复杂时间线。reasoning 仅在开关开启并收到事件时显示为纯文本学习调试区；旧后端没有 reasoning_delta 时不渲染空区域。V3.12.1 不经过 Skill Runtime，因此不会显示“正在选择 Skill”。
 
 当前维护的 UI 位于 `frontend/agent_console/`，它不再按照学习版本命名。页面启动时必须先读取 `GET /console/config` 并确认 `contract_version=console.v1`；如果误连旧 Swagger，会显示明确的不兼容提示，并停止请求会话、Runs 和 SSE。
+
+左侧会话历史以 MySQL 为唯一事实来源，不再从 `localStorage` 恢复。新建但尚未提问的会话只是当前页面内的临时状态；首轮回答成功写入 Memory 后，页面重新加载服务端列表并将它转换为持久化会话。会话删除是不可恢复的硬删除：API 删除 `conversations` 行时，`turns` 通过 `ON DELETE CASCADE` 在同一事务内删除；当前进程内 Run 调试记录不属于 Conversation 子资源，不随之删除。
+
+聊天显示固定读取最近 20 条 Turn，与 Agent 请求中的 `memory_window` 分离。调整 Planner Memory Window 不会同步缩短左侧会话打开后的聊天显示历史。
 
 Swagger 版本和 UI 版本采用不同节奏：后端继续通过独立版本目录学习；前端只在用户可见请求、响应、事件或交互契约发生不兼容变化时冻结里程碑快照。具体规则见 `frontend/snapshots/README.md`。
 

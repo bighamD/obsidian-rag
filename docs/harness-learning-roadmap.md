@@ -941,6 +941,8 @@ V3.12.1 已完成：新增无版本号 `obsidian_rag/core/`，V3.10/V3.10.2/V3.1
 
 当前 Agent Console 已从学习版本号中解耦：`frontend/agent_console/` 只连接 V3.12.1 / 8020 提供的 `console.v1`，启动时通过 `/console/config` 做能力协商。后续 Swagger 版本不会自动复制一套前端；只有用户可见 Console 契约出现不兼容里程碑时，才把上一套真实实现冻结到 `frontend/snapshots/`。
 
+`console.v1` 的会话历史现以 MySQL 为事实来源：`GET /console/conversations` 提供服务端列表，详情接口提供最近 20 条显示 Turn，`DELETE /console/conversations/{conversation_id}` 在事务内硬删除 Conversation 和关联 Turns。浏览器 `localStorage` 不再保存会话列表；未产生 Turn 的新会话只作为页面临时状态存在。
+
 ## Phase 10：Permission Policy
 
 建议版本：`V3.13 Permission Policy`

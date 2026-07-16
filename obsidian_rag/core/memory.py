@@ -22,6 +22,25 @@ class MemoryCompactionCandidate:
     preserved_turn_count: int
 
 
+@dataclass(frozen=True)
+class ConversationSummary:
+    conversation_id: str
+    title: str
+    turn_count: int
+    created_at: str
+    updated_at: str
+
+
+@dataclass(frozen=True)
+class ConversationDeleteResult:
+    conversation_id: str
+    deleted: bool
+    deleted_turn_count: int
+
+
+CONVERSATION_TITLE_LIMIT = 28
+
+
 class SQLiteConversationMemoryStore:
     def __init__(self, path: Path):
         self.path = path.expanduser()
@@ -77,6 +96,50 @@ class SQLiteConversationMemoryStore:
                 if conversation and conversation["summary_updated_at"]
                 else None
             ),
+        )
+
+    def list_conversations(self, limit: int = 50) -> list[ConversationSummary]:
+        with self._connect() as connection:
+            rows = connection.execute(
+                """
+                SELECT c.conversation_id, c.created_at, c.updated_at,
+                       (SELECT COUNT(*) FROM turns counted
+                        WHERE counted.conversation_id = c.conversation_id) AS turn_count,
+                       (SELECT first_turn.user_message FROM turns first_turn
+                        WHERE first_turn.conversation_id = c.conversation_id
+                        ORDER BY first_turn.rowid ASC LIMIT 1) AS first_user_message
+                FROM conversations c
+                ORDER BY c.updated_at DESC, c.conversation_id DESC
+                LIMIT ?
+                """,
+                (limit,),
+            ).fetchall()
+        return [_conversation_summary_from_row(row) for row in rows]
+
+    def delete_conversation(self, conversation_id: str) -> ConversationDeleteResult:
+        with self._connect() as connection:
+            exists = connection.execute(
+                "SELECT 1 FROM conversations WHERE conversation_id = ?",
+                (conversation_id,),
+            ).fetchone()
+            if exists is None:
+                return ConversationDeleteResult(
+                    conversation_id=conversation_id,
+                    deleted=False,
+                    deleted_turn_count=0,
+                )
+            turn_count = int(
+                connection.execute(
+                    "SELECT COUNT(*) FROM turns WHERE conversation_id = ?",
+                    (conversation_id,),
+                ).fetchone()[0]
+            )
+            connection.execute("DELETE FROM turns WHERE conversation_id = ?", (conversation_id,))
+            connection.execute("DELETE FROM conversations WHERE conversation_id = ?", (conversation_id,))
+        return ConversationDeleteResult(
+            conversation_id=conversation_id,
+            deleted=True,
+            deleted_turn_count=turn_count,
         )
 
     def load_compaction_candidate(
@@ -155,7 +218,7 @@ class SQLiteConversationMemoryStore:
         summary_text: str,
         summary_through_turn_id: str,
     ) -> None:
-        updated_at = datetime.now(timezone.utc).isoformat()
+        updated_at = _china_time_text(datetime.now(timezone.utc).isoformat())
         with self._connect() as connection:
             cursor = connection.execute(
                 """
@@ -269,6 +332,23 @@ def _memory_turn_from_row(row: sqlite3.Row) -> MemoryTurn:
         tool_calls=_load_json_list(row["tool_calls_json"]),
         created_at=str(row["created_at"]),
     )
+
+
+def _conversation_summary_from_row(row) -> ConversationSummary:
+    return ConversationSummary(
+        conversation_id=str(row["conversation_id"]),
+        title=_conversation_title(str(row["first_user_message"] or "")),
+        turn_count=int(row["turn_count"]),
+        created_at=str(row["created_at"]),
+        updated_at=str(row["updated_at"]),
+    )
+
+
+def _conversation_title(user_message: str) -> str:
+    normalized = " ".join(user_message.split()) or "未命名会话"
+    if len(normalized) <= CONVERSATION_TITLE_LIMIT:
+        return normalized
+    return f"{normalized[:CONVERSATION_TITLE_LIMIT]}..."
 
 
 def _load_json_list(value: str) -> list:

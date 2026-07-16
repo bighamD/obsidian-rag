@@ -45,9 +45,12 @@ function updateOptions(value: AgentOptions) {
       <ConversationSidebar
         :active-conversation-id="consoleState.activeConversationId.value"
         :api-online="consoleState.apiOnline.value"
+        :deleting-conversation-id="consoleState.deletingConversationId.value"
+        :is-running="consoleState.isRunning.value"
         :recent-runs="consoleState.recentRuns.value"
         :sessions="consoleState.sessions.value"
         @create="consoleState.createConversation"
+        @delete="consoleState.deleteConversation"
         @refresh="consoleState.refreshWorkspace"
         @select="selectConversation"
       />
