@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="680" viewBox="0 0 1200 680" role="img" aria-labelledby="title desc">
+  <title id="title">V3.12.2 Top K 数量漏斗</title>
+  <desc id="desc">展示 Dense 和 Keyword 召回、RRF、Parent 去重、Reranker 与 Context 的候选数量变化。</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#071426"/><stop offset="1" stop-color="#102a43"/></linearGradient>
+    <linearGradient id="funnel" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#38bdf8" stop-opacity=".8"/><stop offset="1" stop-color="#34d399" stop-opacity=".8"/></linearGradient>
+    <style>.title{font:700 28px system-ui;fill:#f8fafc}.sub{font:15px system-ui;fill:#bae6fd}.label{font:700 17px system-ui;fill:#f8fafc}.small{font:14px system-ui;fill:#cbd5e1}.num{font:700 24px ui-monospace,monospace;fill:#fbbf24}.edge{stroke:#7dd3fc;stroke-width:2}</style>
+  </defs>
+  <rect width="1200" height="680" fill="url(#bg)"/>
+  <text x="600" y="48" text-anchor="middle" class="title">Top K 不是一个数字，而是一组阶段预算</text>
+  <text x="600" y="76" text-anchor="middle" class="sub">默认示例：最终需要 5 条资料</text>
+
+  <polygon points="130,120 1070,120 980,220 220,220" fill="url(#funnel)" class="edge"/>
+  <text x="600" y="158" text-anchor="middle" class="label">Dense Recall 60 + Keyword Recall 60</text>
+  <text x="600" y="190" text-anchor="middle" class="small">recall_k = rerank_candidates × 3</text>
+
+  <polygon points="220,240 980,240 890,340 310,340" fill="url(#funnel)" class="edge"/>
+  <text x="600" y="278" text-anchor="middle" class="label">RRF Fusion</text>
+  <text x="600" y="310" text-anchor="middle" class="num">fusion_top_k = 60</text>
+
+  <polygon points="310,360 890,360 800,460 400,460" fill="url(#funnel)" class="edge"/>
+  <text x="600" y="398" text-anchor="middle" class="label">Parent Collapse / Expansion</text>
+  <text x="600" y="430" text-anchor="middle" class="num">rerank candidates = 20</text>
+
+  <polygon points="400,480 800,480 710,580 490,580" fill="url(#funnel)" class="edge"/>
+  <text x="600" y="518" text-anchor="middle" class="label">CrossEncoder Reranker</text>
+  <text x="600" y="550" text-anchor="middle" class="num">final top_k = 5</text>
+
+  <rect x="490" y="605" width="220" height="48" rx="16" fill="#123d34" stroke="#34d399" stroke-width="2"/>
+  <text x="600" y="636" text-anchor="middle" class="label">ContextBuilder → LLM</text>
+</svg>

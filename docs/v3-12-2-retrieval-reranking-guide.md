@@ -14,6 +14,8 @@ Dense + Keyword
     -> Answer LLM
 ```
 
+![V3.12.2 Retrieval Reranking 主流程](assets/rag-v3-12-2-reranking-flow.svg)
+
 本版本新增 CrossEncoder Reranker、fail-open、排序可观测性和离线对照评估。它不重新切片、不重新 Embedding、不迁移 Collection/keyword index，也不改变 V3.12.1 API。
 
 下一版本回到既定主线：V3.13 Permission Policy。
@@ -30,6 +32,36 @@ Dense + Keyword
 本学习版没有直接采用 LangChain/LlamaIndex wrapper，因为项目已有 RetrievalService、ContextBuilder 和稳定 schemas，薄 Adapter 更容易观察真实输入输出。`FlagEmbedding` 更适合后续 BGE 专用高级模型；Cohere/Jina 更适合后续远端生产 Adapter。
 
 如果本机 CPU/Mac 跑 `bge-reranker-v2-m3` 较慢，只修改 `RAG_RERANK_MODEL` 即可换成兼容的轻量 CrossEncoder，不需要修改检索主链路。
+
+## RRF 与 Reranker 分工图解
+
+![RRF 与 Reranker 分工对比](assets/rag-v3-12-2-rrf-vs-reranker.svg)
+
+可以把两者理解为两轮筛选：
+
+| 阶段 | 判断依据 | 是否理解语义 | 主要目的 |
+| --- | --- | --- | --- |
+| RRF | Dense、Keyword 中的排名 | 否 | 快速融合不同召回渠道，形成有限候选池。 |
+| Reranker | `query + matched_child_text` | 是 | 逐条复审候选，纠正只依赖排名产生的误差。 |
+
+RRF 使用固定排名公式，计算成本很低；CrossEncoder 需要执行 Transformer 推理，因此只处理 RRF 筛选后的有限候选。
+
+## Top K 数量漏斗
+
+![V3.12.2 Top K 数量漏斗](assets/rag-v3-12-2-top-k-funnel.svg)
+
+默认配置下，请求最终需要 5 条资料，但中间不会一直只保留 5 条：
+
+```text
+Agent final top_k = 5
+Reranker candidates = 20
+Dense / Keyword recall_k = 60
+RRF fusion_top_k = 60
+Parent 去重后 = 最多 20
+Reranker 输出 = 最多 5
+```
+
+因此 `reciprocal_rank_fusion(..., top_k=recall_k)` 中的 `top_k` 实际表示 RRF 阶段候选上限，而不是最终送入 LLM 的数量。当前参数名为了兼容旧版本仍叫 `top_k`，调试时应结合调用方传入的 `recall_k` 理解。
 
 ## 安装与配置
 
@@ -76,10 +108,10 @@ Agent Console UI: console.v1 (V3.12.2)
 或者手工启动：
 
 ```bash
-.venv/bin/uvicorn obsidian_rag.v3_12_2.app:app --host 127.0.0.1 --port 8021
+.venv/bin/uvicorn obsidian_rag.v3_12_2.app:app --host 127.0.0.1 --port 8020
 ```
 
-Swagger：`http://127.0.0.1:8021/docs`
+Swagger：`http://127.0.0.1:8020/docs`
 
 ## Swagger 调试案例
 
@@ -199,6 +231,19 @@ results[].returned_parent_text
 5. ContextBuilder 识别 `rerank_rank`，把 `returned_parent_text` 放入 Context。
 6. Answer LLM 生成 JSON 或 `answer_delta` SSE。
 
+### Parent-Child 的评分与返回关系
+
+![Parent-Child Reranking 关系](assets/rag-v3-12-2-parent-child-rerank.svg)
+
+Reranker 不直接使用较长的 Parent 评分，而是优先读取真正命中的 Child：
+
+```text
+模型评分输入 = heading_path + matched_child_text
+最终回答上下文 = returned_parent_text
+```
+
+这样兼顾两件事：Child 足够短且主题集中，适合判断相关性；Parent 信息更完整，适合交给 Answer LLM。
+
 ### disabled / none
 
 保持 RRF 顺序，`rerank_score=null`，不会导入或加载 `sentence-transformers`。
@@ -264,4 +309,9 @@ Planner 选择 `no_search` 或 `clarify` 时不会调用检索和 Reranker。
 | 1 | `reranking/retrieval.py:53` | `search_collections` | `results_by_collection`、`errors` |
 | 2 | `reranking/retrieval.py:92` | `_cross_collection_candidates` | `collection_rank`、`cross_collection_score` |
 
-流程图：[rag-v3-12-2-reranking-flow.svg](assets/rag-v3-12-2-reranking-flow.svg)
+## SVG 图解索引
+
+- [主流程：Recall → RRF → Parent → Reranker → Context](assets/rag-v3-12-2-reranking-flow.svg)
+- [RRF 与 Reranker 分工对比](assets/rag-v3-12-2-rrf-vs-reranker.svg)
+- [Top K 数量漏斗](assets/rag-v3-12-2-top-k-funnel.svg)
+- [Parent-Child 评分与返回关系](assets/rag-v3-12-2-parent-child-rerank.svg)

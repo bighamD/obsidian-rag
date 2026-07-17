@@ -16,10 +16,10 @@
 
   <rect x="80" y="120" width="230" height="94" class="box"/><text x="195" y="154" text-anchor="middle" class="text">Dense Recall</text><text x="195" y="181" text-anchor="middle" class="small">vector candidates</text>
   <rect x="80" y="260" width="230" height="94" class="box"/><text x="195" y="294" text-anchor="middle" class="text">Keyword Recall</text><text x="195" y="321" text-anchor="middle" class="small">BM25 candidates</text>
-  <rect x="390" y="190" width="220" height="104" class="box"/><text x="500" y="226" text-anchor="middle" class="text">RRF Fusion</text><text x="500" y="253" text-anchor="middle" class="small">candidate_k = 20</text><text x="500" y="274" text-anchor="middle" class="small">多库可再执行 cross RRF</text>
+  <rect x="390" y="190" width="220" height="104" class="box"/><text x="500" y="226" text-anchor="middle" class="text">RRF Fusion</text><text x="500" y="253" text-anchor="middle" class="small">fusion_top_k = 60</text><text x="500" y="274" text-anchor="middle" class="small">多库可再执行 cross RRF</text>
   <path d="M310 167 C350 167 350 220 390 220" class="line"/><path d="M310 307 C350 307 350 264 390 264" class="line"/>
 
-  <rect x="690" y="190" width="230" height="104" class="box"/><text x="805" y="226" text-anchor="middle" class="text">Parent Collapse</text><text x="805" y="253" text-anchor="middle" class="small">parent_id 去重</text><text x="805" y="274" text-anchor="middle" class="small">保留 matched child</text>
+  <rect x="690" y="190" width="230" height="104" class="box"/><text x="805" y="226" text-anchor="middle" class="text">Parent Collapse</text><text x="805" y="253" text-anchor="middle" class="small">parent_id 去重至 20</text><text x="805" y="274" text-anchor="middle" class="small">保留 matched child</text>
   <path d="M610 242 L690 242" class="line"/>
 
   <rect x="390" y="390" width="330" height="126" class="box accent"/><text x="555" y="428" text-anchor="middle" class="text">CrossEncoder Reranker</text><text x="555" y="457" text-anchor="middle" class="small">query + heading + matched_child_text</text><text x="555" y="481" text-anchor="middle" class="small">sentence-transformers / BGE</text><text x="555" y="503" text-anchor="middle" class="small">rerank_top_k = 5</text>
