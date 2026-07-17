@@ -373,14 +373,14 @@ def main() -> None:
     _add_production_ask_arguments(agent3122_ask, "已迁移到 MySQL，此参数仅为旧 CLI 兼容保留")
     agent3122_ask.add_argument("--collection", help="本次检索使用的知识库 collection")
     agent3122_ask.add_argument("--json", action="store_true", help="使用同步 JSON 而不是 SSE")
-    agent3122_ask.add_argument("--api-base", default="http://127.0.0.1:8021")
+    agent3122_ask.add_argument("--api-base", default="http://127.0.0.1:8020")
     agent3122_rerank = agent3122_subparsers.add_parser("rerank", help="Inspect retrieval rank vs rerank rank")
     agent3122_rerank.add_argument("query")
     agent3122_rerank.add_argument("--collection")
     agent3122_rerank.add_argument("--collections", nargs="*", default=[])
     agent3122_rerank.add_argument("--top-k", type=int, default=5)
     agent3122_rerank.add_argument("--mode", choices=["dense", "keyword", "hybrid"], default="hybrid")
-    agent3122_rerank.add_argument("--api-base", default="http://127.0.0.1:8021")
+    agent3122_rerank.add_argument("--api-base", default="http://127.0.0.1:8020")
 
     agent3103_parser = subparsers.add_parser("agent-v3-10-3", help="Run V3.10.3 LangGraph Advanced Patterns")
     agent3103_subparsers = agent3103_parser.add_subparsers(dest="agent3103_command", required=True)
@@ -926,7 +926,7 @@ def run_agent3122_rerank(
     collections: list[str] | None = None,
     top_k: int = 5,
     mode: SearchMode = "hybrid",
-    api_base: str = "http://127.0.0.1:8021",
+    api_base: str = "http://127.0.0.1:8020",
 ) -> None:
     """调用 V3.12.2 独立重排接口并打印排序前后数据。"""
 

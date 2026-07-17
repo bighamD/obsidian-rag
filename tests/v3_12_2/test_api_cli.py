@@ -80,6 +80,16 @@ def test_health_and_rerank_search_api():
         app.dependency_overrides.clear()
 
 
+def test_console_config_reports_v3_12_2_backend():
+    client = TestClient(app)
+
+    response = client.get("/console/config")
+
+    assert response.status_code == 200
+    assert response.json()["contract_version"] == "console.v1"
+    assert response.json()["backend_version"] == "v3.12.2"
+
+
 def test_cli_dispatches_v3_12_2_rerank(monkeypatch):
     import obsidian_rag.cli as cli
 
@@ -90,7 +100,7 @@ def test_cli_dispatches_v3_12_2_rerank(monkeypatch):
     cli.main()
 
     assert captured["query"] == "剩菜多久"
-    assert captured["api_base"] == "http://127.0.0.1:8021"
+    assert captured["api_base"] == "http://127.0.0.1:8020"
 
 
 def test_agent_sse_route_uses_v3_12_2_runtime():

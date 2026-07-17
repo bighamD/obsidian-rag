@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 
-from obsidian_rag.console_api import router as console_router
+from obsidian_rag.console_api import create_console_router
 from obsidian_rag.v3_10.routes import runs
 from obsidian_rag.v3_12_2.routes import agent, health, rerank
 
@@ -15,4 +15,4 @@ app.include_router(health.router)
 app.include_router(agent.router)
 app.include_router(rerank.router)
 app.include_router(runs.router)
-app.include_router(console_router)
+app.include_router(create_console_router("v3.12.2"))
