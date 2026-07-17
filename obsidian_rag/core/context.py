@@ -70,9 +70,12 @@ def _context_chunk_from_hit(step_id: str, hit: SearchHit) -> ContextChunk:
     )
 
 
-def _context_rank_key(chunk: ContextChunk) -> tuple[int, float]:
+def _context_rank_key(chunk: ContextChunk) -> tuple[int, float, float]:
+    rerank_rank = chunk.metadata.get("rerank_rank")
+    if isinstance(rerank_rank, int) and rerank_rank > 0:
+        return (0, float(rerank_rank), -chunk.score)
     has_chunk_id_rank = 0 if chunk.chunk_id else 1
-    return (has_chunk_id_rank, -chunk.score)
+    return (1 + has_chunk_id_rank, 0.0, -chunk.score)
 
 
 def _build_messages(

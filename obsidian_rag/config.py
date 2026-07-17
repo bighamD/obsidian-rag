@@ -34,11 +34,19 @@ class RagConfig:
     child_chunk_overlap: int = 40
     reasoning_stream_enabled: bool = False
     reasoning_effort: str = "medium"
+    rerank_enabled: bool = False
+    rerank_provider: str = "sentence_transformers"
+    rerank_model: str = "BAAI/bge-reranker-v2-m3"
+    rerank_candidates: int = 20
+    rerank_top_k: int = 5
+    rerank_timeout_seconds: float = 10.0
+    rerank_device: str = "auto"
+    rerank_batch_size: int = 8
 
 
 def load_config() -> RagConfig:
     load_dotenv()
-    return RagConfig(
+    config = RagConfig(
         api_key=os.getenv("OPENAI_API_KEY", ""),
         base_url=os.getenv("OPENAI_BASE_URL", "http://127.0.0.1:8317/v1"),
         chat_model=os.getenv("RAG_CHAT_MODEL", "gpt-4o-mini"),
@@ -62,7 +70,30 @@ def load_config() -> RagConfig:
         child_chunk_overlap=int(os.getenv("RAG_CHILD_CHUNK_OVERLAP", "40")),
         reasoning_stream_enabled=_env_bool("RAG_REASONING_STREAM_ENABLED", False),
         reasoning_effort=os.getenv("RAG_REASONING_EFFORT", "medium").strip() or "medium",
+        rerank_enabled=_env_bool("RAG_RERANK_ENABLED", False),
+        rerank_provider=os.getenv("RAG_RERANK_PROVIDER", "sentence_transformers").strip().lower(),
+        rerank_model=os.getenv("RAG_RERANK_MODEL", "BAAI/bge-reranker-v2-m3").strip(),
+        rerank_candidates=int(os.getenv("RAG_RERANK_CANDIDATES", "20")),
+        rerank_top_k=int(os.getenv("RAG_RERANK_TOP_K", "5")),
+        rerank_timeout_seconds=float(os.getenv("RAG_RERANK_TIMEOUT_SECONDS", "10")),
+        rerank_device=os.getenv("RAG_RERANK_DEVICE", "auto").strip().lower(),
+        rerank_batch_size=int(os.getenv("RAG_RERANK_BATCH_SIZE", "8")),
     )
+    _validate_rerank_config(config)
+    return config
+
+
+def _validate_rerank_config(config: RagConfig) -> None:
+    if config.rerank_provider not in {"none", "sentence_transformers", "fake"}:
+        raise ValueError("RAG_RERANK_PROVIDER must be none, sentence_transformers, or fake")
+    if config.rerank_candidates < 1:
+        raise ValueError("RAG_RERANK_CANDIDATES must be at least 1")
+    if config.rerank_top_k < 1 or config.rerank_top_k > config.rerank_candidates:
+        raise ValueError("RAG_RERANK_TOP_K must be between 1 and RAG_RERANK_CANDIDATES")
+    if config.rerank_timeout_seconds <= 0:
+        raise ValueError("RAG_RERANK_TIMEOUT_SECONDS must be greater than 0")
+    if config.rerank_batch_size < 1:
+        raise ValueError("RAG_RERANK_BATCH_SIZE must be at least 1")
 
 
 def _env_bool(name: str, default: bool) -> bool:

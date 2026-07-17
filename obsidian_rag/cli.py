@@ -364,6 +364,24 @@ def main() -> None:
     agent3121_ask.add_argument("--json", action="store_true", help="使用同步 JSON 而不是 answer_delta SSE")
     agent3121_ask.add_argument("--api-base", default="http://127.0.0.1:8020")
 
+    agent3122_parser = subparsers.add_parser(
+        "agent-v3-12-2",
+        help="Run V3.12.2 Agent Core with retrieval reranking",
+    )
+    agent3122_subparsers = agent3122_parser.add_subparsers(dest="agent3122_command", required=True)
+    agent3122_ask = agent3122_subparsers.add_parser("ask", help="Call V3.12.2 JSON or answer_delta SSE")
+    _add_production_ask_arguments(agent3122_ask, "已迁移到 MySQL，此参数仅为旧 CLI 兼容保留")
+    agent3122_ask.add_argument("--collection", help="本次检索使用的知识库 collection")
+    agent3122_ask.add_argument("--json", action="store_true", help="使用同步 JSON 而不是 SSE")
+    agent3122_ask.add_argument("--api-base", default="http://127.0.0.1:8021")
+    agent3122_rerank = agent3122_subparsers.add_parser("rerank", help="Inspect retrieval rank vs rerank rank")
+    agent3122_rerank.add_argument("query")
+    agent3122_rerank.add_argument("--collection")
+    agent3122_rerank.add_argument("--collections", nargs="*", default=[])
+    agent3122_rerank.add_argument("--top-k", type=int, default=5)
+    agent3122_rerank.add_argument("--mode", choices=["dense", "keyword", "hybrid"], default="hybrid")
+    agent3122_rerank.add_argument("--api-base", default="http://127.0.0.1:8021")
+
     agent3103_parser = subparsers.add_parser("agent-v3-10-3", help="Run V3.10.3 LangGraph Advanced Patterns")
     agent3103_subparsers = agent3103_parser.add_subparsers(dest="agent3103_command", required=True)
     agent3103_ask_parser = agent3103_subparsers.add_parser("ask", help="Call the Advanced Graph JSON or SSE endpoint")
@@ -719,6 +737,38 @@ def main() -> None:
         )
         return
 
+    if args.command == "agent-v3-12-2" and args.agent3122_command == "ask":
+        run_agent3121_ask(
+            question=args.question,
+            conversation_id=args.conversation_id,
+            collection=args.collection,
+            memory_window=args.memory_window,
+            memory_compaction_enabled=not args.disable_memory_compaction,
+            memory_compaction_trigger_turns=args.memory_compaction_trigger_turns,
+            memory_compaction_trigger_tokens=args.memory_compaction_trigger_tokens,
+            top_k=args.top_k,
+            mode=args.mode,
+            max_steps=args.max_steps,
+            max_retries=args.max_retries,
+            filter_path=args.filter_path,
+            context_max_chunks=args.context_max_chunks,
+            context_token_budget=args.context_token_budget,
+            api_base=args.api_base,
+            stream=not args.json,
+        )
+        return
+
+    if args.command == "agent-v3-12-2" and args.agent3122_command == "rerank":
+        run_agent3122_rerank(
+            query=args.query,
+            collection=args.collection,
+            collections=args.collections,
+            top_k=args.top_k,
+            mode=args.mode,
+            api_base=args.api_base,
+        )
+        return
+
     if args.command == "agent-v3-10-3" and args.agent3103_command == "ask":
         run_agent3103_ask(
             question=args.question,
@@ -867,6 +917,32 @@ def run_agent3121_ask(
     print()
     if final_response:
         print(json.dumps(final_response, ensure_ascii=False, indent=2))
+
+
+def run_agent3122_rerank(
+    query: str,
+    *,
+    collection: str | None = None,
+    collections: list[str] | None = None,
+    top_k: int = 5,
+    mode: SearchMode = "hybrid",
+    api_base: str = "http://127.0.0.1:8021",
+) -> None:
+    """调用 V3.12.2 独立重排接口并打印排序前后数据。"""
+
+    response = httpx.post(
+        f"{api_base.rstrip('/')}/rerank/search",
+        json={
+            "query": query,
+            "collection": collection,
+            "collections": collections or [],
+            "top_k": top_k,
+            "mode": mode,
+        },
+        timeout=None,
+    )
+    response.raise_for_status()
+    print(json.dumps(response.json(), ensure_ascii=False, indent=2))
 
 
 def run_retrieval_eval(

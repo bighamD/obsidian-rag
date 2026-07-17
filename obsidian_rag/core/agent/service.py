@@ -428,6 +428,7 @@ class AgentService:
                         query=result.query,
                         result_count=result.result_count,
                         reason=result.reason or result.error,
+                        metadata=_rerank_metadata_from_step_result(result),
                     )
                 )
                 continue
@@ -729,6 +730,15 @@ def _emit_progress_event(
                 item.result_count
                 for item in [*state.get("step_results", []), *state.get("retry_step_results", [])]
             )
+            rerank_metadata = next(
+                (
+                    value
+                    for item in [*state.get("step_results", []), *state.get("retry_step_results", [])]
+                    if (value := _rerank_metadata_from_step_result(item))
+                ),
+                {},
+            )
+            metadata = {**(metadata or {}), **rerank_metadata}
     progress = AgentProgressEvent(
         phase=phase,
         status=status,
@@ -737,6 +747,13 @@ def _emit_progress_event(
         metadata=metadata or {},
     )
     _emit_agent_event(event_sink, "progress", progress.model_dump(mode="json"))
+
+
+def _rerank_metadata_from_step_result(step_result: StepResult) -> dict[str, Any]:
+    if not step_result.results:
+        return {}
+    run = step_result.results[0].metadata.get("rerank_run")
+    return {"rerank": run} if isinstance(run, dict) else {}
 
 
 def _emit_agent_event(
