@@ -15,6 +15,8 @@ from obsidian_rag.schema import SearchResult
 from obsidian_rag.v1.retrieval.models import RankedSearchResult
 from obsidian_rag.v1.schemas import to_search_hit
 from obsidian_rag.core.compaction import ConversationCompactor
+from obsidian_rag.core.collections.protocol import RetrievalScopeResolver
+from obsidian_rag.core.collections.schemas import RetrievalScope, RetrievalScopeRequest
 from obsidian_rag.core.context import ContextBuilder, build_memory_aware_planner_question
 from obsidian_rag.core.llm import ChatStreamDelta
 from obsidian_rag.core.mysql_memory import MySQLConversationMemoryStore
@@ -48,6 +50,7 @@ _NODE_PROGRESS_PHASE: dict[str, AgentProgressPhase] = {
     "load_memory": "memory",
     "compact_memory": "memory",
     "planner": "planning",
+    "resolve_retrieval_scope": "routing",
     "execute_steps": "retrieval",
     "retry_search": "retrieval",
     "evidence_check": "evidence",
@@ -80,6 +83,7 @@ class AgentState(TypedDict, total=False):
     node_timings: list[AgentNodeTiming]
     answer_stream: AnswerStreamMetrics
     tool_catalog: list[PlannerToolDefinition]
+    retrieval_scope: RetrievalScope
 
 
 class AgentService:
@@ -93,6 +97,7 @@ class AgentService:
         context_builder: ContextBuilder | None = None,
         memory_store: MySQLConversationMemoryStore | None = None,
         memory_compactor: ConversationCompactor | None = None,
+        retrieval_scope_resolver: RetrievalScopeResolver | None = None,
     ):
         self.retrieval_service = retrieval_service
         self.planner_service = planner_service
@@ -102,6 +107,7 @@ class AgentService:
         self.context_builder = context_builder
         self.memory_store = memory_store or MySQLConversationMemoryStore()
         self.memory_compactor = memory_compactor
+        self.retrieval_scope_resolver = retrieval_scope_resolver
         self.graph = self._build_graph()
 
     def ask(self, request: AgentAskRequest) -> AgentAskResponse:
@@ -207,7 +213,11 @@ class AgentService:
             run_id=final_state["run_id"],
             conversation_id=final_state["conversation_id"],
             question=request.question,
-            collection=_effective_collection_name(self.retrieval_service, request.collection),
+            collection=_response_collection_name(
+                self.retrieval_service,
+                request.collection,
+                final_state.get("retrieval_scope"),
+            ),
             answer=final_state.get("answer") or "执行结束，但没有生成最终答案。",
             used_retrieval=bool(final_state.get("used_retrieval", False)),
             sources=final_state.get("sources", []),
@@ -216,6 +226,11 @@ class AgentService:
                 PlannerToolDefinition.model_validate(_model_data(item))
                 for item in final_state.get("tool_catalog", [])
             ],
+            retrieval_scope=(
+                RetrievalScope.model_validate(_model_data(final_state["retrieval_scope"]))
+                if final_state.get("retrieval_scope")
+                else None
+            ),
             step_results=[StepResult.model_validate(_model_data(item)) for item in final_state.get("step_results", [])],
             retry_step_results=[
                 StepResult.model_validate(_model_data(item)) for item in final_state.get("retry_step_results", [])
@@ -259,6 +274,11 @@ class AgentService:
         graph.add_node("load_memory", self._timed_node("load_memory", self._load_memory_node))
         graph.add_node("compact_memory", self._timed_node("compact_memory", self._compact_memory_node))
         graph.add_node("planner", self._timed_node("planner", self._planner_node))
+        if self.retrieval_scope_resolver is not None:
+            graph.add_node(
+                "resolve_retrieval_scope",
+                self._timed_node("resolve_retrieval_scope", self._resolve_retrieval_scope_node),
+            )
         graph.add_node("execute_steps", self._timed_node("execute_steps", self._execute_steps_node))
         graph.add_node("evidence_check", self._timed_node("evidence_check", self._evidence_check_node))
         graph.add_node("retry_search", self._timed_node("retry_search", self._retry_search_node))
@@ -269,7 +289,11 @@ class AgentService:
         graph.add_edge(START, "load_memory")
         graph.add_edge("load_memory", "compact_memory")
         graph.add_edge("compact_memory", "planner")
-        graph.add_edge("planner", "execute_steps")
+        if self.retrieval_scope_resolver is not None:
+            graph.add_edge("planner", "resolve_retrieval_scope")
+            graph.add_edge("resolve_retrieval_scope", "execute_steps")
+        else:
+            graph.add_edge("planner", "execute_steps")
         graph.add_edge("execute_steps", "evidence_check")
         graph.add_conditional_edges(
             "evidence_check",
@@ -424,7 +448,7 @@ class AgentService:
 
         for step in state["plan"].steps:
             if step.kind == "search":
-                result = self._execute_search_step(step, request)
+                result = self._execute_search_step(step, request, state.get("retrieval_scope"))
                 step_results.append(result)
                 search_results.extend(_search_results_from_step_result(result))
                 state["trace"].append(
@@ -436,7 +460,7 @@ class AgentService:
                         query=result.query,
                         result_count=result.result_count,
                         reason=result.reason or result.error,
-                        metadata=_rerank_metadata_from_step_result(result),
+                        metadata={**result.metadata, **_rerank_metadata_from_step_result(result)},
                     )
                 )
                 continue
@@ -457,6 +481,50 @@ class AgentService:
         state["search_results"] = search_results
         state["used_retrieval"] = bool(search_results)
         state["sources"] = format_sources(search_results) if search_results else []
+        return state
+
+    def _resolve_retrieval_scope_node(self, state: AgentState) -> AgentState:
+        state = _copy_state(state)
+        state["graph_path"].append("resolve_retrieval_scope")
+        request = state["request"]
+        search_required = any(step.kind == "search" for step in state["plan"].steps)
+        if not search_required:
+            scope = RetrievalScope(
+                status="not_required",
+                reason="Planner 没有生成 search step，本轮不解析知识库范围。",
+            )
+        elif self.retrieval_scope_resolver is None:
+            scope = RetrievalScope(
+                status="disabled",
+                selected_collections=[_effective_collection_name(self.retrieval_service, request.collection)],
+                reason="没有注入 RetrievalScopeResolver，使用单 Collection 兼容路径。",
+            )
+        else:
+            scope = self.retrieval_scope_resolver.resolve(
+                RetrievalScopeRequest(
+                    question=request.question,
+                    explicit_collection=request.collection,
+                    router_enabled=bool(getattr(request, "collection_router_enabled", True)),
+                    max_collections=int(getattr(request, "max_collections", 2)),
+                )
+            )
+        state["retrieval_scope"] = scope
+        state["trace"].append(
+            AgentTraceStep(
+                node_name="resolve_retrieval_scope",
+                step_type="collection_routing",
+                result_count=len(scope.selected_collections),
+                reason=scope.reason,
+                metadata={
+                    "status": scope.status,
+                    "candidate_ids": scope.candidate_ids,
+                    "selected_ids": scope.selected_ids,
+                    "selected_collections": scope.selected_collections,
+                    "confidence": scope.confidence,
+                    "errors": scope.errors,
+                },
+            )
+        )
         return state
 
     def _evidence_check_node(self, state: AgentState) -> AgentState:
@@ -505,7 +573,7 @@ class AgentService:
                 top_k=request.top_k,
                 mode=request.mode,
                 filters=request.filters,
-                **_collection_kwargs(request.collection),
+                **_retrieval_scope_kwargs(state.get("retrieval_scope"), request.collection),
             )
             results = list(tool_result.results)
             step_result = StepResult(
@@ -519,6 +587,7 @@ class AgentService:
                 sources=format_sources(results) if results else [],
                 error=tool_result.error,
                 reason=f"补搜缺失证据：{original_step_id}",
+                metadata=tool_result.metadata,
             )
             retry_results.append(step_result)
             search_results.extend(results)
@@ -532,6 +601,7 @@ class AgentService:
                     query=query,
                     result_count=step_result.result_count,
                     reason=step_result.reason or step_result.error,
+                    metadata=step_result.metadata,
                 )
             )
 
@@ -651,7 +721,12 @@ class AgentService:
         )
         return state
 
-    def _execute_search_step(self, step: PlanStep, request: AgentAskRequest) -> StepResult:
+    def _execute_search_step(
+        self,
+        step: PlanStep,
+        request: AgentAskRequest,
+        retrieval_scope: RetrievalScope | None = None,
+    ) -> StepResult:
         query = step.query or request.question
         tool_result = self.tool_registry.run(
             "search_notes",
@@ -659,7 +734,7 @@ class AgentService:
             top_k=request.top_k,
             mode=request.mode,
             filters=request.filters,
-            **_collection_kwargs(request.collection),
+            **_retrieval_scope_kwargs(retrieval_scope, request.collection),
         )
         results = list(tool_result.results)
         status = "success" if tool_result.status == "success" else "failed"
@@ -674,6 +749,7 @@ class AgentService:
             sources=format_sources(results) if results else [],
             error=tool_result.error,
             reason=step.reason,
+            metadata=tool_result.metadata,
         )
 
     def _planner_service(self) -> PlannerService:
@@ -709,6 +785,31 @@ def _collection_kwargs(collection: str | None) -> dict[str, str]:
     return {"collection": collection} if collection is not None else {}
 
 
+def _retrieval_scope_kwargs(
+    scope: RetrievalScope | None,
+    explicit_collection: str | None,
+) -> dict[str, Any]:
+    if scope and len(scope.selected_collections) > 1:
+        return {"collections": list(scope.selected_collections)}
+    if scope and len(scope.selected_collections) == 1:
+        return {"collection": scope.selected_collections[0]}
+    if scope is not None:
+        return {"collections": []}
+    return _collection_kwargs(explicit_collection)
+
+
+def _response_collection_name(
+    retrieval_service,
+    explicit_collection: str | None,
+    scope: RetrievalScope | None,
+) -> str:
+    if scope and scope.selected_collections:
+        return ",".join(scope.selected_collections)
+    if scope is not None:
+        return "none"
+    return _effective_collection_name(retrieval_service, explicit_collection)
+
+
 def _effective_collection_name(retrieval_service, collection: str | None) -> str:
     resolver = getattr(retrieval_service, "collection_name", None)
     if callable(resolver):
@@ -733,7 +834,11 @@ def _emit_progress_event(
     collection = None
     result_count = None
     if phase == "retrieval" and request is not None:
-        collection = _effective_collection_name(retrieval_service, request.collection)
+        collection = _response_collection_name(
+            retrieval_service,
+            request.collection,
+            state.get("retrieval_scope"),
+        )
         if status == "completed":
             result_count = sum(
                 item.result_count

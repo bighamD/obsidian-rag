@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field
 from inspect import isawaitable
 from typing import Any, Awaitable, Callable
 
@@ -84,7 +84,48 @@ class ToolRegistry:
 def build_search_tool_registry(retrieval_service) -> ToolRegistry:
     registry = ToolRegistry()
 
-    def search_notes(query: str, top_k: int, mode: str, filters=None, collection: str | None = None) -> ToolResult:
+    def search_notes(
+        query: str,
+        top_k: int,
+        mode: str,
+        filters=None,
+        collection: str | None = None,
+        collections: list[str] | None = None,
+    ) -> ToolResult:
+        if collections is not None:
+            if not collections:
+                return ToolResult(
+                    tool_name="search_notes",
+                    status="success",
+                    results=[],
+                    metadata={"collections": [], "collection_errors": {}},
+                )
+            search_collections = getattr(retrieval_service, "search_collections", None)
+            if not callable(search_collections):
+                return ToolResult(
+                    tool_name="search_notes",
+                    status="failed",
+                    error="当前 Retrieval Service 不支持多 Collection 检索。",
+                    metadata={"collections": collections},
+                )
+            outcome, errors = search_collections(
+                query,
+                collections,
+                top_k=top_k,
+                mode=mode,
+                filters=filters,
+            )
+            return ToolResult(
+                tool_name="search_notes",
+                status="success" if outcome.results else "failed" if errors else "success",
+                results=list(outcome.results),
+                error="; ".join(f"{key}: {value}" for key, value in errors.items()) if errors and not outcome.results else None,
+                metadata={
+                    "collections": list(collections),
+                    "collection_errors": errors,
+                    "rerank": asdict(outcome.summary),
+                },
+            )
         search_kwargs = {"top_k": top_k, "mode": mode, "filters": filters}
         if collection is not None:
             search_kwargs["collection"] = collection
@@ -109,6 +150,7 @@ def build_search_tool_registry(retrieval_service) -> ToolRegistry:
                     "top_k": {"type": "integer"},
                     "mode": {"type": "string"},
                     "collection": {"type": ["string", "null"]},
+                    "collections": {"type": "array", "items": {"type": "string"}},
                 },
                 "required": ["query", "top_k", "mode"],
             },

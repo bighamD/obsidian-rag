@@ -12,7 +12,12 @@ from obsidian_rag.console_api.schemas import (
 )
 
 
-def create_console_router(backend_version: str = "v3.12.1", *, mcp_tools: bool = False) -> APIRouter:
+def create_console_router(
+    backend_version: str = "v3.12.1",
+    *,
+    mcp_tools: bool = False,
+    collection_routing: bool = False,
+) -> APIRouter:
     """为共享 console.v1 契约创建带正确学习版本回显的 Router。"""
 
     router = APIRouter(prefix="/console", tags=["console-v1"])
@@ -31,6 +36,7 @@ def create_console_router(backend_version: str = "v3.12.1", *, mcp_tools: bool =
                 conversation_management=True,
                 collections=True,
                 mcp_tools=mcp_tools,
+                collection_routing=collection_routing,
             ),
             endpoints=ConsoleEndpoints(
                 ask="/agent/ask",
@@ -39,6 +45,7 @@ def create_console_router(backend_version: str = "v3.12.1", *, mcp_tools: bool =
                 conversation="/console/conversations/{conversation_id}",
                 runs="/runs",
                 mcp_runtime="/mcp/runtime" if mcp_tools else None,
+                collection_runtime="/collections/runtime" if collection_routing else None,
             ),
             default_memory_window=3,
         )

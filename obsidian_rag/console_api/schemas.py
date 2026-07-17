@@ -18,6 +18,7 @@ class ConsoleFeatures(BaseModel):
     conversation_management: bool = Field(description="是否支持服务端会话列表和级联删除。")
     collections: bool = Field(description="Agent 请求是否支持指定知识库 collection。")
     mcp_tools: bool = Field(default=False, description="是否支持 MCP Runtime、Tool Catalog 和 Tool Observation 展示。")
+    collection_routing: bool = Field(default=False, description="是否支持自动知识库范围路由和多 Collection 检索展示。")
 
 
 class ConsoleEndpoints(BaseModel):
@@ -29,6 +30,7 @@ class ConsoleEndpoints(BaseModel):
     conversation: str = Field(description="按 conversation_id 读取会话快照的路径模板。")
     runs: str = Field(description="读取近期 Run 的路径。")
     mcp_runtime: str | None = Field(default=None, description="MCP Server 连接与 Tool Catalog 状态路径。")
+    collection_runtime: str | None = Field(default=None, description="Knowledge Base Registry 状态路径。")
 
 
 class ConsoleConfigResponse(BaseModel):

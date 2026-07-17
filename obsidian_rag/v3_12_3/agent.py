@@ -83,7 +83,7 @@ class McpAgentService(CoreAgentService):
 
         for step in state["plan"].steps:
             if step.kind == "search":
-                result = self._execute_search_step(step, request)
+                result = self._execute_search_step(step, request, state.get("retrieval_scope"))
                 search_results.extend(_search_results_from_step_result(result))
             elif step.kind == "tool":
                 result = self._execute_tool_step(step)
@@ -101,6 +101,7 @@ class McpAgentService(CoreAgentService):
                     reason=result.reason or result.error,
                     metadata={
                         **_rerank_metadata_from_step_result(result),
+                        **result.metadata,
                         "argument_names": sorted(result.arguments),
                         "observation_source": result.observation.source if result.observation else None,
                         "tool_metadata": result.observation.metadata if result.observation else {},

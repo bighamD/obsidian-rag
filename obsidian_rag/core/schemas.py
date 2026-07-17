@@ -7,6 +7,7 @@ from zoneinfo import ZoneInfo
 from pydantic import BaseModel, Field, field_validator
 
 from obsidian_rag.config import COLLECTION_NAME_PATTERN
+from obsidian_rag.core.collections.schemas import RetrievalScope
 from obsidian_rag.v1.schemas import SearchFilters, SearchHit, SearchMode
 
 PlanStepKind = Literal["search", "tool", "synthesize", "no_search", "clarify"]
@@ -82,6 +83,7 @@ AgentTraceStepType = Literal[
     "memory_read",
     "memory_compaction",
     "planner",
+    "collection_routing",
     "tool_result",
     "evidence_check",
     "retry",
@@ -93,6 +95,7 @@ AgentTraceStepType = Literal[
 AgentProgressPhase = Literal[
     "memory",
     "planning",
+    "routing",
     "retrieval",
     "evidence",
     "context",
@@ -168,6 +171,10 @@ class StepResult(BaseModel):
     sources: list[str] = Field(default_factory=list, description="从 results 提取的去重来源文件列表。")
     error: str | None = Field(default=None, description="工具失败时的错误信息。")
     reason: str | None = Field(default=None, description="Planner 为该步骤给出的执行原因。")
+    metadata: dict[str, Any] = Field(
+        default_factory=dict,
+        description="Collection 路由、局部错误和 Reranker 等 search/tool 执行元数据。",
+    )
     observation: "ToolObservation | None" = Field(
         default=None,
         description="非检索 Tool 的结构化观察结果；知识库 search 结果仍保存在 results。",
@@ -439,6 +446,10 @@ class AgentAskResponse(BaseModel):
     tool_catalog: list[PlannerToolDefinition] = Field(
         default_factory=list,
         description="本轮提供给 Planner 的精简 Tool Catalog；用于 API/Console 调试。",
+    )
+    retrieval_scope: RetrievalScope | None = Field(
+        default=None,
+        description="本轮 search steps 实际允许访问的知识库范围；未注入 Resolver 的旧版本为空。",
     )
     step_results: list[StepResult] = Field(description="初始计划各步骤的执行结果。")
     retry_step_results: list[StepResult] = Field(description="Evidence 不足后补搜产生的步骤结果。")
