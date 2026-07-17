@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="720" viewBox="0 0 1200 720" role="img" aria-labelledby="title desc">
+  <title id="title">V3.8.1 Compaction 双阈值决策</title>
+  <desc id="desc">展示没有候选、force、Turn 阈值、token 阈值、LLM 摘要成功和失败时的分支。</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#071426"/><stop offset="1" stop-color="#102a43"/></linearGradient>
+    <filter id="shadow"><feDropShadow dx="0" dy="5" stdDeviation="7" flood-opacity=".28"/></filter>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#7dd3fc"/></marker>
+    <style>.title{font:700 28px system-ui;fill:#f8fafc}.sub{font:15px system-ui;fill:#bae6fd}.box{rx:18;fill:#132f4c;stroke:#38bdf8;stroke-width:2;filter:url(#shadow)}.green{fill:#123d34;stroke:#34d399}.yellow{fill:#422f0a;stroke:#fbbf24}.red{fill:#451a24;stroke:#fb7185}.head{font:700 18px system-ui;fill:#f8fafc}.text{font:14px system-ui;fill:#cbd5e1}.tag{font:650 13px ui-monospace,monospace;fill:#fbbf24}.line{stroke:#7dd3fc;stroke-width:2.5;fill:none;marker-end:url(#arrow)}.label{font:700 13px system-ui;fill:#7dd3fc}</style>
+  </defs>
+  <rect width="1200" height="720" fill="url(#bg)"/>
+  <text x="600" y="48" text-anchor="middle" class="title">Compaction 决策：先找候选，再判断是否值得调用 LLM</text>
+  <text x="600" y="76" text-anchor="middle" class="sub">force、Turn 数量、估算 token 任一满足即可触发</text>
+
+  <rect x="455" y="110" width="290" height="80" class="box"/>
+  <text x="600" y="143" text-anchor="middle" class="head">load_compaction_candidate</text><text x="600" y="169" text-anchor="middle" class="text">得到 turns_to_summarize</text>
+
+  <polygon points="600,225 760,305 600,385 440,305" fill="#2c1d43" stroke="#c084fc" stroke-width="2" filter="url(#shadow)"/>
+  <text x="600" y="295" text-anchor="middle" class="head">存在候选 Turns？</text><text x="600" y="323" text-anchor="middle" class="text">bool(turns)</text>
+
+  <rect x="70" y="265" width="260" height="95" class="box"/>
+  <text x="200" y="301" text-anchor="middle" class="head">跳过压缩</text><text x="200" y="330" text-anchor="middle" class="text">没有窗口外的新旧 Turn</text>
+  <path d="M440 305 L330 312" class="line"/><text x="380" y="286" class="label">否</text>
+
+  <polygon points="600,425 810,515 600,605 390,515" fill="#422f0a" stroke="#fbbf24" stroke-width="2" filter="url(#shadow)"/>
+  <text x="600" y="486" text-anchor="middle" class="head">满足任一触发条件？</text>
+  <text x="600" y="518" text-anchor="middle" class="tag">force == true</text><text x="600" y="544" text-anchor="middle" class="tag">turns &gt;= trigger_turns</text><text x="600" y="570" text-anchor="middle" class="tag">tokens &gt;= trigger_tokens</text>
+  <path d="M600 385 L600 425" class="line"/><text x="618" y="408" class="label">是</text>
+
+  <rect x="70" y="470" width="260" height="95" class="box"/>
+  <text x="200" y="506" text-anchor="middle" class="head">等待继续累积</text><text x="200" y="535" text-anchor="middle" class="text">保留旧 Summary 与窗口</text>
+  <path d="M390 515 L330 517" class="line"/><text x="350" y="494" class="label">否</text>
+
+  <rect x="875" y="270" width="270" height="105" class="box yellow"/>
+  <text x="1010" y="306" text-anchor="middle" class="head">调用 Summary LLM</text><text x="1010" y="335" text-anchor="middle" class="text">旧 Summary + 新候选 Turns</text>
+  <path d="M810 515 C900 515 1010 440 1010 375" class="line"/><text x="865" y="486" class="label">是</text>
+
+  <rect x="875" y="115" width="270" height="105" class="box green"/>
+  <text x="1010" y="151" text-anchor="middle" class="head">成功：保存新 Summary</text><text x="1010" y="180" text-anchor="middle" class="text">更新 summary_through_turn_id</text>
+  <path d="M1010 270 L1010 220" class="line"/><text x="1028" y="249" class="label">成功</text>
+
+  <rect x="875" y="455" width="270" height="105" class="box red"/>
+  <text x="1010" y="491" text-anchor="middle" class="head">失败：fail-open</text><text x="1010" y="520" text-anchor="middle" class="text">继续使用旧 Summary</text><text x="1010" y="544" text-anchor="middle" class="text">和 Recent Turns</text>
+  <path d="M1010 375 L1010 455" class="line"/><text x="1028" y="421" class="label">异常 / 空文本</text>
+
+  <rect x="250" y="645" width="700" height="48" rx="16" fill="#0c2138" stroke="#64748b" stroke-width="2"/>
+  <text x="600" y="675" text-anchor="middle" class="text">所有分支最终都继续 Planner；Compaction 只是优化步骤，不是问答前置硬依赖</text>
+</svg>

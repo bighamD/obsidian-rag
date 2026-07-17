@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="650" viewBox="0 0 1200 650" role="img" aria-labelledby="title desc">
+  <title id="title">MCP Host、Client、Session、Server 四角色关系</title>
+  <desc id="desc">Host 决定调用，Client 管理连接，Session 承载协议，Server 声明并执行 Tools。</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#071426"/><stop offset="1" stop-color="#102a43"/></linearGradient>
+    <filter id="shadow"><feDropShadow dx="0" dy="5" stdDeviation="7" flood-opacity=".28"/></filter>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#7dd3fc"/></marker>
+    <style>.title{font:700 28px system-ui;fill:#f8fafc}.sub{font:15px system-ui;fill:#bae6fd}.box{rx:20;fill:#132f4c;stroke:#38bdf8;stroke-width:2;filter:url(#shadow)}.green{fill:#123d34;stroke:#34d399}.purple{fill:#2c1d43;stroke:#c084fc}.head{font:700 21px system-ui;fill:#f8fafc}.text{font:14px system-ui;fill:#cbd5e1}.tag{font:650 13px ui-monospace,monospace;fill:#fbbf24}.line{stroke:#7dd3fc;stroke-width:2.5;fill:none;marker-end:url(#arrow)}</style>
+  </defs>
+  <rect width="1200" height="650" fill="url(#bg)"/>
+  <text x="600" y="48" text-anchor="middle" class="title">MCP 四个角色：谁决策，谁连接，谁通信，谁执行</text>
+  <text x="600" y="76" text-anchor="middle" class="sub">角色是逻辑边界，不一定对应四个独立进程</text>
+
+  <rect x="55" y="155" width="245" height="300" class="box"/>
+  <text x="177" y="198" text-anchor="middle" class="head">Host</text><text x="177" y="226" text-anchor="middle" class="tag">FastAPI / CLI</text>
+  <text x="177" y="278" text-anchor="middle" class="text">决定何时发现 Tool</text><text x="177" y="306" text-anchor="middle" class="text">决定调用哪个 Server</text><text x="177" y="334" text-anchor="middle" class="text">处理最终业务响应</text>
+  <text x="177" y="397" text-anchor="middle" class="text">不直接实现 MCP Transport</text>
+
+  <rect x="345" y="155" width="245" height="300" class="box green"/>
+  <text x="467" y="198" text-anchor="middle" class="head">Client</text><text x="467" y="226" text-anchor="middle" class="tag">McpClientManager</text>
+  <text x="467" y="278" text-anchor="middle" class="text">读取 Server Registry</text><text x="467" y="306" text-anchor="middle" class="text">启动 stdio 子进程</text><text x="467" y="334" text-anchor="middle" class="text">建立和关闭 Session</text>
+  <text x="467" y="397" text-anchor="middle" class="text">管理 timeout 与生命周期</text>
+
+  <rect x="635" y="155" width="245" height="300" class="box"/>
+  <text x="757" y="198" text-anchor="middle" class="head">Session</text><text x="757" y="226" text-anchor="middle" class="tag">ClientSession</text>
+  <text x="757" y="278" text-anchor="middle" class="text">initialize 握手</text><text x="757" y="306" text-anchor="middle" class="text">tools/list 发现</text><text x="757" y="334" text-anchor="middle" class="text">tools/call 调用</text>
+  <text x="757" y="397" text-anchor="middle" class="text">承载一条协议连接</text>
+
+  <rect x="925" y="155" width="220" height="300" class="box purple"/>
+  <text x="1035" y="198" text-anchor="middle" class="head">Server</text><text x="1035" y="226" text-anchor="middle" class="tag">Demo / RAG</text>
+  <text x="1035" y="278" text-anchor="middle" class="text">声明 Tool Schema</text><text x="1035" y="306" text-anchor="middle" class="text">校验 arguments</text><text x="1035" y="334" text-anchor="middle" class="text">执行具体 Tool</text>
+  <text x="1035" y="397" text-anchor="middle" class="text">返回 CallToolResult</text>
+
+  <path d="M300 305 L345 305" class="line"/><path d="M590 305 L635 305" class="line"/><path d="M880 305 L925 305" class="line"/>
+  <rect x="310" y="515" width="580" height="72" rx="18" fill="#422006" stroke="#fbbf24" stroke-width="2"/>
+  <text x="600" y="545" text-anchor="middle" class="head">安全边界</text><text x="600" y="570" text-anchor="middle" class="text">Server 的 readOnlyHint 不是授权；Host/Policy Runtime 才能决定 allow / confirm / deny</text>
+</svg>

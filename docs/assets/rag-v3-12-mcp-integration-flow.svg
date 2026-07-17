@@ -1,87 +1,29 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="760" viewBox="0 0 1280 760" role="img" aria-labelledby="title desc">
-  <title id="title">V3.12 MCP Integration flow</title>
-  <desc id="desc">FastAPI or CLI uses an MCP client manager to initialize stdio sessions, discover tools, call tools, and adapt results from demo and RAG MCP servers.</desc>
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="720" viewBox="0 0 1200 720" role="img" aria-labelledby="title desc">
+  <title id="title">V3.12 MCP Integration 主流程</title>
+  <desc id="desc">FastAPI 或 CLI 通过 McpIntegrationService 和 McpClientManager 启动 stdio MCP Server，执行 initialize、tools/list 和 tools/call。</desc>
   <defs>
-    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
-      <path d="M 0 0 L 10 5 L 0 10 z" fill="#475569"/>
-    </marker>
-    <marker id="soft-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-      <path d="M 0 0 L 10 5 L 0 10 z" fill="#94a3b8"/>
-    </marker>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#071426"/><stop offset="1" stop-color="#102a43"/></linearGradient>
+    <filter id="shadow"><feDropShadow dx="0" dy="5" stdDeviation="7" flood-opacity=".28"/></filter>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#7dd3fc"/></marker>
+    <style>.title{font:700 28px system-ui;fill:#f8fafc}.sub{font:15px system-ui;fill:#bae6fd}.box{rx:17;fill:#132f4c;stroke:#38bdf8;stroke-width:2;filter:url(#shadow)}.green{fill:#123d34;stroke:#34d399}.purple{fill:#2c1d43;stroke:#c084fc}.warn{fill:#422006;stroke:#fbbf24}.head{font:700 17px system-ui;fill:#f8fafc}.text{font:13px system-ui;fill:#cbd5e1}.line{stroke:#7dd3fc;stroke-width:2.5;fill:none;marker-end:url(#arrow)}</style>
   </defs>
+  <rect width="1200" height="720" fill="url(#bg)"/>
+  <text x="600" y="48" text-anchor="middle" class="title">V3.12 MCP Integration</text>
+  <text x="600" y="76" text-anchor="middle" class="sub">显式调用 · stdio Transport · 稳定 Tool/Result Adapter</text>
 
-  <rect width="1280" height="760" fill="#f8fafc"/>
-  <text x="640" y="46" text-anchor="middle" font-family="Arial, sans-serif" font-size="28" font-weight="700" fill="#0f172a">V3.12 MCP Integration</text>
-  <text x="640" y="76" text-anchor="middle" font-family="Arial, sans-serif" font-size="15" fill="#475569">标准协议负责发现和调用工具；Permission 与 Sandbox 仍在后续版本</text>
+  <rect x="55" y="150" width="190" height="105" class="box"/><text x="150" y="187" text-anchor="middle" class="head">FastAPI / CLI</text><text x="150" y="216" text-anchor="middle" class="text">Host 发起发现或调用</text><text x="150" y="238" text-anchor="middle" class="text">GET /tools · POST /call</text>
+  <rect x="310" y="150" width="220" height="105" class="box"/><text x="420" y="187" text-anchor="middle" class="head">McpIntegrationService</text><text x="420" y="216" text-anchor="middle" class="text">错误归一化 · Trace</text><text x="420" y="238" text-anchor="middle" class="text">结果大小边界</text>
+  <rect x="595" y="150" width="220" height="105" class="box green"/><text x="705" y="187" text-anchor="middle" class="head">McpClientManager</text><text x="705" y="216" text-anchor="middle" class="text">Server Registry</text><text x="705" y="238" text-anchor="middle" class="text">短生命周期 Session</text>
+  <rect x="880" y="150" width="260" height="105" class="box purple"/><text x="1010" y="187" text-anchor="middle" class="head">stdio MCP Server</text><text x="1010" y="216" text-anchor="middle" class="text">Demo Server / RAG Server</text><text x="1010" y="238" text-anchor="middle" class="text">子进程执行 Tool</text>
+  <path d="M245 202 L310 202" class="line"/><path d="M530 202 L595 202" class="line"/><path d="M815 202 L880 202" class="line"/>
 
-  <rect x="42" y="118" width="248" height="430" rx="8" fill="#ffffff" stroke="#bfdbfe" stroke-width="2"/>
-  <rect x="42" y="118" width="248" height="56" rx="8" fill="#eff6ff" stroke="#bfdbfe" stroke-width="2"/>
-  <text x="166" y="153" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" font-weight="700" fill="#1d4ed8">Host</text>
-  <text x="70" y="214" font-family="Arial, sans-serif" font-size="16" font-weight="700" fill="#0f172a">FastAPI / CLI</text>
-  <text x="70" y="250" font-family="Arial, sans-serif" font-size="14" fill="#334155">GET /mcp/servers</text>
-  <text x="70" y="282" font-family="Arial, sans-serif" font-size="14" fill="#334155">GET /mcp/tools</text>
-  <text x="70" y="314" font-family="Arial, sans-serif" font-size="14" fill="#334155">POST /mcp/call</text>
-  <rect x="70" y="354" width="192" height="106" rx="8" fill="#f8fafc" stroke="#cbd5e1"/>
-  <text x="88" y="382" font-family="Arial, sans-serif" font-size="14" font-weight="700" fill="#334155">显式调用</text>
-  <text x="88" y="410" font-family="Arial, sans-serif" font-size="13" fill="#64748b">server_name</text>
-  <text x="88" y="434" font-family="Arial, sans-serif" font-size="13" fill="#64748b">tool_name + arguments</text>
-  <text x="70" y="510" font-family="Arial, sans-serif" font-size="13" fill="#64748b">本版不让 LLM 自动选 Tool</text>
+  <rect x="170" y="350" width="185" height="82" class="box"/><text x="262" y="384" text-anchor="middle" class="head">initialize</text><text x="262" y="408" text-anchor="middle" class="text">协议版本与能力握手</text>
+  <rect x="410" y="350" width="185" height="82" class="box"/><text x="502" y="384" text-anchor="middle" class="head">tools/list</text><text x="502" y="408" text-anchor="middle" class="text">名称、Schema、annotations</text>
+  <rect x="650" y="350" width="185" height="82" class="box green"/><text x="742" y="384" text-anchor="middle" class="head">tools/call</text><text x="742" y="408" text-anchor="middle" class="text">Tool 名称 + JSON arguments</text>
+  <rect x="890" y="350" width="185" height="82" class="box purple"/><text x="982" y="384" text-anchor="middle" class="head">CallToolResult</text><text x="982" y="408" text-anchor="middle" class="text">Content Blocks + structured</text>
+  <path d="M355 391 L410 391" class="line"/><path d="M595 391 L650 391" class="line"/><path d="M835 391 L890 391" class="line"/>
 
-  <rect x="352" y="118" width="536" height="430" rx="8" fill="#ffffff" stroke="#bbf7d0" stroke-width="2"/>
-  <rect x="352" y="118" width="536" height="56" rx="8" fill="#f0fdf4" stroke="#bbf7d0" stroke-width="2"/>
-  <text x="620" y="153" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" font-weight="700" fill="#047857">MCP Client + Adapter</text>
-
-  <circle cx="404" cy="226" r="21" fill="#dcfce7" stroke="#22c55e" stroke-width="2"/>
-  <text x="404" y="233" text-anchor="middle" font-family="Arial, sans-serif" font-size="15" font-weight="700" fill="#166534">1</text>
-  <rect x="444" y="196" width="382" height="60" rx="8" fill="#ffffff" stroke="#86efac" stroke-width="2"/>
-  <text x="466" y="221" font-family="Arial, sans-serif" font-size="16" font-weight="700" fill="#166534">stdio_client + initialize</text>
-  <text x="466" y="243" font-family="Arial, sans-serif" font-size="13" fill="#475569">启动子进程，协商 MCP protocol version</text>
-
-  <circle cx="404" cy="316" r="21" fill="#fef9c3" stroke="#eab308" stroke-width="2"/>
-  <text x="404" y="323" text-anchor="middle" font-family="Arial, sans-serif" font-size="15" font-weight="700" fill="#854d0e">2</text>
-  <rect x="444" y="286" width="382" height="60" rx="8" fill="#ffffff" stroke="#fde047" stroke-width="2"/>
-  <text x="466" y="311" font-family="Arial, sans-serif" font-size="16" font-weight="700" fill="#854d0e">tools/list</text>
-  <text x="466" y="333" font-family="Arial, sans-serif" font-size="13" fill="#475569">读取名称、描述、inputSchema 和 annotations</text>
-
-  <circle cx="404" cy="406" r="21" fill="#ffedd5" stroke="#fb923c" stroke-width="2"/>
-  <text x="404" y="413" text-anchor="middle" font-family="Arial, sans-serif" font-size="15" font-weight="700" fill="#9a3412">3</text>
-  <rect x="444" y="376" width="382" height="60" rx="8" fill="#ffffff" stroke="#fdba74" stroke-width="2"/>
-  <text x="466" y="401" font-family="Arial, sans-serif" font-size="16" font-weight="700" fill="#9a3412">tools/call</text>
-  <text x="466" y="423" font-family="Arial, sans-serif" font-size="13" fill="#475569">发送 arguments，接收 Content Blocks / isError</text>
-
-  <circle cx="404" cy="496" r="21" fill="#ede9fe" stroke="#8b5cf6" stroke-width="2"/>
-  <text x="404" y="503" text-anchor="middle" font-family="Arial, sans-serif" font-size="15" font-weight="700" fill="#6d28d9">4</text>
-  <rect x="444" y="466" width="382" height="60" rx="8" fill="#ffffff" stroke="#c4b5fd" stroke-width="2"/>
-  <text x="466" y="491" font-family="Arial, sans-serif" font-size="16" font-weight="700" fill="#6d28d9">Schema / Result Adapter</text>
-  <text x="466" y="513" font-family="Arial, sans-serif" font-size="13" fill="#475569">转换为稳定 ToolDefinition、ToolResult 和 trace</text>
-
-  <path d="M404 247 L404 295" stroke="#475569" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
-  <path d="M404 337 L404 385" stroke="#475569" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
-  <path d="M404 427 L404 475" stroke="#475569" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
-
-  <rect x="950" y="118" width="288" height="200" rx="8" fill="#ffffff" stroke="#fed7aa" stroke-width="2"/>
-  <rect x="950" y="118" width="288" height="56" rx="8" fill="#fff7ed" stroke="#fed7aa" stroke-width="2"/>
-  <text x="1094" y="153" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" font-weight="700" fill="#c2410c">Demo MCP Server</text>
-  <text x="978" y="214" font-family="Arial, sans-serif" font-size="15" font-weight="700" fill="#0f172a">只读测试 Tools</text>
-  <text x="978" y="248" font-family="Arial, sans-serif" font-size="13" fill="#475569">lookup_food_temperature</text>
-  <text x="978" y="276" font-family="Arial, sans-serif" font-size="13" fill="#475569">get_server_time</text>
-
-  <rect x="950" y="348" width="288" height="200" rx="8" fill="#ffffff" stroke="#ddd6fe" stroke-width="2"/>
-  <rect x="950" y="348" width="288" height="56" rx="8" fill="#f5f3ff" stroke="#ddd6fe" stroke-width="2"/>
-  <text x="1094" y="383" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" font-weight="700" fill="#6d28d9">RAG MCP Server</text>
-  <text x="978" y="444" font-family="Arial, sans-serif" font-size="15" font-weight="700" fill="#0f172a">现有能力对外暴露</text>
-  <text x="978" y="478" font-family="Arial, sans-serif" font-size="13" fill="#475569">search_notes</text>
-  <text x="978" y="506" font-family="Arial, sans-serif" font-size="13" fill="#475569">list_collections</text>
-
-  <path d="M290 330 L352 330" stroke="#475569" stroke-width="2.5" fill="none" marker-end="url(#arrow)"/>
-  <path d="M888 256 L950 218" stroke="#475569" stroke-width="2.5" fill="none" marker-end="url(#arrow)"/>
-  <path d="M888 410 L950 448" stroke="#475569" stroke-width="2.5" fill="none" marker-end="url(#arrow)"/>
-  <text x="920" y="322" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#64748b">stdio</text>
-
-  <rect x="126" y="604" width="1028" height="100" rx="8" fill="#fff1f2" stroke="#fda4af" stroke-width="2" stroke-dasharray="7 6"/>
-  <text x="640" y="638" text-anchor="middle" font-family="Arial, sans-serif" font-size="17" font-weight="700" fill="#be123c">V3.12 的安全边界</text>
-  <text x="640" y="668" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#475569">只读 MCP Tool；没有 allow / confirm / deny，没有宿主机 Shell，没有 Skill script 执行</text>
-  <text x="640" y="692" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" fill="#64748b">V3.13 Permission Policy -> V3.14 Sandbox Execution</text>
-
-  <path d="M1094 548 C1094 580 1034 596 968 618" stroke="#94a3b8" stroke-width="2" fill="none" stroke-dasharray="6 6" marker-end="url(#soft-arrow)"/>
+  <rect x="275" y="535" width="280" height="100" class="box green"/><text x="415" y="571" text-anchor="middle" class="head">Tool Adapter</text><text x="415" y="598" text-anchor="middle" class="text">server::tool · input_schema</text><text x="415" y="620" text-anchor="middle" class="text">read_only 仅是提示</text>
+  <rect x="645" y="535" width="280" height="100" class="box warn"/><text x="785" y="571" text-anchor="middle" class="head">稳定 API Response</text><text x="785" y="598" text-anchor="middle" class="text">success / failed · duration</text><text x="785" y="620" text-anchor="middle" class="text">安全错误摘要 · Trace</text>
+  <path d="M982 432 C982 500 785 490 785 535" class="line"/><path d="M645 585 L555 585" class="line"/>
 </svg>
