@@ -68,6 +68,7 @@ function updateOptions(value: AgentOptions) {
         <ChatComposer
           v-model="question"
           :disabled="!consoleState.isConsoleCompatible.value"
+          :collection-routing-available="consoleState.consoleConfig.value?.features.collection_routing ?? false"
           :mcp-available="consoleState.consoleConfig.value?.features.mcp_tools ?? false"
           :options="consoleState.options"
           :is-running="consoleState.isRunning.value"
@@ -80,6 +81,7 @@ function updateOptions(value: AgentOptions) {
         class="desktop-inspector"
         :is-running="consoleState.isRunning.value"
         :memory-snapshot="consoleState.memorySnapshot.value"
+        :collection-runtime="consoleState.collectionRuntime.value"
         :mcp-runtime="consoleState.mcpRuntime.value"
         :live-tool-events="consoleState.liveToolEvents.value"
         :response="consoleState.response.value"
@@ -92,6 +94,7 @@ function updateOptions(value: AgentOptions) {
         class="mobile-inspector"
         :is-running="consoleState.isRunning.value"
         :memory-snapshot="consoleState.memorySnapshot.value"
+        :collection-runtime="consoleState.collectionRuntime.value"
         :mcp-runtime="consoleState.mcpRuntime.value"
         :live-tool-events="consoleState.liveToolEvents.value"
         :response="consoleState.response.value"

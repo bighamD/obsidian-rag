@@ -3,6 +3,7 @@ import { computed, onMounted, reactive, ref } from "vue";
 import {
   deleteConversation as deleteConversationRequest,
   fetchConversation,
+  fetchCollectionRuntime,
   fetchConsoleConfig,
   fetchConversations,
   fetchHealth,
@@ -20,6 +21,7 @@ import type {
   ConsoleConfigResponse,
   ConsoleConversationSummary,
   ConsoleMessage,
+  CollectionRuntimeResponse,
   ConsoleSession,
   MemorySnapshot,
   McpLiveToolEvent,
@@ -33,7 +35,9 @@ const MAX_MESSAGES_PER_SESSION = 40;
 const DISPLAY_HISTORY_WINDOW = 20;
 
 const defaultOptions: AgentOptions = {
-  collection: "food_safety",
+  collection: "",
+  collectionRouterEnabled: true,
+  maxCollections: 2,
   mcpEnabled: true,
   memoryWindow: 3,
   memoryCompactionEnabled: true,
@@ -61,6 +65,7 @@ export function useAgentConsole() {
   const compatibilityError = ref("");
   const requestError = ref("");
   const mcpRuntime = ref<McpRuntimeResponse | null>(null);
+  const collectionRuntime = ref<CollectionRuntimeResponse | null>(null);
   const liveToolEvents = ref<McpLiveToolEvent[]>([]);
   const deletingConversationId = ref<string | null>(null);
   const options = reactive<AgentOptions>({ ...defaultOptions });
@@ -87,7 +92,7 @@ export function useAgentConsole() {
       memorySnapshot.value = null;
       return;
     }
-    await Promise.all([refreshHealth(), refreshRuns(), refreshMcpRuntime()]);
+    await Promise.all([refreshHealth(), refreshRuns(), refreshMcpRuntime(), refreshCollectionRuntime()]);
     await refreshConversationList({ initial, hydrateActive: true });
   }
 
@@ -136,6 +141,21 @@ export function useAgentConsole() {
       mcpRuntime.value = await fetchMcpRuntime(path);
     } catch {
       mcpRuntime.value = null;
+    }
+  }
+
+  async function refreshCollectionRuntime() {
+    const path = consoleConfig.value?.features.collection_routing
+      ? consoleConfig.value.endpoints.collection_runtime
+      : null;
+    if (!path) {
+      collectionRuntime.value = null;
+      return;
+    }
+    try {
+      collectionRuntime.value = await fetchCollectionRuntime(path);
+    } catch {
+      collectionRuntime.value = null;
     }
   }
 
@@ -291,6 +311,7 @@ export function useAgentConsole() {
       await Promise.all([
         refreshRuns(),
         refreshMcpRuntime(),
+        refreshCollectionRuntime(),
         assistant?.memory_write.saved ? refreshConversationList() : Promise.resolve(false),
       ]);
     } catch (error) {
@@ -355,6 +376,7 @@ export function useAgentConsole() {
     compatibilityError,
     compatibilityStatus,
     consoleConfig,
+    collectionRuntime,
     createConversation,
     deleteConversation,
     deletingConversationId,
@@ -454,6 +476,7 @@ export function formatProgress(progress: AgentProgress): string {
   const labels: Record<AgentProgress["phase"], { running: string; completed: string }> = {
     memory: { running: "正在读取会话记忆…", completed: "会话记忆已就绪…" },
     planning: { running: "正在生成执行计划…", completed: "执行计划已生成…" },
+    routing: { running: "正在选择知识库范围…", completed: "知识库范围已确定…" },
     evidence: { running: "正在检查证据完整性…", completed: "证据检查已完成…" },
     context: { running: "正在整理回答上下文…", completed: "回答上下文已就绪…" },
     answer: { running: "正在生成回答…", completed: "回答已生成，正在收尾…" },
@@ -501,6 +524,8 @@ export function buildAgentAskPayload(
     question,
     conversation_id: conversationId,
     collection: options.collection.trim() || null,
+    collection_router_enabled: options.collectionRouterEnabled,
+    max_collections: options.maxCollections,
     mcp_enabled: options.mcpEnabled,
     memory_window: options.memoryWindow,
     memory_compaction_enabled: options.memoryCompactionEnabled,

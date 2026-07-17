@@ -15,9 +15,11 @@ import {
 import { computed, ref } from "vue";
 
 import RetrievedChunkList from "@/components/RetrievedChunkList.vue";
+import CollectionRoutingPanel from "@/components/CollectionRoutingPanel.vue";
 import McpRuntimePanel from "@/components/McpRuntimePanel.vue";
 import type {
   McpLiveToolEvent,
+  CollectionRuntimeResponse,
   McpRuntimeResponse,
   MemorySnapshot,
   ProductionAskResponse,
@@ -28,12 +30,13 @@ import { formatDateTime, formatDuration, shortId, statusLabel } from "@/utils/fo
 const props = defineProps<{
   isRunning: boolean;
   memorySnapshot: MemorySnapshot | null;
+  collectionRuntime: CollectionRuntimeResponse | null;
   mcpRuntime: McpRuntimeResponse | null;
   liveToolEvents: McpLiveToolEvent[];
   response: ProductionAskResponse | null;
 }>();
 
-const activeTab = ref<"overview" | "plan" | "evidence" | "context" | "mcp">("overview");
+const activeTab = ref<"overview" | "plan" | "collections" | "evidence" | "context" | "mcp">("overview");
 
 const agent = computed(() => props.response?.agent_response ?? null);
 const run = computed(() => props.response?.run ?? null);
@@ -52,6 +55,9 @@ const planItems = computed(() =>
 const toolObservations = computed(() => agent.value?.context_bundle.tool_observations ?? []);
 const showMcpTab = computed(
   () => Boolean(props.mcpRuntime || props.liveToolEvents.length || toolObservations.value.length),
+);
+const showCollectionsTab = computed(
+  () => Boolean(props.collectionRuntime || agent.value?.retrieval_scope),
 );
 const timeline = computed(() => {
   if (!run.value) {
@@ -102,6 +108,7 @@ function toolCalls(toolName: string): StepResult[] {
     <div class="inspector-tabs" role="tablist" aria-label="运行详情">
       <button :class="{ active: activeTab === 'overview' }" role="tab" @click="activeTab = 'overview'">概览</button>
       <button :class="{ active: activeTab === 'plan' }" role="tab" @click="activeTab = 'plan'">计划与工具</button>
+      <button v-if="showCollectionsTab" :class="{ active: activeTab === 'collections' }" role="tab" @click="activeTab = 'collections'">知识库</button>
       <button :class="{ active: activeTab === 'evidence' }" role="tab" @click="activeTab = 'evidence'">证据</button>
       <button :class="{ active: activeTab === 'context' }" role="tab" @click="activeTab = 'context'">上下文</button>
       <button v-if="showMcpTab" :class="{ active: activeTab === 'mcp' }" role="tab" @click="activeTab = 'mcp'">MCP</button>
@@ -183,6 +190,10 @@ function toolCalls(toolName: string): StepResult[] {
           </details>
         </div>
         <p v-else class="muted-text">本次没有工具调用</p>
+      </section>
+
+      <section v-else-if="activeTab === 'collections'" class="inspector-section">
+        <CollectionRoutingPanel :runtime="collectionRuntime" :scope="agent?.retrieval_scope ?? null" />
       </section>
 
       <section v-else-if="activeTab === 'evidence'" class="inspector-section">

@@ -3,6 +3,7 @@ export type RunStatus = "queued" | "running" | "succeeded" | "failed";
 export type AgentProgressPhase =
   | "memory"
   | "planning"
+  | "routing"
   | "retrieval"
   | "evidence"
   | "context"
@@ -19,6 +20,8 @@ export interface AgentProgress {
 
 export interface AgentOptions {
   collection: string;
+  collectionRouterEnabled: boolean;
+  maxCollections: number;
   mcpEnabled: boolean;
   memoryWindow: number;
   memoryCompactionEnabled: boolean;
@@ -36,6 +39,8 @@ export interface AgentAskPayload {
   question: string;
   conversation_id: string;
   collection: string | null;
+  collection_router_enabled: boolean;
+  max_collections: number;
   mcp_enabled: boolean;
   memory_window: number;
   memory_compaction_enabled: boolean;
@@ -169,6 +174,7 @@ export interface StepResult {
   error: string | null;
   reason: string | null;
   observation: ToolObservation | null;
+  metadata: Record<string, unknown>;
 }
 
 export interface PlanStep {
@@ -209,6 +215,7 @@ export interface AgentTraceStep {
   query: string | null;
   result_count: number | null;
   reason: string | null;
+  metadata: Record<string, unknown>;
 }
 
 export interface MemoryTurn {
@@ -240,6 +247,7 @@ export interface AgentResponse {
   sources: string[];
   plan: { goal: string; steps: PlanStep[] };
   tool_catalog: PlannerToolDefinition[];
+  retrieval_scope: RetrievalScope | null;
   step_results: StepResult[];
   retry_step_results: StepResult[];
   evidence_check: {
@@ -328,6 +336,7 @@ export interface ConsoleConfigResponse {
     conversation_management: boolean;
     collections: boolean;
     mcp_tools?: boolean;
+    collection_routing?: boolean;
   };
   endpoints: {
     ask: string;
@@ -336,6 +345,7 @@ export interface ConsoleConfigResponse {
     conversation: string;
     runs: string;
     mcp_runtime?: string | null;
+    collection_runtime?: string | null;
   };
   default_memory_window: number;
 }
@@ -383,6 +393,32 @@ export interface McpLiveToolEvent {
   status: "running" | "success" | "failed";
   durationMs: number | null;
   error: string | null;
+}
+
+export interface KnowledgeBaseManifest {
+  id: string;
+  collection: string;
+  description: string;
+  triggers: string[];
+  enabled: boolean;
+}
+
+export interface RetrievalScope {
+  status: "not_required" | "explicit" | "disabled" | "selected" | "multi_selected" | "no_collection" | "invalid_selection" | "router_error";
+  selected_ids: string[];
+  selected_collections: string[];
+  candidate_ids: string[];
+  reason: string;
+  confidence: number | null;
+  registry_path: string | null;
+  errors: Record<string, string>;
+}
+
+export interface CollectionRuntimeResponse {
+  registry_path: string;
+  knowledge_bases: KnowledgeBaseManifest[];
+  enabled_ids: string[];
+  errors: string[];
 }
 
 export interface ConsoleSession {

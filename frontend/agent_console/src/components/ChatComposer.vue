@@ -6,6 +6,7 @@ import type { AgentOptions, SearchMode } from "@/types/production";
 
 const props = defineProps<{
   disabled: boolean;
+  collectionRoutingAvailable: boolean;
   isRunning: boolean;
   mcpAvailable: boolean;
   modelValue: string;
@@ -61,6 +62,7 @@ function submitOnEnter(event: KeyboardEvent) {
             <option value="vueuse_core_kb" />
           </datalist>
         </label>
+        <label v-if="collectionRoutingAvailable"><span>最大知识库数</span><input :value="options.maxCollections" :disabled="disabled || !options.collectionRouterEnabled" type="number" min="1" max="3" @input="updateOption('maxCollections', Number(($event.target as HTMLInputElement).value))" /></label>
         <label>
           <span>检索模式</span>
           <span class="segmented-control">
@@ -81,6 +83,7 @@ function submitOnEnter(event: KeyboardEvent) {
         <label><span>Context Chunks</span><input :value="options.contextMaxChunks" :disabled="disabled" type="number" min="1" max="20" @input="updateOption('contextMaxChunks', Number(($event.target as HTMLInputElement).value))" /></label>
         <label><span>Context Budget</span><input :value="options.contextTokenBudget" :disabled="disabled" type="number" min="500" max="20000" step="500" @input="updateOption('contextTokenBudget', Number(($event.target as HTMLInputElement).value))" /></label>
         <label class="toggle-setting"><span>Memory Compaction</span><input :checked="options.memoryCompactionEnabled" :disabled="disabled" type="checkbox" @change="updateOption('memoryCompactionEnabled', ($event.target as HTMLInputElement).checked)" /></label>
+        <label v-if="collectionRoutingAvailable" class="toggle-setting"><span>Collection Router</span><input :checked="options.collectionRouterEnabled" :disabled="disabled || Boolean(options.collection.trim())" type="checkbox" @change="updateOption('collectionRouterEnabled', ($event.target as HTMLInputElement).checked)" /></label>
         <label v-if="mcpAvailable" class="toggle-setting"><span>MCP Tools</span><input :checked="options.mcpEnabled" :disabled="disabled" type="checkbox" @change="updateOption('mcpEnabled', ($event.target as HTMLInputElement).checked)" /></label>
       </div>
       <button class="drawer-collapse" type="button" @click="settingsOpen = false"><ChevronDown :size="15" /> 收起参数</button>
