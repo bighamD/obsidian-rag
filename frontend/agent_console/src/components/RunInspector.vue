@@ -15,16 +15,25 @@ import {
 import { computed, ref } from "vue";
 
 import RetrievedChunkList from "@/components/RetrievedChunkList.vue";
-import type { MemorySnapshot, ProductionAskResponse, StepResult } from "@/types/production";
+import McpRuntimePanel from "@/components/McpRuntimePanel.vue";
+import type {
+  McpLiveToolEvent,
+  McpRuntimeResponse,
+  MemorySnapshot,
+  ProductionAskResponse,
+  StepResult,
+} from "@/types/production";
 import { formatDateTime, formatDuration, shortId, statusLabel } from "@/utils/format";
 
 const props = defineProps<{
   isRunning: boolean;
   memorySnapshot: MemorySnapshot | null;
+  mcpRuntime: McpRuntimeResponse | null;
+  liveToolEvents: McpLiveToolEvent[];
   response: ProductionAskResponse | null;
 }>();
 
-const activeTab = ref<"overview" | "plan" | "evidence" | "context">("overview");
+const activeTab = ref<"overview" | "plan" | "evidence" | "context" | "mcp">("overview");
 
 const agent = computed(() => props.response?.agent_response ?? null);
 const run = computed(() => props.response?.run ?? null);
@@ -39,6 +48,10 @@ const planItems = computed(() =>
     step,
     result: allStepResults.value.find((result) => result.step_id === step.id),
   })),
+);
+const toolObservations = computed(() => agent.value?.context_bundle.tool_observations ?? []);
+const showMcpTab = computed(
+  () => Boolean(props.mcpRuntime || props.liveToolEvents.length || toolObservations.value.length),
 );
 const timeline = computed(() => {
   if (!run.value) {
@@ -91,6 +104,7 @@ function toolCalls(toolName: string): StepResult[] {
       <button :class="{ active: activeTab === 'plan' }" role="tab" @click="activeTab = 'plan'">计划与工具</button>
       <button :class="{ active: activeTab === 'evidence' }" role="tab" @click="activeTab = 'evidence'">证据</button>
       <button :class="{ active: activeTab === 'context' }" role="tab" @click="activeTab = 'context'">上下文</button>
+      <button v-if="showMcpTab" :class="{ active: activeTab === 'mcp' }" role="tab" @click="activeTab = 'mcp'">MCP</button>
     </div>
 
     <div v-if="isRunning && !run" class="inspector-empty running">
@@ -149,7 +163,8 @@ function toolCalls(toolName: string): StepResult[] {
             <span class="plan-index">{{ item.step.id }}</span>
             <div>
               <div class="plan-title"><strong>{{ item.step.kind }}</strong><span :class="['step-status', item.result?.status ?? 'skipped']">{{ item.result?.status ?? 'planned' }}</span></div>
-              <p>{{ item.step.query || item.step.instruction || item.step.reason || '无附加说明' }}</p>
+              <p>{{ item.step.tool_name || item.step.query || item.step.instruction || item.step.reason || '无附加说明' }}</p>
+              <small v-if="item.step.kind === 'tool' && Object.keys(item.step.arguments).length">{{ JSON.stringify(item.step.arguments) }}</small>
             </div>
           </li>
         </ol>
@@ -184,7 +199,7 @@ function toolCalls(toolName: string): StepResult[] {
         </template>
       </section>
 
-      <section v-else class="inspector-section">
+      <section v-else-if="activeTab === 'context'" class="inspector-section">
         <div class="memory-overview">
           <Database :size="18" />
           <div><strong>Conversation Memory</strong><p>{{ memorySnapshot?.loaded_turn_count ?? 0 }} / {{ memorySnapshot?.total_turn_count ?? 0 }} 条原始 Turn 已载入</p></div>
@@ -205,6 +220,14 @@ function toolCalls(toolName: string): StepResult[] {
             <RetrievedChunkList :hits="[chunk]" />
           </details>
         </div>
+      </section>
+
+      <section v-else class="inspector-section">
+        <McpRuntimePanel
+          :runtime="mcpRuntime"
+          :live-tool-events="liveToolEvents"
+          :observations="toolObservations"
+        />
       </section>
     </template>
   </aside>

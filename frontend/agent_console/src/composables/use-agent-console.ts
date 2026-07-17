@@ -6,6 +6,7 @@ import {
   fetchConsoleConfig,
   fetchConversations,
   fetchHealth,
+  fetchMcpRuntime,
   fetchRuns,
   normalizeProductionResponse,
   streamAgent,
@@ -21,6 +22,8 @@ import type {
   ConsoleMessage,
   ConsoleSession,
   MemorySnapshot,
+  McpLiveToolEvent,
+  McpRuntimeResponse,
   ProductionAskResponse,
   RunRecord,
 } from "@/types/production";
@@ -31,6 +34,7 @@ const DISPLAY_HISTORY_WINDOW = 20;
 
 const defaultOptions: AgentOptions = {
   collection: "food_safety",
+  mcpEnabled: true,
   memoryWindow: 3,
   memoryCompactionEnabled: true,
   memoryCompactionTriggerTurns: 4,
@@ -56,6 +60,8 @@ export function useAgentConsole() {
   const compatibilityStatus = ref<ConsoleCompatibilityStatus>("checking");
   const compatibilityError = ref("");
   const requestError = ref("");
+  const mcpRuntime = ref<McpRuntimeResponse | null>(null);
+  const liveToolEvents = ref<McpLiveToolEvent[]>([]);
   const deletingConversationId = ref<string | null>(null);
   const options = reactive<AgentOptions>({ ...defaultOptions });
 
@@ -81,7 +87,7 @@ export function useAgentConsole() {
       memorySnapshot.value = null;
       return;
     }
-    await Promise.all([refreshHealth(), refreshRuns()]);
+    await Promise.all([refreshHealth(), refreshRuns(), refreshMcpRuntime()]);
     await refreshConversationList({ initial, hydrateActive: true });
   }
 
@@ -96,7 +102,7 @@ export function useAgentConsole() {
       compatibilityStatus.value = "incompatible";
       compatibilityError.value = error instanceof Error
         ? error.message
-        : "无法验证后端 Console 契约，请确认已启动 V3.12.1 / 8020。";
+        : "无法验证后端 Console 契约，请确认已启动兼容 console.v1 的后端。";
       return false;
     }
   }
@@ -104,7 +110,7 @@ export function useAgentConsole() {
   async function refreshHealth() {
     try {
       const health = await fetchHealth();
-      apiOnline.value = health.status === "ok";
+      apiOnline.value = health.status === "ok" || health.status === "degraded";
     } catch {
       apiOnline.value = false;
     }
@@ -115,6 +121,21 @@ export function useAgentConsole() {
       recentRuns.value = await fetchRuns();
     } catch {
       recentRuns.value = [];
+    }
+  }
+
+  async function refreshMcpRuntime() {
+    const path = consoleConfig.value?.features.mcp_tools
+      ? consoleConfig.value.endpoints.mcp_runtime
+      : null;
+    if (!path) {
+      mcpRuntime.value = null;
+      return;
+    }
+    try {
+      mcpRuntime.value = await fetchMcpRuntime(path);
+    } catch {
+      mcpRuntime.value = null;
     }
   }
 
@@ -188,6 +209,7 @@ export function useAgentConsole() {
     sessions.value = [session, ...sessions.value].slice(0, MAX_SESSIONS);
     activeConversationId.value = session.id;
     response.value = null;
+    liveToolEvents.value = [];
     memorySnapshot.value = null;
     requestError.value = "";
   }
@@ -247,6 +269,7 @@ export function useAgentConsole() {
     session.updatedAt = new Date().toISOString();
     isRunning.value = true;
     response.value = null;
+    liveToolEvents.value = [];
     requestError.value = "";
 
     try {
@@ -267,6 +290,7 @@ export function useAgentConsole() {
       }
       await Promise.all([
         refreshRuns(),
+        refreshMcpRuntime(),
         assistant?.memory_write.saved ? refreshConversationList() : Promise.resolve(false),
       ]);
     } catch (error) {
@@ -289,6 +313,9 @@ export function useAgentConsole() {
     if (event.name === "reasoning_delta") {
       applyReasoningDelta(assistantDraft, event);
     }
+    if (event.name === "tool_started" || event.name === "tool_finished") {
+      applyMcpToolEvent(event);
+    }
     if (event.data.run) {
       response.value = {
         run: event.data.run,
@@ -299,6 +326,26 @@ export function useAgentConsole() {
     if (event.data.response) {
       response.value = normalizeProductionResponse(event.data.response);
     }
+  }
+
+  function applyMcpToolEvent(event: AgentStreamEvent) {
+    const payload = event.data.agent;
+    if (!payload?.tool_name) {
+      return;
+    }
+    const stepId = payload.step_id || payload.tool_name;
+    const next: McpLiveToolEvent = {
+      stepId,
+      toolName: payload.tool_name,
+      source: payload.source || "mcp",
+      status: event.name === "tool_started" ? "running" : payload.status === "success" ? "success" : "failed",
+      durationMs: payload.duration_ms ?? null,
+      error: payload.error ?? null,
+    };
+    const index = liveToolEvents.value.findIndex((item) => item.stepId === stepId && item.toolName === next.toolName);
+    liveToolEvents.value = index === -1
+      ? [...liveToolEvents.value, next]
+      : liveToolEvents.value.map((item, itemIndex) => itemIndex === index ? next : item);
   }
 
   return {
@@ -315,6 +362,8 @@ export function useAgentConsole() {
     isRunning,
     isConsoleCompatible,
     memorySnapshot,
+    mcpRuntime,
+    liveToolEvents,
     options,
     recentRuns,
     refreshConversationList,
@@ -374,12 +423,16 @@ export function applyReasoningDelta(message: ConsoleMessage, event: AgentStreamE
 
 export function applyProgressEvent(message: ConsoleMessage, event: AgentStreamEvent): boolean {
   const payload = event.data.agent;
-  if (!payload?.phase || !payload.status) {
+  if (
+    !payload?.phase
+    || !payload.status
+    || !["running", "completed", "failed"].includes(payload.status)
+  ) {
     return false;
   }
   const progress: AgentProgress = {
     phase: payload.phase,
-    status: payload.status,
+    status: payload.status as AgentProgress["status"],
     collection: payload.collection,
     result_count: payload.result_count,
   };
@@ -448,6 +501,7 @@ export function buildAgentAskPayload(
     question,
     conversation_id: conversationId,
     collection: options.collection.trim() || null,
+    mcp_enabled: options.mcpEnabled,
     memory_window: options.memoryWindow,
     memory_compaction_enabled: options.memoryCompactionEnabled,
     memory_compaction_trigger_turns: options.memoryCompactionTriggerTurns,

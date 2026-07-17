@@ -5,6 +5,7 @@ import type {
   ConsoleConversationDeleteResponse,
   ConsoleConversationListResponse,
   ConsoleConversationResponse,
+  McpRuntimeResponse,
   ProductionAskResponse,
   RunRecord,
 } from "@/types/production";
@@ -153,6 +154,10 @@ export async function fetchHealth(): Promise<{ status: string; version: string }
 
 export async function fetchRuns(limit = 12): Promise<RunRecord[]> {
   return request<RunRecord[]>(`/runs?limit=${limit}`);
+}
+
+export async function fetchMcpRuntime(path = "/mcp/runtime"): Promise<McpRuntimeResponse> {
+  return request<McpRuntimeResponse>(path);
 }
 
 export async function fetchConversation(

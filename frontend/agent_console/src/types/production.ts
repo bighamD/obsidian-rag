@@ -19,6 +19,7 @@ export interface AgentProgress {
 
 export interface AgentOptions {
   collection: string;
+  mcpEnabled: boolean;
   memoryWindow: number;
   memoryCompactionEnabled: boolean;
   memoryCompactionTriggerTurns: number;
@@ -35,6 +36,7 @@ export interface AgentAskPayload {
   question: string;
   conversation_id: string;
   collection: string | null;
+  mcp_enabled: boolean;
   memory_window: number;
   memory_compaction_enabled: boolean;
   memory_compaction_trigger_turns: number;
@@ -71,7 +73,7 @@ export interface AgentStreamEvent {
     response?: ProductionAskResponse;
     agent?: {
       phase?: AgentProgressPhase;
-      status?: AgentProgress["status"];
+      status?: AgentProgress["status"] | "success" | "skipped";
       collection?: string | null;
       node_name?: string;
       step_type?: string;
@@ -83,6 +85,10 @@ export interface AgentStreamEvent {
       started_at?: string | null;
       finished_at?: string | null;
       duration_ms?: number | null;
+      source?: string | null;
+      argument_names?: string[];
+      error?: string | null;
+      metadata?: Record<string, unknown>;
     };
   };
 }
@@ -154,6 +160,7 @@ export interface StepResult {
   kind: string;
   tool_name: string | null;
   query: string | null;
+  arguments: Record<string, unknown>;
   instruction: string | null;
   status: "success" | "skipped" | "failed";
   result_count: number;
@@ -161,15 +168,37 @@ export interface StepResult {
   sources: string[];
   error: string | null;
   reason: string | null;
+  observation: ToolObservation | null;
 }
 
 export interface PlanStep {
   id: string;
   kind: string;
   query: string | null;
+  tool_name: string | null;
+  arguments: Record<string, unknown>;
   instruction: string | null;
   depends_on: string[];
   reason: string | null;
+}
+
+export interface ToolObservation {
+  step_id: string;
+  tool_name: string;
+  source: string;
+  status: "success" | "skipped" | "failed";
+  data: unknown;
+  summary: string;
+  metadata: Record<string, unknown>;
+  error: string | null;
+}
+
+export interface PlannerToolDefinition {
+  name: string;
+  description: string;
+  input_schema: Record<string, unknown>;
+  source: string;
+  read_only: boolean | null;
 }
 
 export interface AgentTraceStep {
@@ -210,6 +239,7 @@ export interface AgentResponse {
   used_retrieval: boolean;
   sources: string[];
   plan: { goal: string; steps: PlanStep[] };
+  tool_catalog: PlannerToolDefinition[];
   step_results: StepResult[];
   retry_step_results: StepResult[];
   evidence_check: {
@@ -224,6 +254,7 @@ export interface AgentResponse {
   context_bundle: {
     included_chunks: ContextChunk[];
     excluded_chunks: ContextChunk[];
+    tool_observations: ToolObservation[];
     token_budget: number;
     context_summary: string;
   };
@@ -296,6 +327,7 @@ export interface ConsoleConfigResponse {
     conversation_memory: boolean;
     conversation_management: boolean;
     collections: boolean;
+    mcp_tools?: boolean;
   };
   endpoints: {
     ask: string;
@@ -303,11 +335,55 @@ export interface ConsoleConfigResponse {
     conversations: string;
     conversation: string;
     runs: string;
+    mcp_runtime?: string | null;
   };
   default_memory_window: number;
 }
 
 export type ConsoleCompatibilityStatus = "checking" | "compatible" | "incompatible";
+
+export interface McpServerRuntime {
+  name: string;
+  description: string;
+  transport: "stdio" | "streamable_http";
+  status: "disconnected" | "connecting" | "connected" | "degraded" | "failed";
+  protocol_version: string | null;
+  tool_count: number;
+  tool_names: string[];
+  connected_at: string | null;
+  discovered_at: string | null;
+  call_count: number;
+  failure_count: number;
+  last_error: string | null;
+}
+
+export interface McpToolDefinition {
+  server_name: string;
+  name: string;
+  namespaced_name: string;
+  title: string | null;
+  description: string | null;
+  input_schema: Record<string, unknown>;
+  output_schema: Record<string, unknown> | null;
+  read_only: boolean | null;
+}
+
+export interface McpRuntimeResponse {
+  registry_path: string;
+  started: boolean;
+  servers: McpServerRuntime[];
+  tools: McpToolDefinition[];
+  errors: Record<string, string>;
+}
+
+export interface McpLiveToolEvent {
+  stepId: string;
+  toolName: string;
+  source: string;
+  status: "running" | "success" | "failed";
+  durationMs: number | null;
+  error: string | null;
+}
 
 export interface ConsoleSession {
   id: string;
