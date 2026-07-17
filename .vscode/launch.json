@@ -206,10 +206,29 @@
 			"justMyCode": true
 		},
 		{
-			"name": "Agent Console UI: console.v1 (V3.12.1)",
+			"name": "V3.12.2 API server: Retrieval Reranking",
+			"type": "debugpy",
+			"request": "launch",
+			"module": "uvicorn",
+			"console": "integratedTerminal",
+			"cwd": "${workspaceFolder}",
+			"python": "${workspaceFolder}/.venv/bin/python",
+			"envFile": "${workspaceFolder}/.env",
+			"args": [
+				"obsidian_rag.v3_12_2.app:app",
+				"--host",
+				"127.0.0.1",
+				"--port",
+				"8021"
+			],
+			"subProcess": true,
+			"justMyCode": true
+		},
+		{
+			"name": "Agent Console UI: console.v1 (V3.12.2)",
 			"type": "node-terminal",
 			"request": "launch",
-			"command": "VITE_API_TARGET=http://127.0.0.1:8020 npm run dev",
+			"command": "VITE_API_TARGET=http://127.0.0.1:8021 npm run dev",
 			"cwd": "${workspaceFolder}/frontend/agent_console"
 		}
 	]

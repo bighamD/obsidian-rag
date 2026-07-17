@@ -30,6 +30,16 @@ function hasContextReason(hit: InspectableHit): hit is ContextChunk {
 function metadataText(hit: InspectableHit): string {
   return JSON.stringify(hit.metadata, null, 2);
 }
+
+function metadataNumber(hit: InspectableHit, key: string): number | null {
+  const value = hit.metadata[key];
+  return typeof value === "number" ? value : null;
+}
+
+function rerankRun(hit: InspectableHit): Record<string, unknown> | null {
+  const value = hit.metadata.rerank_run;
+  return value && typeof value === "object" ? (value as Record<string, unknown>) : null;
+}
 </script>
 
 <template>
@@ -54,6 +64,13 @@ function metadataText(hit: InspectableHit): string {
           <div v-if="hit.dense_score !== null"><dt>dense score</dt><dd>{{ formatScore(hit.dense_score) }}</dd></div>
           <div v-if="hit.keyword_score !== null"><dt>keyword score</dt><dd>{{ formatScore(hit.keyword_score) }}</dd></div>
           <div v-if="hit.hybrid_score !== null"><dt>hybrid score</dt><dd>{{ formatScore(hit.hybrid_score) }}</dd></div>
+          <div v-if="metadataNumber(hit, 'retrieval_rank') !== null"><dt>retrieval rank</dt><dd>{{ metadataNumber(hit, "retrieval_rank") }}</dd></div>
+          <div v-if="metadataNumber(hit, 'retrieval_score') !== null"><dt>retrieval score</dt><dd>{{ formatScore(metadataNumber(hit, "retrieval_score")) }}</dd></div>
+          <div v-if="metadataNumber(hit, 'rerank_rank') !== null"><dt>rerank rank</dt><dd>{{ metadataNumber(hit, "rerank_rank") }}</dd></div>
+          <div v-if="metadataNumber(hit, 'rerank_score') !== null"><dt>rerank score</dt><dd>{{ formatScore(metadataNumber(hit, "rerank_score")) }}</dd></div>
+          <div v-if="rerankRun(hit)?.model"><dt>rerank model</dt><dd>{{ rerankRun(hit)?.model }}</dd></div>
+          <div v-if="rerankRun(hit)?.latency_ms !== undefined"><dt>rerank latency</dt><dd>{{ rerankRun(hit)?.latency_ms }} ms</dd></div>
+          <div v-if="rerankRun(hit)?.fallback"><dt>rerank fallback</dt><dd>{{ rerankRun(hit)?.fallback_reason || "true" }}</dd></div>
           <div v-if="hasContextReason(hit) && hit.reason"><dt>选入原因</dt><dd>{{ hit.reason }}</dd></div>
         </dl>
 
