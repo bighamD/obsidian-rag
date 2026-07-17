@@ -382,6 +382,29 @@ def main() -> None:
     agent3122_rerank.add_argument("--mode", choices=["dense", "keyword", "hybrid"], default="hybrid")
     agent3122_rerank.add_argument("--api-base", default="http://127.0.0.1:8020")
 
+    agent3123_parser = subparsers.add_parser(
+        "agent-v3-12-3",
+        help="Run the production-style MCP Agent integration",
+    )
+    agent3123_subparsers = agent3123_parser.add_subparsers(dest="agent3123_command", required=True)
+    agent3123_ask = agent3123_subparsers.add_parser("ask", help="Run JSON or SSE with automatic MCP Tool selection")
+    _add_production_ask_arguments(agent3123_ask, "已迁移到 MySQL，此参数仅为旧 CLI 兼容保留")
+    agent3123_ask.add_argument("--collection", help="本次检索使用的知识库 collection")
+    agent3123_ask.add_argument("--disable-mcp", action="store_true", help="本次请求不向 Planner 暴露 MCP Tools")
+    agent3123_ask.add_argument("--mcp-tool-name", action="append", dest="mcp_tool_names")
+    agent3123_ask.add_argument("--json", action="store_true", help="使用同步 JSON 而不是 SSE")
+    agent3123_ask.add_argument("--api-base", default="http://127.0.0.1:8020")
+    agent3123_mcp_status = agent3123_subparsers.add_parser("mcp-status", help="Read persistent MCP runtime status")
+    agent3123_mcp_status.add_argument("--api-base", default="http://127.0.0.1:8020")
+    agent3123_mcp_refresh = agent3123_subparsers.add_parser("mcp-refresh", help="Refresh or reconnect MCP Servers")
+    agent3123_mcp_refresh.add_argument("--server")
+    agent3123_mcp_refresh.add_argument("--reconnect", action="store_true")
+    agent3123_mcp_refresh.add_argument("--api-base", default="http://127.0.0.1:8020")
+    agent3123_mcp_call = agent3123_subparsers.add_parser("mcp-call", help="Explicitly call one persistent MCP Tool")
+    agent3123_mcp_call.add_argument("name")
+    agent3123_mcp_call.add_argument("--arguments", default="{}")
+    agent3123_mcp_call.add_argument("--api-base", default="http://127.0.0.1:8020")
+
     agent3103_parser = subparsers.add_parser("agent-v3-10-3", help="Run V3.10.3 LangGraph Advanced Patterns")
     agent3103_subparsers = agent3103_parser.add_subparsers(dest="agent3103_command", required=True)
     agent3103_ask_parser = agent3103_subparsers.add_parser("ask", help="Call the Advanced Graph JSON or SSE endpoint")
@@ -769,6 +792,40 @@ def main() -> None:
         )
         return
 
+    if args.command == "agent-v3-12-3" and args.agent3123_command == "ask":
+        run_agent3121_ask(
+            question=args.question,
+            conversation_id=args.conversation_id,
+            collection=args.collection,
+            memory_window=args.memory_window,
+            memory_compaction_enabled=not args.disable_memory_compaction,
+            memory_compaction_trigger_turns=args.memory_compaction_trigger_turns,
+            memory_compaction_trigger_tokens=args.memory_compaction_trigger_tokens,
+            top_k=args.top_k,
+            mode=args.mode,
+            max_steps=args.max_steps,
+            max_retries=args.max_retries,
+            filter_path=args.filter_path,
+            context_max_chunks=args.context_max_chunks,
+            context_token_budget=args.context_token_budget,
+            api_base=args.api_base,
+            stream=not args.json,
+            mcp_enabled=not args.disable_mcp,
+            mcp_tool_names=args.mcp_tool_names,
+        )
+        return
+
+    if args.command == "agent-v3-12-3":
+        run_agent3123_mcp(
+            command=args.agent3123_command,
+            api_base=args.api_base,
+            server_name=getattr(args, "server", None),
+            reconnect=getattr(args, "reconnect", False),
+            tool_name=getattr(args, "name", None),
+            arguments_json=getattr(args, "arguments", "{}"),
+        )
+        return
+
     if args.command == "agent-v3-10-3" and args.agent3103_command == "ask":
         run_agent3103_ask(
             question=args.question,
@@ -863,6 +920,8 @@ def run_agent3121_ask(
     context_token_budget: int = 4000,
     api_base: str = "http://127.0.0.1:8020",
     stream: bool = True,
+    mcp_enabled: bool | None = None,
+    mcp_tool_names: list[str] | None = None,
 ) -> None:
     """调用 V3.12.1 公共 Core；SSE 只打印最终可见 answer_delta。"""
 
@@ -882,6 +941,9 @@ def run_agent3121_ask(
         "context_max_chunks": context_max_chunks,
         "context_token_budget": context_token_budget,
     }
+    if mcp_enabled is not None:
+        payload["mcp_enabled"] = mcp_enabled
+        payload["mcp_tool_names"] = mcp_tool_names
     base = api_base.rstrip("/")
     if not stream:
         response = httpx.post(f"{base}/agent/ask", json=payload, timeout=None)
@@ -917,6 +979,41 @@ def run_agent3121_ask(
     print()
     if final_response:
         print(json.dumps(final_response, ensure_ascii=False, indent=2))
+
+
+def run_agent3123_mcp(
+    command: str,
+    *,
+    api_base: str,
+    server_name: str | None = None,
+    reconnect: bool = False,
+    tool_name: str | None = None,
+    arguments_json: str = "{}",
+) -> None:
+    """调用 V3.12.3 MCP Runtime 管理接口。"""
+
+    base = api_base.rstrip("/")
+    if command == "mcp-status":
+        response = httpx.get(f"{base}/mcp/runtime", timeout=None)
+    elif command == "mcp-refresh":
+        response = httpx.post(
+            f"{base}/mcp/refresh",
+            params={"server_name": server_name, "reconnect": reconnect},
+            timeout=None,
+        )
+    elif command == "mcp-call" and tool_name:
+        arguments = json.loads(arguments_json)
+        if not isinstance(arguments, dict):
+            raise ValueError("--arguments 必须解析为 JSON object")
+        response = httpx.post(
+            f"{base}/mcp/call",
+            json={"name": tool_name, "arguments": arguments},
+            timeout=None,
+        )
+    else:
+        raise ValueError(f"Unsupported V3.12.3 command: {command}")
+    response.raise_for_status()
+    print(json.dumps(response.json(), ensure_ascii=False, indent=2))
 
 
 def run_agent3122_rerank(

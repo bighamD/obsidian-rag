@@ -249,6 +249,84 @@
 			"request": "launch",
 			"command": "VITE_API_TARGET=http://127.0.0.1:8020 npm run dev",
 			"cwd": "${workspaceFolder}/frontend/agent_console"
+		},
+		{
+			"name": "V3.12.3 API server: MCP Agent Integration",
+			"type": "debugpy",
+			"request": "launch",
+			"module": "uvicorn",
+			"console": "integratedTerminal",
+			"cwd": "${workspaceFolder}",
+			"python": "${workspaceFolder}/.venv/bin/python",
+			"envFile": "${workspaceFolder}/.env",
+			"args": ["obsidian_rag.v3_12_3.app:app", "--host", "127.0.0.1", "--port", "8020"],
+			"subProcess": true,
+			"justMyCode": true
+		},
+		{
+			"name": "V3.12.3 CLI: automatic MCP tool",
+			"type": "debugpy",
+			"request": "launch",
+			"module": "obsidian_rag.cli",
+			"console": "integratedTerminal",
+			"cwd": "${workspaceFolder}",
+			"python": "${workspaceFolder}/.venv/bin/python",
+			"envFile": "${workspaceFolder}/.env",
+			"args": [
+				"agent-v3-12-3",
+				"ask",
+				"现在上海时间是多少？",
+				"--conversation-id",
+				"conv_v3123_mcp",
+				"--mcp-tool-name",
+				"demo::get_server_time",
+				"--max-steps",
+				"3"
+			],
+			"justMyCode": true
+		},
+		{
+			"name": "V3.12.3 CLI: local RAG + MCP tool",
+			"type": "debugpy",
+			"request": "launch",
+			"module": "obsidian_rag.cli",
+			"console": "integratedTerminal",
+			"cwd": "${workspaceFolder}",
+			"python": "${workspaceFolder}/.venv/bin/python",
+			"envFile": "${workspaceFolder}/.env",
+			"args": [
+				"agent-v3-12-3",
+				"ask",
+				"结合知识库说明生鸡肉是否要洗，并查询 chicken 的安全中心温度。",
+				"--conversation-id",
+				"conv_v3123_mixed",
+				"--collection",
+				"food_safety",
+				"--mcp-tool-name",
+				"demo::lookup_food_temperature",
+				"--max-steps",
+				"4"
+			],
+			"justMyCode": true
+		},
+		{
+			"name": "V3.12.3 CLI: MCP runtime status",
+			"type": "debugpy",
+			"request": "launch",
+			"module": "obsidian_rag.cli",
+			"console": "integratedTerminal",
+			"cwd": "${workspaceFolder}",
+			"python": "${workspaceFolder}/.venv/bin/python",
+			"envFile": "${workspaceFolder}/.env",
+			"args": ["agent-v3-12-3", "mcp-status"],
+			"justMyCode": true
+		},
+		{
+			"name": "Agent Console UI: console.v1 (V3.12.3 MCP)",
+			"type": "node-terminal",
+			"request": "launch",
+			"command": "VITE_API_TARGET=http://127.0.0.1:8020 npm run dev",
+			"cwd": "${workspaceFolder}/frontend/agent_console"
 		}
 	]
 }
