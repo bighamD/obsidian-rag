@@ -17,6 +17,7 @@ from obsidian_rag.v3_12_3.registry import build_agent_tool_registry
 from obsidian_rag.v3_12_3.service import McpAgentIntegrationService
 
 
+@lru_cache(maxsize=1)
 def get_config() -> RagConfig:
     return load_config()
 
@@ -31,6 +32,13 @@ def build_retrieval(config: RagConfig | None = None) -> RerankingRetrievalServic
 
 
 @lru_cache(maxsize=1)
+def get_retrieval_service() -> RerankingRetrievalService:
+    """复用 Retrieval 与 Reranker，避免每个 Agent Run 重建或重复加载模型。"""
+
+    return build_retrieval(get_config())
+
+
+@lru_cache(maxsize=1)
 def get_mcp_connection_manager() -> McpConnectionManager:
     registry, path = load_mcp_server_registry()
     return McpConnectionManager(registry, path)
@@ -38,7 +46,7 @@ def get_mcp_connection_manager() -> McpConnectionManager:
 
 def build_agent() -> McpAgentService:
     config = get_config()
-    retrieval = build_retrieval(config)
+    retrieval = get_retrieval_service()
     registry, planner_tools, _ = build_agent_tool_registry(retrieval, get_mcp_connection_manager())
     return McpAgentService(
         retrieval_service=retrieval,

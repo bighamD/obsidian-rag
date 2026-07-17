@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Sequence
+from threading import Lock
 from typing import Protocol
 
 
@@ -38,16 +39,20 @@ class CrossEncoderReranker:
         self.device = device
         self.batch_size = batch_size
         self._client = None
+        self._inference_lock = Lock()
 
     def score(self, query: str, documents: Sequence[str]) -> list[float]:
         if not documents:
             return []
-        client = self._load()
-        values = client.predict(
-            [(query, document) for document in documents],
-            batch_size=self.batch_size,
-            show_progress_bar=False,
-        )
+        # 一个共享 Provider 可能被多个 SSE Run 同时调用。模型加载和推理串行化，
+        # 避免重复初始化底层 CrossEncoder，也避免并发 predict 争用同一模型。
+        with self._inference_lock:
+            client = self._load()
+            values = client.predict(
+                [(query, document) for document in documents],
+                batch_size=self.batch_size,
+                show_progress_bar=False,
+            )
         tolist = getattr(values, "tolist", None)
         raw = tolist() if callable(tolist) else list(values)
         return [float(value[0] if isinstance(value, list) else value) for value in raw]

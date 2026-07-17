@@ -78,6 +78,17 @@ Transport → ClientSession → MCP Server
 
 `stdio` 适合本地开发工具和单机 sidecar；`streamable_http` 更适合独立部署、跨服务调用、认证和水平扩容。两者在 Agent 上层都被适配为相同的 Tool Definition 与 Tool Result。
 
+### Agent 与基础设施的生命周期
+
+每次 Run 会创建新的 `McpAgentService`、Tool Registry 快照和 LangGraph State，避免并发请求共享本轮计划与状态。Config、Retrieval、Reranker、Memory Store、Run Store、EventBus 和 MCP Connection Manager 则按进程复用。
+
+```text
+Process Scope：Config / Retrieval / Reranker Model / MCP Sessions / Stores
+Run Scope：McpAgentService / ToolRegistry Snapshot / AgentState / Plan / Trace
+```
+
+共享的 CrossEncoder Provider 会串行化首次模型加载和 `predict()`，避免多个 SSE 后台线程重复加载或并发争用同一模型。修改 `.env`、Reranker 配置或 MCP Registry 后，需要重启进程使进程级缓存重新构造。
+
 ## Tool Catalog 到 Executor
 
 Tool Catalog 经过三次收窄：
@@ -319,4 +330,3 @@ CLI 和 Swagger 调用的是同一个 FastAPI 服务。CLI 更适合断点和脚
 3. 为什么 Tool Catalog 需要 namespace、allowlist 和 schema budget。
 4. 为什么 Tool Observation 不能伪装成 Knowledge Chunk。
 5. 为什么 `read_only=true` 仍不能替代下一版本的 Permission Policy。
-

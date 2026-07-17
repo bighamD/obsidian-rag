@@ -23,6 +23,7 @@ from obsidian_rag.v3_12_4.agent import RoutedMcpAgentService
 from obsidian_rag.v3_12_4.service import UnifiedKnowledgeRoutingService
 
 
+@lru_cache(maxsize=1)
 def get_config() -> RagConfig:
     return load_config()
 
@@ -64,9 +65,16 @@ def build_retrieval(config: RagConfig | None = None) -> RerankingRetrievalServic
     )
 
 
+@lru_cache(maxsize=1)
+def get_retrieval_service() -> RerankingRetrievalService:
+    """复用多 Collection 检索与 Reranker，Agent Run 只创建轻量编排对象。"""
+
+    return build_retrieval(get_config())
+
+
 def build_agent() -> RoutedMcpAgentService:
     config = get_config()
-    retrieval = build_retrieval(config)
+    retrieval = get_retrieval_service()
     registry, planner_tools, _ = build_agent_tool_registry(retrieval, get_mcp_connection_manager())
     return RoutedMcpAgentService(
         retrieval_service=retrieval,
