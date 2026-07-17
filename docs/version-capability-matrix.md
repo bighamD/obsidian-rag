@@ -28,6 +28,8 @@ V3.12.2     Retrieval Reranking
    ↓
 V3.12.3     MCP Agent Integration（已完成）
    ↓
+V3.12.4     Unified Knowledge Routing（已完成）
+   ↓
 V3.13-V3.15 Permission、Sandbox、Recovery/HITL（计划）
 ```
 
@@ -90,6 +92,7 @@ V3.13-V3.15 Permission、Sandbox、Recovery/HITL（计划）
 | V3.12.1 | AgentRuntime/Core Extraction | 提升公共 Agent Core、统一 Local/MCP ToolRegistry、Answer Delta、TTFT、前端流式答案 | MCP Tool 仍以显式执行为主；不自动选择高风险 Tool | [代码](../obsidian_rag/v3_12_1) · [公共 Core](../obsidian_rag/core) · [Guide](v3-12-1-agent-core-streaming-guide.md) |
 | V3.12.2 | Retrieval Reranking | RRF 扩大候选、CrossEncoder 重排 matched child、Parent Top K、fail-open 和排序评估 | 插入检索质量版本；不改变 Planner、Permission 或 Tool 决策 | [代码](../obsidian_rag/v3_12_2) · [共享 Reranker](../obsidian_rag/reranking) · [Guide](v3-12-2-retrieval-reranking-guide.md) |
 | V3.12.3 | MCP Agent Integration | 配置化 Server Registry、stdio/Streamable HTTP、Session 复用、Tool Cache、Planner 自动选择只读 MCP Tool、Tool Observation | 不开放任意 Server、写入 Tool、Shell、Permission 或 Sandbox | [代码](../obsidian_rag/v3_12_3) · [Guide](v3-12-3-mcp-agent-integration-guide.md) |
+| V3.12.4 | Unified Knowledge Routing | Core RetrievalScope、LLM Collection Router、自动/显式知识库范围、多库统一 Reranking、MCP Agent 与 Console 集成 | 不做 ACL、多租户、Permission、写入 Tool 或 Sandbox | [代码](../obsidian_rag/v3_12_4) · [Guide](v3-12-4-unified-knowledge-routing-guide.md) |
 
 ## Phase F：安全与恢复
 
@@ -121,7 +124,7 @@ V3.13-V3.15 Permission、Sandbox、Recovery/HITL（计划）
 | SSE / Answer Streaming | V3.10.2 | V3.12.1 |
 | Skill System | V3.11 | V3.12.3 |
 | Structured Ingestion / Parent-Child | V3.11.1 | V3.11.2、V3.12.2 |
-| Multi-Collection Routing | V3.11.3 | V3.12 MCP Server |
+| Multi-Collection Routing | V3.11.3 | V3.12.4 完整 Agent 集成 |
 | MCP Protocol | V3.12 | V3.12.3 |
 | Public Agent Core | V3.12.1 | V3.10、V3.11 |
 | CrossEncoder Reranking | V3.12.2 | V1、V3.11.1 |
@@ -144,6 +147,7 @@ V3.13-V3.15 Permission、Sandbox、Recovery/HITL（计划）
 | V3.12 MCP vs Tool Calling | MCP 定义发现/调用协议；Tool Calling 是模型的选择机制 |
 | V3.12.1 vs V3.12.3 | V3.12.1 准备 Core 与统一 Registry；V3.12.3 才让完整 Agent 自动使用 MCP Tool |
 | V3.12.2 Reranker vs RRF | RRF 按排名融合召回；Reranker 对 query-document 重新评分 |
+| V3.11.3 vs V3.12.4 | V3.11.3 独立学习 Collection Router；V3.12.4 把它接入 Planner、Reranker、MCP、Context 和 Console |
 | V3.13 Permission vs V3.14 Sandbox | Permission 决定能否执行；Sandbox 决定在哪里、以什么资源执行 |
 
 ## 目录阅读建议

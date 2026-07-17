@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="760" viewBox="0 0 1200 760" role="img" aria-labelledby="title desc">
+  <title id="title">V3.12.4 Core 扩展点与版本实现边界</title>
+  <desc id="desc">说明 Core 只保存 RetrievalScope 契约、Resolver Protocol 和可选 Graph Node，V3.12.4 注入 Registry、LLM Router、Reranking 与 MCP。</desc>
+  <defs><linearGradient id="bg2" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#07182b"/><stop offset="1" stop-color="#13283f"/></linearGradient><filter id="s"><feDropShadow dx="0" dy="8" stdDeviation="10" flood-opacity=".25"/></filter></defs>
+  <rect width="1200" height="760" fill="url(#bg2)"/>
+  <text x="600" y="62" text-anchor="middle" fill="#f4f8ff" font-size="34" font-weight="700">什么进入 Core，什么留在 V3.12.4？</text>
+  <text x="600" y="96" text-anchor="middle" fill="#a9dfff" font-size="17">稳定契约向上提升 · 具体策略由版本注入</text>
+  <g filter="url(#s)" font-family="Arial, sans-serif">
+    <rect x="70" y="145" width="500" height="505" rx="16" fill="#183654" stroke="#34bfff" stroke-width="2"/>
+    <text x="320" y="190" text-anchor="middle" fill="#fff" font-size="27" font-weight="700">obsidian_rag/core</text>
+    <text x="320" y="220" text-anchor="middle" fill="#a9dfff" font-size="15">稳定 Harness 能力</text>
+    <rect x="115" y="265" width="410" height="82" rx="10" fill="#102b45" stroke="#5ec9ff"/><text x="320" y="299" text-anchor="middle" fill="#fff" font-size="19" font-weight="700">RetrievalScope Schema</text><text x="320" y="326" text-anchor="middle" fill="#c9def1" font-size="14">selected_collections / status / reason</text>
+    <rect x="115" y="375" width="410" height="82" rx="10" fill="#102b45" stroke="#5ec9ff"/><text x="320" y="409" text-anchor="middle" fill="#fff" font-size="19" font-weight="700">RetrievalScopeResolver Protocol</text><text x="320" y="436" text-anchor="middle" fill="#c9def1" font-size="14">Core 不知道 LLM 和 Registry 实现</text>
+    <rect x="115" y="485" width="410" height="110" rx="10" fill="#102b45" stroke="#5ec9ff"/><text x="320" y="521" text-anchor="middle" fill="#fff" font-size="19" font-weight="700">Optional LangGraph Node</text><text x="320" y="551" text-anchor="middle" fill="#c9def1" font-size="14">注入 Resolver 才出现</text><text x="320" y="577" text-anchor="middle" fill="#c9def1" font-size="14">旧版本 graph_path 保持不变</text>
+    <rect x="630" y="145" width="500" height="505" rx="16" fill="#15463e" stroke="#3fd0a2" stroke-width="2"/>
+    <text x="880" y="190" text-anchor="middle" fill="#fff" font-size="27" font-weight="700">obsidian_rag/v3_12_4</text>
+    <text x="880" y="220" text-anchor="middle" fill="#9fe7d1" font-size="15">版本级组合与策略</text>
+    <rect x="675" y="265" width="410" height="82" rx="10" fill="#10382f" stroke="#58d7af"/><text x="880" y="299" text-anchor="middle" fill="#fff" font-size="19" font-weight="700">KnowledgeBaseRegistry</text><text x="880" y="326" text-anchor="middle" fill="#c9e9df" font-size="14">knowledge_bases.yaml</text>
+    <rect x="675" y="375" width="410" height="82" rx="10" fill="#10382f" stroke="#58d7af"/><text x="880" y="409" text-anchor="middle" fill="#fff" font-size="19" font-weight="700">LLM Collection Router</text><text x="880" y="436" text-anchor="middle" fill="#c9e9df" font-size="14">显式 &gt; 自动路由 &gt; 默认库</text>
+    <rect x="675" y="485" width="410" height="110" rx="10" fill="#3b356a" stroke="#9a84ff"/><text x="880" y="521" text-anchor="middle" fill="#fff" font-size="19" font-weight="700">Reranking + MCP Integration</text><text x="880" y="551" text-anchor="middle" fill="#ded8ff" font-size="14">search_collections()</text><text x="880" y="577" text-anchor="middle" fill="#ded8ff" font-size="14">persistent MCP Sessions</text>
+    <path d="M570 416 H630" stroke="#ffd166" stroke-width="4" stroke-dasharray="8 7"/>
+    <text x="600" y="395" text-anchor="middle" fill="#ffd166" font-size="13">inject</text>
+  </g>
+  <text x="600" y="706" text-anchor="middle" fill="#cbd9e8" font-size="16">依赖方向：V3.12.4 → Core；Core 永远不反向 import 版本目录</text>
+</svg>

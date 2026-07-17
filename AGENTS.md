@@ -96,7 +96,7 @@ docs/assets/rag-v3-4-planner-flow.svg
 已完成到：
 
 ```text
-V3.12.3 MCP Agent Integration
+V3.12.4 Unified Knowledge Routing
 ```
 
 V3.12 在 V3.11 Skill System 之后增加标准化外部工具协议：
@@ -153,6 +153,19 @@ V3.12.3 仍然不做：
 
 - 不开放请求动态配置任意 MCP Server。
 - 不开放写入 Tool、Shell、Skill scripts、Permission、审批或 Sandbox。
+
+V3.12.4 已完成：
+
+- 将 `RetrievalScope`、Resolver Protocol、Knowledge Base Registry 和 LLM Collection Router 提升到 `obsidian_rag/core/collections/`。
+- 仅在注入 Resolver 时为 Core Agent Graph 增加 `resolve_retrieval_scope` 节点，旧版本路径保持兼容。
+- 将 V3.11.3 Collection Router 与 V3.12.2 `search_collections()` 结合，执行多库候选融合和全局 Reranking。
+- 保留 V3.12.3 MCP Tool Selection、持久 Session、Tool Observation、JSON/SSE 和共享 Agent Console。
+- 前端支持 Auto Collection、Router 开关、最大知识库数和 RetrievalScope 观察面板。
+
+V3.12.4 仍然不做：
+
+- 不为每个 search subquery 重复路由，当前每个 Agent Run 只解析一次全局知识库范围。
+- 不实现 Collection ACL、多租户授权、Permission Policy、写入 Tool 或 Sandbox。
 
 V3.10.3 和 V3.11.1-V3.11.3 是已完成的扩展学习版本，不改变当前主线。下一阶段建议：
 

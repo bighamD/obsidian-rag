@@ -4,7 +4,7 @@
 
 不知道各版本分别做什么时，先看：[版本能力矩阵](docs/version-capability-matrix.md)。
 
-当前主线版本 V3.12.3：[MCP Agent Integration Guide](docs/v3-12-3-mcp-agent-integration-guide.md)。
+当前主线版本 V3.12.4：[Unified Knowledge Routing Guide](docs/v3-12-4-unified-knowledge-routing-guide.md)。
 
 学习路线和 v0-v4 计划见：[docs/rag-roadmap.md](docs/rag-roadmap.md)。
 
