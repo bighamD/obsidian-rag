@@ -181,7 +181,26 @@
 				"--host",
 				"127.0.0.1",
 				"--port",
-				"8019"
+				"8020"
+			],
+			"subProcess": false,
+			"justMyCode": true
+		},
+		{
+			"name": "V3.12 API server: MCP Integration (debug MCP subprocess)",
+			"type": "debugpy",
+			"request": "launch",
+			"module": "uvicorn",
+			"console": "integratedTerminal",
+			"cwd": "${workspaceFolder}",
+			"python": "${workspaceFolder}/.venv/bin/python",
+			"envFile": "${workspaceFolder}/.env",
+			"args": [
+				"obsidian_rag.v3_12.app:app",
+				"--host",
+				"127.0.0.1",
+				"--port",
+				"8020"
 			],
 			"subProcess": true,
 			"justMyCode": true
