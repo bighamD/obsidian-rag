@@ -405,6 +405,29 @@ def main() -> None:
     agent3123_mcp_call.add_argument("--arguments", default="{}")
     agent3123_mcp_call.add_argument("--api-base", default="http://127.0.0.1:8020")
 
+    agent3124_parser = subparsers.add_parser(
+        "agent-v3-12-4",
+        help="Run unified Collection Routing, Reranking and MCP Agent",
+    )
+    agent3124_subparsers = agent3124_parser.add_subparsers(dest="agent3124_command", required=True)
+    agent3124_ask = agent3124_subparsers.add_parser("ask", help="Run JSON or SSE with automatic Collection routing")
+    _add_production_ask_arguments(agent3124_ask, "已迁移到 MySQL，此参数仅为旧 CLI 兼容保留")
+    agent3124_ask.add_argument("--collection", help="显式 Collection；为空时自动路由")
+    agent3124_ask.add_argument("--disable-collection-router", action="store_true")
+    agent3124_ask.add_argument("--max-collections", type=int, default=2, choices=[1, 2, 3])
+    agent3124_ask.add_argument("--disable-mcp", action="store_true")
+    agent3124_ask.add_argument("--mcp-tool-name", action="append", dest="mcp_tool_names")
+    agent3124_ask.add_argument("--json", action="store_true")
+    agent3124_ask.add_argument("--api-base", default="http://127.0.0.1:8021")
+    agent3124_collections = agent3124_subparsers.add_parser("collections", help="Read Knowledge Base Registry")
+    agent3124_collections.add_argument("--api-base", default="http://127.0.0.1:8021")
+    agent3124_route = agent3124_subparsers.add_parser("route", help="Debug Collection Router without retrieval")
+    agent3124_route.add_argument("question")
+    agent3124_route.add_argument("--collection")
+    agent3124_route.add_argument("--disable-collection-router", action="store_true")
+    agent3124_route.add_argument("--max-collections", type=int, default=2, choices=[1, 2, 3])
+    agent3124_route.add_argument("--api-base", default="http://127.0.0.1:8021")
+
     agent3103_parser = subparsers.add_parser("agent-v3-10-3", help="Run V3.10.3 LangGraph Advanced Patterns")
     agent3103_subparsers = agent3103_parser.add_subparsers(dest="agent3103_command", required=True)
     agent3103_ask_parser = agent3103_subparsers.add_parser("ask", help="Call the Advanced Graph JSON or SSE endpoint")
@@ -826,6 +849,42 @@ def main() -> None:
         )
         return
 
+    if args.command == "agent-v3-12-4" and args.agent3124_command == "ask":
+        run_agent3121_ask(
+            question=args.question,
+            conversation_id=args.conversation_id,
+            collection=args.collection,
+            memory_window=args.memory_window,
+            memory_compaction_enabled=not args.disable_memory_compaction,
+            memory_compaction_trigger_turns=args.memory_compaction_trigger_turns,
+            memory_compaction_trigger_tokens=args.memory_compaction_trigger_tokens,
+            top_k=args.top_k,
+            mode=args.mode,
+            max_steps=args.max_steps,
+            max_retries=args.max_retries,
+            filter_path=args.filter_path,
+            context_max_chunks=args.context_max_chunks,
+            context_token_budget=args.context_token_budget,
+            api_base=args.api_base,
+            stream=not args.json,
+            mcp_enabled=not args.disable_mcp,
+            mcp_tool_names=args.mcp_tool_names,
+            collection_router_enabled=not args.disable_collection_router,
+            max_collections=args.max_collections,
+        )
+        return
+
+    if args.command == "agent-v3-12-4":
+        run_agent3124_collections(
+            command=args.agent3124_command,
+            api_base=args.api_base,
+            question=getattr(args, "question", None),
+            collection=getattr(args, "collection", None),
+            router_enabled=not getattr(args, "disable_collection_router", False),
+            max_collections=getattr(args, "max_collections", 2),
+        )
+        return
+
     if args.command == "agent-v3-10-3" and args.agent3103_command == "ask":
         run_agent3103_ask(
             question=args.question,
@@ -922,6 +981,8 @@ def run_agent3121_ask(
     stream: bool = True,
     mcp_enabled: bool | None = None,
     mcp_tool_names: list[str] | None = None,
+    collection_router_enabled: bool | None = None,
+    max_collections: int | None = None,
 ) -> None:
     """调用 V3.12.1 公共 Core；SSE 只打印最终可见 answer_delta。"""
 
@@ -944,6 +1005,9 @@ def run_agent3121_ask(
     if mcp_enabled is not None:
         payload["mcp_enabled"] = mcp_enabled
         payload["mcp_tool_names"] = mcp_tool_names
+    if collection_router_enabled is not None:
+        payload["collection_router_enabled"] = collection_router_enabled
+        payload["max_collections"] = max_collections or 2
     base = api_base.rstrip("/")
     if not stream:
         response = httpx.post(f"{base}/agent/ask", json=payload, timeout=None)
@@ -1012,6 +1076,37 @@ def run_agent3123_mcp(
         )
     else:
         raise ValueError(f"Unsupported V3.12.3 command: {command}")
+    response.raise_for_status()
+    print(json.dumps(response.json(), ensure_ascii=False, indent=2))
+
+
+def run_agent3124_collections(
+    command: str,
+    *,
+    api_base: str,
+    question: str | None = None,
+    collection: str | None = None,
+    router_enabled: bool = True,
+    max_collections: int = 2,
+) -> None:
+    """调用 V3.12.4 Knowledge Base Registry 和 Collection Router 调试接口。"""
+
+    base = api_base.rstrip("/")
+    if command == "collections":
+        response = httpx.get(f"{base}/collections/runtime", timeout=None)
+    elif command == "route" and question:
+        response = httpx.post(
+            f"{base}/collections/route",
+            json={
+                "question": question,
+                "collection": collection,
+                "collection_router_enabled": router_enabled,
+                "max_collections": max_collections,
+            },
+            timeout=None,
+        )
+    else:
+        raise ValueError(f"Unsupported V3.12.4 command: {command}")
     response.raise_for_status()
     print(json.dumps(response.json(), ensure_ascii=False, indent=2))
 
