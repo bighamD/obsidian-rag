@@ -23,6 +23,7 @@ from obsidian_rag.core.schemas import (
     Plan,
     PlanRequest,
     PlanStep,
+    PlannerToolDefinition,
     AgentAskRequest,
     AgentAskResponse,
     AnswerStreamMetrics,
@@ -78,6 +79,7 @@ class AgentState(TypedDict, total=False):
     trace: list[AgentTraceStep]
     node_timings: list[AgentNodeTiming]
     answer_stream: AnswerStreamMetrics
+    tool_catalog: list[PlannerToolDefinition]
 
 
 class AgentService:
@@ -171,6 +173,7 @@ class AgentService:
                         "query": trace.query,
                         "result_count": trace.result_count,
                         "reason": trace.reason,
+                        "metadata": trace.metadata,
                     },
                 )
             trace_cursor = len(traces)
@@ -196,6 +199,7 @@ class AgentService:
             "trace": [],
             "node_timings": [],
             "answer_stream": AnswerStreamMetrics(mode="complete"),
+            "tool_catalog": [],
         }
 
     def _response_from_state(self, final_state: AgentState, request: AgentAskRequest) -> AgentAskResponse:
@@ -208,6 +212,10 @@ class AgentService:
             used_retrieval=bool(final_state.get("used_retrieval", False)),
             sources=final_state.get("sources", []),
             plan=Plan.model_validate(_model_data(final_state["plan"])),
+            tool_catalog=[
+                PlannerToolDefinition.model_validate(_model_data(item))
+                for item in final_state.get("tool_catalog", [])
+            ],
             step_results=[StepResult.model_validate(_model_data(item)) for item in final_state.get("step_results", [])],
             retry_step_results=[
                 StepResult.model_validate(_model_data(item)) for item in final_state.get("retry_step_results", [])
@@ -689,6 +697,7 @@ def _copy_state(state: AgentState) -> AgentState:
     copied["graph_path"] = list(state.get("graph_path", []))
     copied["trace"] = list(state.get("trace", []))
     copied["node_timings"] = list(state.get("node_timings", []))
+    copied["tool_catalog"] = list(state.get("tool_catalog", []))
     return copied
 
 
@@ -1039,6 +1048,7 @@ def _tool_call_records(step_results: list[StepResult]) -> list[dict[str, object]
                 "step_id": result.step_id,
                 "tool": result.tool_name,
                 "query": result.query,
+                "arguments": result.arguments,
                 "status": result.status,
                 "result_count": result.result_count,
             }

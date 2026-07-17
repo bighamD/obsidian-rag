@@ -1,0 +1,32 @@
+max_result_bytes: 262144
+max_planner_tools: 24
+max_tool_schema_chars: 12000
+
+servers:
+  - name: demo
+    description: 本地只读 MCP 学习工具；作为开发和断点调试 Fixture。
+    enabled: true
+    transport: stdio
+    command: ${PYTHON_EXECUTABLE}
+    args:
+      - -m
+      - obsidian_rag.v3_12.servers.demo_server
+    cwd: .
+    connect_on_startup: true
+    timeout_seconds: 15
+    tool_cache_ttl_seconds: 300
+    tool_allowlist:
+      - get_server_time
+      - lookup_food_temperature
+
+  - name: remote-example
+    description: 生产环境 Streamable HTTP MCP Server 配置示例，默认关闭。
+    enabled: false
+    transport: streamable_http
+    url: http://127.0.0.1:9000/mcp
+    headers_from_env:
+      Authorization: REMOTE_MCP_AUTHORIZATION
+    connect_on_startup: true
+    timeout_seconds: 20
+    tool_cache_ttl_seconds: 300
+    tool_allowlist: []

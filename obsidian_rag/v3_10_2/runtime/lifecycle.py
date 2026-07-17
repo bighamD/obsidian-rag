@@ -207,4 +207,8 @@ def _agent_event_detail(name: str, payload: dict) -> str:
         return "Answer LLM 产生学习调试 reasoning 增量。"
     if name == "progress":
         return f"Agent 阶段 {payload.get('phase', 'unknown')}：{payload.get('status', 'running')}。"
+    if name == "tool_started":
+        return f"开始调用工具 {payload.get('tool_name', 'unknown')}。"
+    if name == "tool_finished":
+        return f"工具 {payload.get('tool_name', 'unknown')} 调用{payload.get('status', 'completed')}。"
     return f"Agent 产生 {name} 事件。"

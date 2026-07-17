@@ -17,6 +17,7 @@ class ConsoleFeatures(BaseModel):
     conversation_memory: bool = Field(description="是否支持持久化会话 Memory 读取。")
     conversation_management: bool = Field(description="是否支持服务端会话列表和级联删除。")
     collections: bool = Field(description="Agent 请求是否支持指定知识库 collection。")
+    mcp_tools: bool = Field(default=False, description="是否支持 MCP Runtime、Tool Catalog 和 Tool Observation 展示。")
 
 
 class ConsoleEndpoints(BaseModel):
@@ -27,6 +28,7 @@ class ConsoleEndpoints(BaseModel):
     conversations: str = Field(description="会话列表集合路径。")
     conversation: str = Field(description="按 conversation_id 读取会话快照的路径模板。")
     runs: str = Field(description="读取近期 Run 的路径。")
+    mcp_runtime: str | None = Field(default=None, description="MCP Server 连接与 Tool Catalog 状态路径。")
 
 
 class ConsoleConfigResponse(BaseModel):

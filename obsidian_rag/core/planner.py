@@ -18,6 +18,7 @@ Planner 只负责规划，不执行检索、不生成最终答案。
 
 可选 step.kind：
 - search：需要查询本地知识库。必须提供 query。
+- tool：必须从 user payload 的 tools 中选择一个工具，提供 tool_name 和符合 input_schema 的 arguments。
 - synthesize：综合前面步骤结果。必须提供 instruction，可用 depends_on 表示依赖步骤。
 - no_search：问题明显依赖实时外部信息、闲聊或不适合本地知识库。必须提供 instruction。
 - clarify：问题太短、指代不明或范围不清。必须提供 instruction。
@@ -28,8 +29,10 @@ JSON 格式：
   "steps": [
     {
       "id": "s1",
-      "kind": "search | synthesize | no_search | clarify",
+      "kind": "search | tool | synthesize | no_search | clarify",
       "query": "当 kind=search 时提供检索词，否则为 null",
+      "tool_name": "当 kind=tool 时必须来自 tools[].name，否则为 null",
+      "arguments": {"当 kind=tool 时": "根据 input_schema 构造参数"},
       "instruction": "非 search 步骤的执行说明，search 可为 null",
       "depends_on": ["s1"],
       "reason": "一句话说明为什么需要这一步"
@@ -40,7 +43,9 @@ JSON 格式：
 规划要求：
 - 简单知识库问题：1 个 search step + 1 个 synthesize step。
 - 多主题知识库问题：每个主题一个 search step，最后一个 synthesize step。
-- 实时天气、股价、新闻等问题：返回 1 个 no_search step。
+- tools 非空且某个工具明确能提供所需外部事实时，生成 tool step；不得编造工具名或参数。
+- tools 为空或没有合适工具时，实时天气、股价、新闻等问题返回 1 个 no_search step。
+- 一个问题同时需要知识库和外部工具时，可以组合 search + tool + synthesize。
 - 指代不明的问题：返回 1 个 clarify step。
 - steps 数量不要超过用户给出的 max_steps。
 """
@@ -100,7 +105,12 @@ class PlannerService:
                 node_name="build_prompt",
                 step_type="planner_prompt",
                 reason="已把用户问题和计划约束构造成 LLM Planner messages。",
-                metadata={"max_steps": request.max_steps, "mode": request.mode, "top_k": request.top_k},
+                metadata={
+                    "max_steps": request.max_steps,
+                    "mode": request.mode,
+                    "top_k": request.top_k,
+                    "tool_count": len(request.tools),
+                },
             )
         )
         return state
@@ -206,6 +216,7 @@ def _build_planner_messages(request: PlanRequest) -> list[dict[str, str]]:
         "mode": request.mode,
         "filters": request.filters.model_dump(exclude_none=True) if request.filters else None,
         "max_steps": request.max_steps,
+        "tools": [tool.model_dump(mode="json") for tool in request.tools],
     }
     return [
         {"role": "system", "content": PLANNER_SYSTEM_PROMPT},

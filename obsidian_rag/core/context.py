@@ -3,7 +3,15 @@ from __future__ import annotations
 import json
 
 from obsidian_rag.v1.schemas import SearchHit
-from obsidian_rag.core.schemas import ContextBundle, ContextChunk, EvidenceCheckResult, MemorySnapshot, Plan, StepResult
+from obsidian_rag.core.schemas import (
+    ContextBundle,
+    ContextChunk,
+    EvidenceCheckResult,
+    MemorySnapshot,
+    Plan,
+    StepResult,
+    ToolObservation,
+)
 
 
 class ContextBuilder:
@@ -26,6 +34,7 @@ class ContextBuilder:
         excluded = [
             chunk.model_copy(update={"reason": "超过 max_chunks 或优先级较低"}) for chunk in ranked[self.max_chunks :]
         ]
+        tool_observations = _collect_tool_observations([*step_results, *retry_step_results])
         messages = _build_messages(
             question=question,
             plan=plan,
@@ -33,14 +42,23 @@ class ContextBuilder:
             included_chunks=included,
             token_budget=self.token_budget,
             memory_snapshot=memory_snapshot,
+            tool_observations=tool_observations,
         )
         return ContextBundle(
             messages=messages,
             included_chunks=included,
             excluded_chunks=excluded,
+            tool_observations=tool_observations,
             token_budget=self.token_budget,
-            context_summary=f"已选择 {len(included)} 个 chunks，排除 {len(excluded)} 个 chunks。",
+            context_summary=(
+                f"已选择 {len(included)} 个 chunks，排除 {len(excluded)} 个 chunks，"
+                f"加入 {len(tool_observations)} 条 Tool Observations。"
+            ),
         )
+
+
+def _collect_tool_observations(step_results: list[StepResult]) -> list[ToolObservation]:
+    return [result.observation for result in step_results if result.observation is not None]
 
 
 def _collect_context_chunks(step_results: list[StepResult]) -> list[ContextChunk]:
@@ -85,6 +103,7 @@ def _build_messages(
     included_chunks: list[ContextChunk],
     token_budget: int,
     memory_snapshot: MemorySnapshot,
+    tool_observations: list[ToolObservation],
 ) -> list[dict[str, str]]:
     context_payload = {
         "question": question,
@@ -94,14 +113,16 @@ def _build_messages(
         "conversation_summary": memory_snapshot.summary_text or None,
         "conversation_memory": [turn.model_dump() for turn in memory_snapshot.recent_turns],
         "included_chunks": [_prompt_chunk(chunk) for chunk in included_chunks],
+        "tool_observations": [_prompt_observation(item) for item in tool_observations],
     }
     return [
         {
             "role": "system",
             "content": (
                 "你是 Obsidian Agent 的答案生成器。请根据 ContextBundle 中的 question、plan、"
-                "conversation_memory 和 included_chunks 完成当前请求。"
+                "conversation_memory、included_chunks 和 tool_observations 完成当前请求。"
                 "当 included_chunks 非空时，优先基于知识库证据回答，并保留 chunk_id 或来源线索；"
+                "tool_observations 是工具返回的外部事实，不要把它伪装成知识库 chunk 或来源文件；"
                 "当 included_chunks 为空且计划是 no_search 时，直接回答不依赖本地知识库的通用问题，"
                 "不要伪造知识库来源。对于天气、新闻、股价等需要实时外部数据的问题，明确说明当前没有对应外部工具，"
                 "不要编造实时事实。对于 clarify 计划，向用户提出必要的澄清问题。"
@@ -122,6 +143,18 @@ def _prompt_chunk(chunk: ContextChunk) -> dict[str, object]:
         "score": chunk.score,
         "text_preview": chunk.text_preview,
         "reason": chunk.reason,
+    }
+
+
+def _prompt_observation(observation: ToolObservation) -> dict[str, object]:
+    return {
+        "step_id": observation.step_id,
+        "tool_name": observation.tool_name,
+        "source": observation.source,
+        "status": observation.status,
+        "data": observation.data,
+        "summary": observation.summary,
+        "error": observation.error,
     }
 
 

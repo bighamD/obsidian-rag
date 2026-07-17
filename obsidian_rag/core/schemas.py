@@ -9,7 +9,7 @@ from pydantic import BaseModel, Field, field_validator
 from obsidian_rag.config import COLLECTION_NAME_PATTERN
 from obsidian_rag.v1.schemas import SearchFilters, SearchHit, SearchMode
 
-PlanStepKind = Literal["search", "synthesize", "no_search", "clarify"]
+PlanStepKind = Literal["search", "tool", "synthesize", "no_search", "clarify"]
 PlannerTraceStepType = Literal["planner_prompt", "planner_output", "planner_error"]
 
 
@@ -21,14 +21,30 @@ class PlanRequest(BaseModel):
     mode: SearchMode = Field(default="hybrid", description="Planner 应使用的检索模式。")
     filters: SearchFilters | None = Field(default=None, description="可选知识库元数据过滤条件。")
     max_steps: int = Field(default=4, ge=1, le=8, description="Planner 最多生成的步骤数。")
+    tools: list["PlannerToolDefinition"] = Field(
+        default_factory=list,
+        description="本次允许 Planner 选择的外部 Tool Catalog；为空时不得生成 tool step。",
+    )
+
+
+class PlannerToolDefinition(BaseModel):
+    """提供给 Planner 的精简 Tool Definition，不包含连接凭据和实现对象。"""
+
+    name: str = Field(description="统一 Tool Registry 中的唯一名称，例如 demo::get_server_time。")
+    description: str = Field(description="帮助 Planner 判断适用场景的简短工具说明。")
+    input_schema: dict[str, Any] = Field(description="Planner 构造 arguments 时遵循的 JSON Schema。")
+    source: str = Field(default="mcp", description="工具来源，例如 mcp 或 local。")
+    read_only: bool | None = Field(default=None, description="工具声明的只读提示，不等于 Permission Policy 决策。")
 
 
 class PlanStep(BaseModel):
     """公共计划中的一个可执行步骤。"""
 
     id: str = Field(min_length=1, description="步骤唯一标识。")
-    kind: PlanStepKind = Field(description="search、synthesize、no_search 或 clarify。")
+    kind: PlanStepKind = Field(description="search、tool、synthesize、no_search 或 clarify。")
     query: str | None = Field(default=None, description="search 步骤使用的查询词。")
+    tool_name: str | None = Field(default=None, description="tool 步骤选择的统一工具名称；其他步骤为空。")
+    arguments: dict[str, Any] = Field(default_factory=dict, description="tool 步骤传给工具的结构化参数。")
     instruction: str | None = Field(default=None, description="非 search 步骤的执行说明。")
     depends_on: list[str] = Field(default_factory=list, description="该步骤依赖的前置步骤 ID。")
     reason: str | None = Field(default=None, description="生成该步骤的可观察原因。")
@@ -137,13 +153,14 @@ class StepResult(BaseModel):
     """一个 Planner step 的执行结果。
 
     `search` step 会把 RAG 命中的原始知识库证据放进 `results`；
-    `synthesize`、`no_search` 和 `clarify` 通常没有检索结果。
+    `tool` step 把外部结果放进 `observation`；`synthesize`、`no_search` 和 `clarify` 通常没有结果。
     """
 
     step_id: str = Field(description="对应 PlanStep 的唯一标识。")
     kind: str = Field(description="Planner 指定的步骤类型，如 search、synthesize 或 clarify。")
     tool_name: str | None = Field(default=None, description="实际调用的工具名称；非工具步骤可能为空。")
     query: str | None = Field(default=None, description="search 工具实际使用的检索词。")
+    arguments: dict[str, Any] = Field(default_factory=dict, description="tool 步骤实际使用的参数；不会包含 Secret。")
     instruction: str | None = Field(default=None, description="非 search 步骤的执行说明。")
     status: StepStatus = Field(description="该步骤的最终执行状态。")
     result_count: int = Field(default=0, description="该步骤产出的检索结果数量。")
@@ -151,6 +168,23 @@ class StepResult(BaseModel):
     sources: list[str] = Field(default_factory=list, description="从 results 提取的去重来源文件列表。")
     error: str | None = Field(default=None, description="工具失败时的错误信息。")
     reason: str | None = Field(default=None, description="Planner 为该步骤给出的执行原因。")
+    observation: "ToolObservation | None" = Field(
+        default=None,
+        description="非检索 Tool 的结构化观察结果；知识库 search 结果仍保存在 results。",
+    )
+
+
+class ToolObservation(BaseModel):
+    """本地或 MCP Tool 执行后进入 Answer Context 的结构化观察结果。"""
+
+    step_id: str = Field(description="产生该观察结果的 PlanStep 标识。")
+    tool_name: str = Field(description="实际执行的统一工具名称。")
+    source: str = Field(description="工具来源，例如 mcp 或 local。")
+    status: StepStatus = Field(description="工具执行状态。")
+    data: Any = Field(default=None, description="允许进入 Answer Context 的结构化 Tool Result。")
+    summary: str = Field(description="供 Prompt 和 Console 快速理解的结果摘要。")
+    metadata: dict[str, Any] = Field(default_factory=dict, description="Server、transport、latency 等可观察元数据。")
+    error: str | None = Field(default=None, description="工具失败原因；成功时为 null。")
 
 
 class AgentTraceStep(BaseModel):
@@ -225,7 +259,7 @@ class ContextBundle(BaseModel):
 
     `messages[1]["content"]` 是真正传给 Answer LLM 的 JSON 字符串，包含：
     `question`、`plan`、`evidence_check`、`token_budget`、
-    `conversation_summary`、`conversation_memory` 和 `included_chunks`。
+    `conversation_summary`、`conversation_memory`、`included_chunks` 和 `tool_observations`。
 
     `included_chunks` 的 `text`、排序字段与 `metadata` 是 API/Console 的调试信息；
     真正的 Answer prompt 只使用其必要投影（包含 `text_preview`）。
@@ -241,6 +275,10 @@ class ContextBundle(BaseModel):
     excluded_chunks: list[ContextChunk] = Field(
         default_factory=list,
         description="因 max_chunks 或排序优先级而未选入 Answer prompt 的 chunks，仅供调试。",
+    )
+    tool_observations: list[ToolObservation] = Field(
+        default_factory=list,
+        description="实际进入 Answer prompt 的 Tool Observations；它们不是知识库 chunks。",
     )
     token_budget: int = Field(
         description="Answer context 的配置预算。V3.8.1 会将其传给 LLM，但尚未按真实 tokenizer 截断 chunks。"
@@ -398,6 +436,10 @@ class AgentAskResponse(BaseModel):
     used_retrieval: bool = Field(description="本次是否至少获得了一条 RAG 检索结果。")
     sources: list[str] = Field(description="最终检索结果使用到的去重来源文件。")
     plan: Plan = Field(description="Planner 输出的可执行计划。")
+    tool_catalog: list[PlannerToolDefinition] = Field(
+        default_factory=list,
+        description="本轮提供给 Planner 的精简 Tool Catalog；用于 API/Console 调试。",
+    )
     step_results: list[StepResult] = Field(description="初始计划各步骤的执行结果。")
     retry_step_results: list[StepResult] = Field(description="Evidence 不足后补搜产生的步骤结果。")
     evidence_check: EvidenceCheckResult = Field(description="检索证据覆盖情况及补搜建议。")
