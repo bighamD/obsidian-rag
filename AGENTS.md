@@ -26,6 +26,8 @@ docs/harness-learning-roadmap.md
 
 新增版本前先检查 roadmap 当前阶段。若实现内容需要偏离 roadmap，必须在对应版本文档里说明偏离原因、取舍和下一步如何回到主线。
 
+每次新增、插入、重命名或完成一个学习版本时，必须同步更新 `docs/version-capability-matrix.md` 的版本行、当前主线、能力反查、依赖关系和状态；该文档是版本职责与能力边界的统一入口。
+
 必须包含：
 
 - 独立目录，例如 `obsidian_rag/v3_5/`。
@@ -94,7 +96,7 @@ docs/assets/rag-v3-4-planner-flow.svg
 已完成到：
 
 ```text
-V3.12.1 AgentRuntime/Core Extraction
+V3.12.3 MCP Agent Integration
 ```
 
 V3.12 在 V3.11 Skill System 之后增加标准化外部工具协议：
@@ -133,6 +135,24 @@ V3.12.1 仍然不做：
 
 - 不改变 Prompt、检索、Evidence 或 Memory 语义。
 - 不实现 fast path、Permission、Sandbox、Shell、MCP Session Pool 或自动高风险 Tool 选择。
+
+V3.12.2 已完成：
+
+- 在 Hybrid/RRF 召回后增加可插拔 CrossEncoder Reranking。
+- 支持 matched child 重排、Parent Top K、fail-open 和排序评估。
+
+V3.12.3 已完成：
+
+- 使用 YAML 配置 MCP Server Registry，支持 `stdio` 与 `streamable_http`。
+- 通过 FastAPI lifespan 和每 Server Worker Task 持有、复用并关闭 MCP Session。
+- 将 MCP Tool Catalog 提供给 Planner，完整 Agent 可生成并执行通用 `tool` step。
+- 将 MCP Tool Result 适配为独立 Tool Observation，进入 Context、Answer、Trace、Memory 和 Agent Console。
+- 继续复用 V3.12.2 Reranking；本地 `search_notes` 不通过 MCP 绕回自身。
+
+V3.12.3 仍然不做：
+
+- 不开放请求动态配置任意 MCP Server。
+- 不开放写入 Tool、Shell、Skill scripts、Permission、审批或 Sandbox。
 
 V3.10.3 和 V3.11.1-V3.11.3 是已完成的扩展学习版本，不改变当前主线。下一阶段建议：
 

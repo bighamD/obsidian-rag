@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="760" viewBox="0 0 1200 760" role="img" aria-labelledby="title desc">
+  <title id="title">Knowledge Chunk 与 Tool Observation 的上下文边界</title>
+  <desc id="desc">知识库检索结果和 MCP 工具结果以不同结构进入 ContextBuilder，答案模型可以同时使用，但工具结果不会伪装成知识库来源。</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#071426"/><stop offset="1" stop-color="#102a43"/></linearGradient>
+    <filter id="shadow"><feDropShadow dx="0" dy="5" stdDeviation="7" flood-opacity=".28"/></filter>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#7dd3fc"/></marker>
+    <style>.title{font:700 28px system-ui;fill:#f8fafc}.sub{font:15px system-ui;fill:#bae6fd}.box{rx:16;fill:#132f4c;stroke:#38bdf8;stroke-width:2;filter:url(#shadow)}.green{fill:#123d34;stroke:#34d399}.yellow{fill:#422006;stroke:#fbbf24}.purple{fill:#312e5f;stroke:#a78bfa}.text{font:650 17px system-ui;fill:#f8fafc}.small{font:13px system-ui;fill:#cbd5e1}.line{stroke:#7dd3fc;stroke-width:2.5;fill:none;marker-end:url(#arrow)}.bad{stroke:#f87171;stroke-width:3;fill:none}.label{font:700 14px system-ui;fill:#fca5a5}</style>
+  </defs>
+  <rect width="1200" height="760" fill="url(#bg)"/>
+  <text x="600" y="48" text-anchor="middle" class="title">Chunk 与 Tool Observation 为什么必须分开</text>
+  <text x="600" y="76" text-anchor="middle" class="sub">两类事实都能进入 Answer Prompt，但来源语义、排序方式和审计字段不同</text>
+
+  <rect x="70" y="135" width="330" height="230" class="box"/><text x="235" y="173" text-anchor="middle" class="text">Knowledge Chunk</text><text x="105" y="213" class="small">chunk_id: KB-072</text><text x="105" y="242" class="small">source: food.md</text><text x="105" y="271" class="small">score / rerank_rank</text><text x="105" y="300" class="small">text_preview</text><text x="105" y="329" class="small">来源可引用、可追溯</text>
+  <rect x="800" y="135" width="330" height="230" class="box green"/><text x="965" y="173" text-anchor="middle" class="text">Tool Observation</text><text x="835" y="213" class="small">tool_name: demo::get_server_time</text><text x="835" y="242" class="small">source: mcp</text><text x="835" y="271" class="small">data: structured_content</text><text x="835" y="300" class="small">server / transport / latency</text><text x="835" y="329" class="small">外部事实，不是知识库来源</text>
+
+  <rect x="430" y="445" width="340" height="125" class="box purple"/><text x="600" y="482" text-anchor="middle" class="text">ContextBuilder</text><text x="600" y="512" text-anchor="middle" class="small">included_chunks[]</text><text x="600" y="538" text-anchor="middle" class="small">tool_observations[]</text>
+  <path d="M235 365 C235 415 500 415 500 445" class="line"/><path d="M965 365 C965 415 700 415 700 445" class="line"/>
+
+  <rect x="430" y="630" width="340" height="82" class="box green"/><text x="600" y="663" text-anchor="middle" class="text">Answer LLM</text><text x="600" y="690" text-anchor="middle" class="small">同时使用，但分别说明知识库来源和工具事实</text>
+  <path d="M600 570 L600 630" class="line"/>
+
+  <path d="M430 205 L770 325" class="bad"/><path d="M770 205 L430 325" class="bad"/><text x="600" y="250" text-anchor="middle" class="label">禁止互相伪装</text>
+  <text x="600" y="738" text-anchor="middle" class="sub">MCP 返回值没有 chunk_id、RRF 或 rerank 语义；知识库 Chunk 也不是实时外部 Tool Result</text>
+</svg>

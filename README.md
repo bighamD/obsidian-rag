@@ -2,6 +2,10 @@
 
 本项目是一个本地运行的 RAG v0 学习项目，面向 Obsidian Markdown 和 PDF 文档。
 
+不知道各版本分别做什么时，先看：[版本能力矩阵](docs/version-capability-matrix.md)。
+
+当前主线版本 V3.12.3：[MCP Agent Integration Guide](docs/v3-12-3-mcp-agent-integration-guide.md)。
+
 学习路线和 v0-v4 计划见：[docs/rag-roadmap.md](docs/rag-roadmap.md)。
 
 源码职责、架构图和时序图见：[docs/obsidian-rag-code-guide.md](docs/obsidian-rag-code-guide.md)。
