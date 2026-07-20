@@ -101,6 +101,68 @@ core      不 import v3_12_4 或其他学习版本
 
 Core Agent 只有在构造时传入 `retrieval_scope_resolver`，才增加路由节点。因此 V3.12.3 和更早版本的 graph path 不会平白多一个节点。
 
+### RoutedMcpAgentService 组合了哪些版本
+
+`RoutedMcpAgentService` 的直接继承链只有三层：
+
+```text
+V3.12.4 RoutedMcpAgentService
+        ↓ 继承
+V3.12.3 McpAgentService
+        ↓ 继承
+V3.12.1 CoreAgentService
+```
+
+三层职责分别是：
+
+| 层级 | 类 | 主要职责 |
+| --- | --- | --- |
+| V3.12.4 | `RoutedMcpAgentService` | 作为完整组合入口，通过构造参数注入 `RetrievalScopeResolver`，让公共 Graph 增加 `resolve_retrieval_scope` 节点。 |
+| V3.12.3 | `McpAgentService` | 在公共 Agent 上增加 MCP Tool Catalog、Planner `tool` step、Tool 执行和 `ToolObservation`。 |
+| V3.12.1 | `CoreAgentService` | 提供 LangGraph、Memory、Planner、RAG、Evidence、Retry、Context、Answer、Memory Write、Trace 和节点耗时。 |
+
+V3.12.3 的 `McpAgentService` 主要重写以下 Core 节点：
+
+| 方法 | 扩展内容 |
+| --- | --- |
+| `_initial_state()` | 将本轮可用的 MCP `tool_catalog` 放入 `AgentState`。 |
+| `_planner_node()` | 把 MCP Tool Catalog 交给 Planner，使 Plan 可以生成通用 `tool` step。 |
+| `_execute_steps_node()` | 在 `search`、`synthesize` 等步骤之外，增加 MCP `tool` step 分发。 |
+| `_evidence_check_node()` | 先调用 Core Evidence Checker，再把 MCP Tool 执行失败纳入证据不足判断。 |
+| `_synthesize_answer_node()` | 先调用 Core Answer 节点，再补充 Tool Observation 相关 Trace。 |
+
+其中 `_planner_node()` 和 `_execute_steps_node()` 会改变输入或步骤分发，因此完整替换父类节点实现；`_evidence_check_node()` 和 `_synthesize_answer_node()` 使用 `super()` 保留 Core 行为后再追加 MCP 语义。
+
+`RoutedMcpAgentService` 当前看起来是空类，这是有意设计。Core 在构建 LangGraph 时注册的是 `self._planner_node`、`self._execute_steps_node` 等绑定方法；运行时 `self` 实际是 `RoutedMcpAgentService`，Python 动态分派会调用 V3.12.3 `McpAgentService` 重写后的节点。
+
+下面这些版本能力也参与 V3.12.4，但不属于 `AgentService` 继承链：
+
+```text
+V3.12.2 RerankingRetrievalService
+    → Hybrid/RRF 后执行 CrossEncoder Reranking
+
+V3.11.3 Collection Router 思路
+    → 已提升为 core/collections 下的 Registry、Resolver 和 Router
+
+V3.10.2 StreamingAgentRuntimeService
+    → 在 Agent 外层管理 Production Run 和 SSE
+
+V3.12.3 McpConnectionManager
+    → 管理持久 MCP Session 和远程 Tool Catalog
+```
+
+因此从能力组合角度，可以记为：
+
+```text
+V3.12.4 Agent
+= V3.12.1 公共 Agent Core
++ V3.12.3 MCP Agent 能力
++ V3.12.4 Collection Routing
++ V3.12.2 Reranking Retrieval
+```
+
+实际依赖组装位于 `obsidian_rag/v3_12_4/dependencies.py` 的 `build_agent()`：它同时传入 Retrieval、Resolver、统一 Tool Registry、Planner Tool Catalog、LLM Client 和 Memory Store。
+
 ## 多库候选漏斗
 
 ![多 Collection 候选与 Reranker 漏斗](assets/rag-v3-12-4-multi-collection-funnel.svg)
@@ -162,7 +224,7 @@ Context top_k
 
 ## Swagger 测试
 
-手动启动 `V3.12.4 API server: Unified Knowledge Routing` 后，Swagger 地址是 `http://127.0.0.1:8021/docs`。
+手动启动 `V3.12.4 API server: Unified Knowledge Routing` 后，Swagger 地址是 `http://127.0.0.1:8020/docs`。
 
 ### 自动选择多个知识库
 
