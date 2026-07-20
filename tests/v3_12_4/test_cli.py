@@ -12,6 +12,6 @@ class FakeResponse:
 def test_cli_reads_collection_runtime(monkeypatch, capsys):
     monkeypatch.setattr("obsidian_rag.cli.httpx.get", lambda *args, **kwargs: FakeResponse())
 
-    run_agent3124_collections(command="collections", api_base="http://127.0.0.1:8021")
+    run_agent3124_collections(command="collections", api_base="http://127.0.0.1:8020")
 
     assert "food_safety" in capsys.readouterr().out

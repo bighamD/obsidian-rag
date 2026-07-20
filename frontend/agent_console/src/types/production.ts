@@ -350,7 +350,7 @@ export interface ConsoleConfigResponse {
   default_memory_window: number;
 }
 
-export type ConsoleCompatibilityStatus = "checking" | "compatible" | "incompatible";
+export type ConsoleCompatibilityStatus = "checking" | "compatible" | "incompatible" | "unavailable";
 
 export interface McpServerRuntime {
   name: string;

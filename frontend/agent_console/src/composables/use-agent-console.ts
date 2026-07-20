@@ -1,6 +1,7 @@
 import { computed, onMounted, reactive, ref } from "vue";
 
 import {
+  ConsoleContractError,
   deleteConversation as deleteConversationRequest,
   fetchConversation,
   fetchCollectionRuntime,
@@ -104,10 +105,10 @@ export function useAgentConsole() {
       return true;
     } catch (error) {
       consoleConfig.value = null;
-      compatibilityStatus.value = "incompatible";
+      compatibilityStatus.value = error instanceof ConsoleContractError ? "incompatible" : "unavailable";
       compatibilityError.value = error instanceof Error
         ? error.message
-        : "无法验证后端 Console 契约，请确认已启动兼容 console.v1 的后端。";
+        : "无法读取后端 Console 配置，请确认 API 地址和服务状态。";
       return false;
     }
   }

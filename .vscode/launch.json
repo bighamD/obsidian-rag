@@ -343,7 +343,13 @@
 			"cwd": "${workspaceFolder}",
 			"python": "${workspaceFolder}/.venv/bin/python",
 			"envFile": "${workspaceFolder}/.env",
-			"args": ["obsidian_rag.v3_12_4.app:app", "--host", "127.0.0.1", "--port", "8021"],
+			"args": [
+				"obsidian_rag.v3_12_4.app:app",
+				"--host",
+				"127.0.0.1",
+				"--port",
+				"8020"
+			],
 			"subProcess": false,
 			"justMyCode": true
 		},
@@ -398,14 +404,18 @@
 			"cwd": "${workspaceFolder}",
 			"python": "${workspaceFolder}/.venv/bin/python",
 			"envFile": "${workspaceFolder}/.env",
-			"args": ["agent-v3-12-4", "route", "做鸡肉时怎样保证安全，同时给我一个简单做法？"],
+			"args": [
+				"agent-v3-12-4",
+				"route",
+				"做鸡肉时怎样保证安全，同时给我一个简单做法？"
+			],
 			"justMyCode": true
 		},
 		{
 			"name": "Agent Console UI: console.v1 (V3.12.4 Routing)",
 			"type": "node-terminal",
 			"request": "launch",
-			"command": "VITE_API_TARGET=http://127.0.0.1:8021 npm run dev",
+			"command": "VITE_API_TARGET=http://127.0.0.1:8020 npm run dev",
 			"cwd": "${workspaceFolder}/frontend/agent_console"
 		}
 	]

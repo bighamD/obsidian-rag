@@ -57,7 +57,7 @@ function updateOptions(value: AgentOptions) {
 
       <section class="chat-pane">
         <div v-if="consoleState.compatibilityStatus.value !== 'compatible'" class="compatibility-banner" :class="consoleState.compatibilityStatus.value">
-          <strong>{{ consoleState.compatibilityStatus.value === 'checking' ? '正在验证 Console 契约' : '后端与当前 Console 不兼容' }}</strong>
+          <strong>{{ consoleState.compatibilityStatus.value === 'checking' ? '正在验证 Console 契约' : consoleState.compatibilityStatus.value === 'incompatible' ? '后端与当前 Console 不兼容' : '无法连接后端 Console' }}</strong>
           <span>{{ consoleState.compatibilityStatus.value === 'checking' ? '正在读取 /console/config…' : consoleState.compatibilityError.value }}</span>
         </div>
         <div class="conversation-bar">
