@@ -19,6 +19,8 @@ class ConsoleFeatures(BaseModel):
     collections: bool = Field(description="Agent 请求是否支持指定知识库 collection。")
     mcp_tools: bool = Field(default=False, description="是否支持 MCP Runtime、Tool Catalog 和 Tool Observation 展示。")
     collection_routing: bool = Field(default=False, description="是否支持自动知识库范围路由和多 Collection 检索展示。")
+    permission_policy: bool = Field(default=False, description="是否返回逐步骤 allow/confirm/deny 权限报告。")
+    skills: bool = Field(default=False, description="是否支持 Core Skill Router、Skill 选择与加载摘要展示。")
 
 
 class ConsoleEndpoints(BaseModel):
@@ -31,6 +33,7 @@ class ConsoleEndpoints(BaseModel):
     runs: str = Field(description="读取近期 Run 的路径。")
     mcp_runtime: str | None = Field(default=None, description="MCP Server 连接与 Tool Catalog 状态路径。")
     collection_runtime: str | None = Field(default=None, description="Knowledge Base Registry 状态路径。")
+    skills_runtime: str | None = Field(default=None, description="Core Skill Registry 状态路径。")
 
 
 class ConsoleConfigResponse(BaseModel):

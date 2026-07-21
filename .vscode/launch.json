@@ -417,6 +417,88 @@
 			"request": "launch",
 			"command": "VITE_API_TARGET=http://127.0.0.1:8020 npm run dev",
 			"cwd": "${workspaceFolder}/frontend/agent_console"
+		},
+		{
+			"name": "V3.13 API server: Permission Policy",
+			"type": "debugpy",
+			"request": "launch",
+			"module": "uvicorn",
+			"console": "integratedTerminal",
+			"cwd": "${workspaceFolder}",
+			"python": "${workspaceFolder}/.venv/bin/python",
+			"envFile": "${workspaceFolder}/.env",
+			"args": ["obsidian_rag.v3_13.app:app", "--host", "127.0.0.1", "--port", "8022"],
+			"subProcess": false,
+			"justMyCode": true
+		},
+		{
+			"name": "V3.13 CLI: allow knowledge search",
+			"type": "debugpy",
+			"request": "launch",
+			"module": "obsidian_rag.cli",
+			"console": "integratedTerminal",
+			"cwd": "${workspaceFolder}",
+			"python": "${workspaceFolder}/.venv/bin/python",
+			"envFile": "${workspaceFolder}/.env",
+			"args": [
+				"agent-v3-13",
+				"ask",
+				"我想做香煎鸡胸肉，请给出做法并说明食品安全要求。",
+				"--conversation-id",
+				"conv_v313_allow",
+				"--principal-profile",
+				"standard",
+				"--max-collections",
+				"2"
+			],
+			"justMyCode": true
+		},
+		{
+			"name": "V3.13 CLI: deny restricted principal",
+			"type": "debugpy",
+			"request": "launch",
+			"module": "obsidian_rag.cli",
+			"console": "integratedTerminal",
+			"cwd": "${workspaceFolder}",
+			"python": "${workspaceFolder}/.venv/bin/python",
+			"envFile": "${workspaceFolder}/.env",
+			"args": [
+				"agent-v3-13",
+				"ask",
+				"番茄炒鸡蛋怎么做？",
+				"--conversation-id",
+				"conv_v313_deny",
+				"--principal-profile",
+				"restricted"
+			],
+			"justMyCode": true
+		},
+		{
+			"name": "V3.13 CLI: confirm simulated write",
+			"type": "debugpy",
+			"request": "launch",
+			"module": "obsidian_rag.cli",
+			"console": "integratedTerminal",
+			"cwd": "${workspaceFolder}",
+			"python": "${workspaceFolder}/.venv/bin/python",
+			"envFile": "${workspaceFolder}/.env",
+			"args": [
+				"agent-v3-13",
+				"policy",
+				"local::simulate_workspace_write",
+				"--arguments",
+				"{\"path\":\"notes/demo.md\",\"content\":\"hello\"}",
+				"--principal-profile",
+				"writer"
+			],
+			"justMyCode": true
+		},
+		{
+			"name": "Agent Console UI: console.v1 (V3.13 Permission)",
+			"type": "node-terminal",
+			"request": "launch",
+			"command": "VITE_API_TARGET=http://127.0.0.1:8022 npm run dev",
+			"cwd": "${workspaceFolder}/frontend/agent_console"
 		}
 	]
 }
