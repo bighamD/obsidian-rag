@@ -30,7 +30,9 @@ V3.12.3     MCP Agent Integration（已完成）
    ↓
 V3.12.4     Unified Knowledge Routing（已完成）
    ↓
-V3.13-V3.15 Permission、Sandbox、Recovery/HITL（计划）
+V3.13         Permission Policy（已完成）
+   ↓
+V3.14-V3.15  Sandbox、Recovery/HITL（计划）
 ```
 
 ## 状态说明
@@ -98,7 +100,7 @@ V3.13-V3.15 Permission、Sandbox、Recovery/HITL（计划）
 
 | 版本 | 主题 | 核心职责与新增能力 | 明确边界 | 状态 |
 | --- | --- | --- | --- | --- |
-| V3.13 | Permission Policy | Tool allowlist、Schema 校验、风险等级、scope、`allow/confirm/deny`、审计 | 不直接执行宿主机任意 Shell | 计划中 |
+| V3.13 | Permission Policy + Core Skill Integration | Principal、Tool allowlist、Schema 校验、风险等级、Collection scope、`allow/confirm/deny`；并将 V3.11 Skill Registry/Router/懒加载提升到 Core AgentState | `confirm` 暂不 interrupt/resume；Skill 不执行 scripts；不执行宿主机任意 Shell 或真实写入 | [代码](../obsidian_rag/v3_13) · [公共 Policy](../obsidian_rag/core/permissions) · [Core Skills](../obsidian_rag/core/skills) · [Guide](v3-13-permission-policy-guide.md) |
 | V3.14 | Sandbox Execution | 独立 Workspace、文件路径限制、命令超时、输出/资源限制、Artifacts | 所有高风险调用必须先经过 Policy | 计划中 |
 | V3.15 | Recovery & HITL | 持久 Checkpoint、interrupt/resume、幂等、失败恢复和人工介入 | 不把 Memory、RunStore 和 Checkpoint 混为一类状态 | 计划中 |
 
@@ -122,13 +124,13 @@ V3.13-V3.15 Permission、Sandbox、Recovery/HITL（计划）
 | Run Lifecycle / Metrics | V3.10 | V3.10.2 |
 | Agent Console | V3.10.1 | V3.10.2、V3.12.1 |
 | SSE / Answer Streaming | V3.10.2 | V3.12.1 |
-| Skill System | V3.11 | V3.12.3 |
+| Skill System | V3.11；V3.13 提升到 Core 主线 | V3.13 |
 | Structured Ingestion / Parent-Child | V3.11.1 | V3.11.2、V3.12.2 |
 | Multi-Collection Routing | V3.11.3 | V3.12.4 完整 Agent 集成 |
 | MCP Protocol | V3.12 | V3.12.3 |
 | Public Agent Core | V3.12.1 | V3.10、V3.11 |
 | CrossEncoder Reranking | V3.12.2 | V1、V3.11.1 |
-| Permission / Approval | V3.13 | V3.15 |
+| Permission / Approval | V3.13 | V3.15 完整 interrupt/resume |
 | Sandbox / Artifacts | V3.14 | V3.13 |
 | Checkpoint / HITL | V3.15 | V3.10.3 |
 
@@ -149,6 +151,7 @@ V3.13-V3.15 Permission、Sandbox、Recovery/HITL（计划）
 | V3.12.2 Reranker vs RRF | RRF 按排名融合召回；Reranker 对 query-document 重新评分 |
 | V3.11.3 vs V3.12.4 | V3.11.3 独立学习 Collection Router；V3.12.4 把它接入 Planner、Reranker、MCP、Context 和 Console |
 | V3.13 Permission vs V3.14 Sandbox | Permission 决定能否执行；Sandbox 决定在哪里、以什么资源执行 |
+| V3.13 confirm vs V3.15 HITL | V3.13 产生 confirm 并阻止执行；V3.15 才保存 Checkpoint、等待人工决定并 resume |
 
 ## 目录阅读建议
 

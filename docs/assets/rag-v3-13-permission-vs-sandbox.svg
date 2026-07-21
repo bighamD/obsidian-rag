@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="680" viewBox="0 0 1200 680" role="img" aria-labelledby="title desc">
+  <title id="title">Permission Policy 与 Sandbox 的职责边界</title>
+  <desc id="desc">说明 V3.13 决定能否执行，V3.14 决定在哪里以及使用什么资源执行。</desc>
+  <defs>
+    <linearGradient id="bg3" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#071a32"/><stop offset="1" stop-color="#14334f"/></linearGradient>
+    <filter id="s3"><feDropShadow dx="0" dy="8" stdDeviation="10" flood-color="#000" flood-opacity=".34"/></filter>
+    <marker id="a3" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#75bfff"/></marker>
+  </defs>
+  <rect width="1200" height="680" fill="url(#bg3)"/>
+  <text x="64" y="66" fill="#f5f8fc" font-family="system-ui,sans-serif" font-size="30" font-weight="700">Permission 与 Sandbox 不是同一个问题</text>
+  <text x="64" y="98" fill="#a6bbcf" font-family="system-ui,sans-serif" font-size="15">先决定“能不能做”，再决定“在哪里做、最多能用多少资源”</text>
+
+  <g font-family="system-ui,sans-serif" filter="url(#s3)">
+    <rect x="70" y="162" width="285" height="330" rx="12" fill="#3d315e" stroke="#ad8cff"/>
+    <text x="96" y="202" fill="#c7afff" font-size="14" font-weight="700">V3.13</text>
+    <text x="96" y="240" fill="#fff" font-size="25" font-weight="700">Permission Policy</text>
+    <text x="96" y="274" fill="#d6cae9" font-size="15">决定：能否执行</text>
+    <line x1="96" y1="299" x2="329" y2="299" stroke="#67568a"/>
+    <text x="96" y="337" fill="#e0d8ef" font-size="13">• Tool allowlist</text>
+    <text x="96" y="369" fill="#e0d8ef" font-size="13">• required permission</text>
+    <text x="96" y="401" fill="#e0d8ef" font-size="13">• Collection / path scope</text>
+    <text x="96" y="433" fill="#e0d8ef" font-size="13">• JSON Schema</text>
+    <text x="96" y="465" fill="#e0d8ef" font-size="13">• allow / confirm / deny</text>
+
+    <rect x="458" y="162" width="285" height="330" rx="12" fill="#133f51" stroke="#42c9ad"/>
+    <text x="484" y="202" fill="#66dec6" font-size="14" font-weight="700">V3.14</text>
+    <text x="484" y="240" fill="#fff" font-size="25" font-weight="700">Sandbox</text>
+    <text x="484" y="274" fill="#bed8d8" font-size="15">决定：在哪里执行</text>
+    <line x1="484" y1="299" x2="717" y2="299" stroke="#2d6874"/>
+    <text x="484" y="337" fill="#d8e9e9" font-size="13">• 隔离 Workspace</text>
+    <text x="484" y="369" fill="#d8e9e9" font-size="13">• CPU / Memory 限制</text>
+    <text x="484" y="401" fill="#d8e9e9" font-size="13">• 命令超时</text>
+    <text x="484" y="433" fill="#d8e9e9" font-size="13">• 网络与环境变量白名单</text>
+    <text x="484" y="465" fill="#d8e9e9" font-size="13">• Artifacts</text>
+
+    <rect x="846" y="162" width="285" height="330" rx="12" fill="#173b5c" stroke="#5caef0"/>
+    <text x="872" y="202" fill="#82c7ff" font-size="14" font-weight="700">V3.15</text>
+    <text x="872" y="240" fill="#fff" font-size="25" font-weight="700">HITL / Recovery</text>
+    <text x="872" y="274" fill="#bfd1e1" font-size="15">决定：如何继续执行</text>
+    <line x1="872" y1="299" x2="1105" y2="299" stroke="#35617f"/>
+    <text x="872" y="337" fill="#d9e5ef" font-size="13">• interrupt</text>
+    <text x="872" y="369" fill="#d9e5ef" font-size="13">• 人工批准 / 拒绝</text>
+    <text x="872" y="401" fill="#d9e5ef" font-size="13">• resume</text>
+    <text x="872" y="433" fill="#d9e5ef" font-size="13">• Checkpoint</text>
+    <text x="872" y="465" fill="#d9e5ef" font-size="13">• 幂等与失败恢复</text>
+  </g>
+
+  <path d="M355 327 H448" stroke="#75bfff" stroke-width="3" fill="none" marker-end="url(#a3)"/>
+  <path d="M743 327 H836" stroke="#75bfff" stroke-width="3" fill="none" marker-end="url(#a3)"/>
+
+  <rect x="70" y="552" width="1061" height="72" rx="9" fill="#0d2740" stroke="#315b7b"/>
+  <text x="96" y="581" fill="#ffd36f" font-family="system-ui,sans-serif" font-size="13" font-weight="700">V3.13 边界</text>
+  <text x="96" y="607" fill="#d9e5ef" font-family="system-ui,sans-serif" font-size="14">confirm 会返回结构化阻止结果，但本版不暂停 Graph、不执行写入，也不提供宿主机 Shell。</text>
+</svg>

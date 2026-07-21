@@ -8,7 +8,7 @@
 
 - 默认用中文回答。
 - 命令、文件名、配置项、API 名称保留英文原文。
-- 解释学习概念时优先结合本仓库已有版本：`v0`、`v1`、`v2`、`v3`、`v3_1`、`v3_2`、`v3_3`、`v3_4`、`v3_5`、`v3_6`、`v3_7`、`v3_8`、`v3_8_1`、`v3_9`、`v3_10`、`v3_10_1`、`v3_10_2`、`v3_10_3`、`v3_11`、`v3_12`。
+- 解释学习概念时优先结合本仓库已有版本：`v0`、`v1`、`v2`、`v3`、`v3_1`、`v3_2`、`v3_3`、`v3_4`、`v3_5`、`v3_6`、`v3_7`、`v3_8`、`v3_8_1`、`v3_9`、`v3_10`、`v3_10_1`、`v3_10_2`、`v3_10_3`、`v3_11`、`v3_12`、`v3_13`。
 
 ## 本地端口约束
 
@@ -101,7 +101,7 @@ docs/assets/rag-v3-4-planner-flow.svg
 已完成到：
 
 ```text
-V3.12.4 Unified Knowledge Routing
+V3.13 Permission Policy
 ```
 
 V3.12 在 V3.11 Skill System 之后增加标准化外部工具协议：
@@ -172,10 +172,27 @@ V3.12.4 仍然不做：
 - 不为每个 search subquery 重复路由，当前每个 Agent Run 只解析一次全局知识库范围。
 - 不实现 Collection ACL、多租户授权、Permission Policy、写入 Tool 或 Sandbox。
 
+V3.13 已完成：
+
+- 在 V3.12.4 完整链路中增加可选 `authorize_steps` Core Graph Node。
+- 提供统一 Principal、Tool allowlist、required permission、Collection scope、JSON Schema 和风险等级检查。
+- Local `search_notes`、MCP Tool、retry search 与显式 MCP call 统一经过 `allow/confirm/deny` Policy。
+- `confirm` 和 `deny` 返回结构化 StepResult，不调用 Tool，也不让 Agent 500。
+- PermissionReport 进入 Context、Trace、Audit、JSON/SSE 和共享 Agent Console。
+- 将 V3.11 Skill Registry、LLM Skill Router 和按需加载提升到 `obsidian_rag/core/skills/`，并在 Planner 前接入同一个 Core AgentState。
+- 共享 Console 支持 Skill Router 开关、强制 Skill、候选列表、选择结果和加载摘要。
+- 提供独立 `obsidian_rag/v3_13/`、FastAPI、CLI、测试代码、Guide、SVG 和断点配置。
+
+V3.13 仍然不做：
+
+- `confirm` 暂不执行 LangGraph interrupt/resume，真正人工审批恢复进入 V3.13.1 或 V3.15。
+- 不开放真实文件写入、宿主机 Shell、Sandbox、多租户认证或持久化审计数据库。
+- 不执行 Skill `scripts/` 或 `assets/`，Skill 仍然只是 Planner 方法上下文。
+
 V3.10.3 和 V3.11.1-V3.11.3 是已完成的扩展学习版本，不改变当前主线。下一阶段建议：
 
 ```text
-V3.13 Permission Policy
+V3.14 Sandbox Execution
 ```
 
 ## CodeGraph
