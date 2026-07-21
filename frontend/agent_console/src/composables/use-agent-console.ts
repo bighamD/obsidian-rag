@@ -10,6 +10,7 @@ import {
   fetchHealth,
   fetchMcpRuntime,
   fetchRuns,
+  fetchSkillRuntime,
   normalizeProductionResponse,
   streamAgent,
 } from "@/api/production-client";
@@ -29,6 +30,7 @@ import type {
   McpRuntimeResponse,
   ProductionAskResponse,
   RunRecord,
+  SkillRuntimeResponse,
 } from "@/types/production";
 
 const MAX_SESSIONS = 50;
@@ -40,6 +42,9 @@ const defaultOptions: AgentOptions = {
   collectionRouterEnabled: true,
   maxCollections: 2,
   mcpEnabled: true,
+  permissionProfile: "standard",
+  skillRouterEnabled: true,
+  skillName: "",
   memoryWindow: 3,
   memoryCompactionEnabled: true,
   memoryCompactionTriggerTurns: 4,
@@ -67,6 +72,7 @@ export function useAgentConsole() {
   const requestError = ref("");
   const mcpRuntime = ref<McpRuntimeResponse | null>(null);
   const collectionRuntime = ref<CollectionRuntimeResponse | null>(null);
+  const skillRuntime = ref<SkillRuntimeResponse | null>(null);
   const liveToolEvents = ref<McpLiveToolEvent[]>([]);
   const deletingConversationId = ref<string | null>(null);
   const options = reactive<AgentOptions>({ ...defaultOptions });
@@ -93,7 +99,13 @@ export function useAgentConsole() {
       memorySnapshot.value = null;
       return;
     }
-    await Promise.all([refreshHealth(), refreshRuns(), refreshMcpRuntime(), refreshCollectionRuntime()]);
+    await Promise.all([
+      refreshHealth(),
+      refreshRuns(),
+      refreshMcpRuntime(),
+      refreshCollectionRuntime(),
+      refreshSkillRuntime(),
+    ]);
     await refreshConversationList({ initial, hydrateActive: true });
   }
 
@@ -157,6 +169,21 @@ export function useAgentConsole() {
       collectionRuntime.value = await fetchCollectionRuntime(path);
     } catch {
       collectionRuntime.value = null;
+    }
+  }
+
+  async function refreshSkillRuntime() {
+    const path = consoleConfig.value?.features.skills
+      ? consoleConfig.value.endpoints.skills_runtime
+      : null;
+    if (!path) {
+      skillRuntime.value = null;
+      return;
+    }
+    try {
+      skillRuntime.value = await fetchSkillRuntime(path);
+    } catch {
+      skillRuntime.value = null;
     }
   }
 
@@ -313,6 +340,7 @@ export function useAgentConsole() {
         refreshRuns(),
         refreshMcpRuntime(),
         refreshCollectionRuntime(),
+        refreshSkillRuntime(),
         assistant?.memory_write.saved ? refreshConversationList() : Promise.resolve(false),
       ]);
     } catch (error) {
@@ -393,6 +421,7 @@ export function useAgentConsole() {
     refreshWorkspace,
     requestError,
     response,
+    skillRuntime,
     selectConversation,
     sessions,
     submit,
@@ -476,8 +505,10 @@ export function formatProgress(progress: AgentProgress): string {
   }
   const labels: Record<AgentProgress["phase"], { running: string; completed: string }> = {
     memory: { running: "正在读取会话记忆…", completed: "会话记忆已就绪…" },
+    skill: { running: "正在选择任务方法…", completed: "任务方法已确定…" },
     planning: { running: "正在生成执行计划…", completed: "执行计划已生成…" },
     routing: { running: "正在选择知识库范围…", completed: "知识库范围已确定…" },
+    authorization: { running: "正在检查步骤权限…", completed: "步骤权限已确定…" },
     evidence: { running: "正在检查证据完整性…", completed: "证据检查已完成…" },
     context: { running: "正在整理回答上下文…", completed: "回答上下文已就绪…" },
     answer: { running: "正在生成回答…", completed: "回答已生成，正在收尾…" },
@@ -528,6 +559,9 @@ export function buildAgentAskPayload(
     collection_router_enabled: options.collectionRouterEnabled,
     max_collections: options.maxCollections,
     mcp_enabled: options.mcpEnabled,
+    principal: principalForProfile(options.permissionProfile),
+    skill_router_enabled: options.skillRouterEnabled,
+    skill_name: options.skillName.trim() || null,
     memory_window: options.memoryWindow,
     memory_compaction_enabled: options.memoryCompactionEnabled,
     memory_compaction_trigger_turns: options.memoryCompactionTriggerTurns,
@@ -539,6 +573,34 @@ export function buildAgentAskPayload(
     max_retries: options.maxRetries,
     context_max_chunks: options.contextMaxChunks,
     context_token_budget: options.contextTokenBudget,
+  };
+}
+
+function principalForProfile(profile: AgentOptions["permissionProfile"]): AgentAskPayload["principal"] {
+  if (profile === "knowledge_only") {
+    return {
+      subject_id: "console_knowledge_only",
+      roles: ["user"],
+      permissions: ["knowledge.read"],
+      tool_allowlist: ["search_notes"],
+      allowed_collections: ["*"],
+    };
+  }
+  if (profile === "restricted") {
+    return {
+      subject_id: "console_restricted",
+      roles: ["restricted"],
+      permissions: [],
+      tool_allowlist: [],
+      allowed_collections: [],
+    };
+  }
+  return {
+    subject_id: "console_standard",
+    roles: ["user"],
+    permissions: ["knowledge.read", "tool.read"],
+    tool_allowlist: ["search_notes", "demo::*"],
+    allowed_collections: ["*"],
   };
 }
 

@@ -9,6 +9,7 @@ import type {
   CollectionRuntimeResponse,
   ProductionAskResponse,
   RunRecord,
+  SkillRuntimeResponse,
 } from "@/types/production";
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? "/api";
@@ -163,6 +164,10 @@ export async function fetchMcpRuntime(path = "/mcp/runtime"): Promise<McpRuntime
 
 export async function fetchCollectionRuntime(path = "/collections/runtime"): Promise<CollectionRuntimeResponse> {
   return request<CollectionRuntimeResponse>(path);
+}
+
+export async function fetchSkillRuntime(path = "/skills/runtime"): Promise<SkillRuntimeResponse> {
+  return request<SkillRuntimeResponse>(path);
 }
 
 export async function fetchConversation(

@@ -17,6 +17,8 @@ import { computed, ref } from "vue";
 import RetrievedChunkList from "@/components/RetrievedChunkList.vue";
 import CollectionRoutingPanel from "@/components/CollectionRoutingPanel.vue";
 import McpRuntimePanel from "@/components/McpRuntimePanel.vue";
+import PermissionPanel from "@/components/PermissionPanel.vue";
+import SkillPanel from "@/components/SkillPanel.vue";
 import type {
   McpLiveToolEvent,
   CollectionRuntimeResponse,
@@ -24,6 +26,7 @@ import type {
   MemorySnapshot,
   ProductionAskResponse,
   StepResult,
+  SkillRuntimeResponse,
 } from "@/types/production";
 import { formatDateTime, formatDuration, shortId, statusLabel } from "@/utils/format";
 
@@ -34,9 +37,10 @@ const props = defineProps<{
   mcpRuntime: McpRuntimeResponse | null;
   liveToolEvents: McpLiveToolEvent[];
   response: ProductionAskResponse | null;
+  skillRuntime: SkillRuntimeResponse | null;
 }>();
 
-const activeTab = ref<"overview" | "plan" | "collections" | "evidence" | "context" | "mcp">("overview");
+const activeTab = ref<"overview" | "skill" | "plan" | "collections" | "permission" | "evidence" | "context" | "mcp">("overview");
 
 const agent = computed(() => props.response?.agent_response ?? null);
 const run = computed(() => props.response?.run ?? null);
@@ -59,6 +63,8 @@ const showMcpTab = computed(
 const showCollectionsTab = computed(
   () => Boolean(props.collectionRuntime || agent.value?.retrieval_scope),
 );
+const showPermissionTab = computed(() => Boolean(agent.value?.permission_report));
+const showSkillTab = computed(() => Boolean(props.skillRuntime || agent.value?.skill_selection));
 const timeline = computed(() => {
   if (!run.value) {
     return [];
@@ -107,8 +113,10 @@ function toolCalls(toolName: string): StepResult[] {
 
     <div class="inspector-tabs" role="tablist" aria-label="运行详情">
       <button :class="{ active: activeTab === 'overview' }" role="tab" @click="activeTab = 'overview'">概览</button>
+      <button v-if="showSkillTab" :class="{ active: activeTab === 'skill' }" role="tab" @click="activeTab = 'skill'">Skill</button>
       <button :class="{ active: activeTab === 'plan' }" role="tab" @click="activeTab = 'plan'">计划与工具</button>
       <button v-if="showCollectionsTab" :class="{ active: activeTab === 'collections' }" role="tab" @click="activeTab = 'collections'">知识库</button>
+      <button v-if="showPermissionTab" :class="{ active: activeTab === 'permission' }" role="tab" @click="activeTab = 'permission'">权限</button>
       <button :class="{ active: activeTab === 'evidence' }" role="tab" @click="activeTab = 'evidence'">证据</button>
       <button :class="{ active: activeTab === 'context' }" role="tab" @click="activeTab = 'context'">上下文</button>
       <button v-if="showMcpTab" :class="{ active: activeTab === 'mcp' }" role="tab" @click="activeTab = 'mcp'">MCP</button>
@@ -163,6 +171,14 @@ function toolCalls(toolName: string): StepResult[] {
         </div>
       </section>
 
+      <section v-else-if="activeTab === 'skill'" class="inspector-section">
+        <SkillPanel
+          :runtime="skillRuntime"
+          :selection="agent?.skill_selection ?? null"
+          :loaded-skill="agent?.loaded_skill ?? null"
+        />
+      </section>
+
       <section v-else-if="activeTab === 'plan'" class="inspector-section">
         <div v-if="agent" class="plan-goal"><Route :size="17" /><span>{{ agent.plan.goal }}</span></div>
         <ol v-if="agent" class="plan-list">
@@ -194,6 +210,10 @@ function toolCalls(toolName: string): StepResult[] {
 
       <section v-else-if="activeTab === 'collections'" class="inspector-section">
         <CollectionRoutingPanel :runtime="collectionRuntime" :scope="agent?.retrieval_scope ?? null" />
+      </section>
+
+      <section v-else-if="activeTab === 'permission'" class="inspector-section">
+        <PermissionPanel :report="agent?.permission_report ?? null" />
       </section>
 
       <section v-else-if="activeTab === 'evidence'" class="inspector-section">

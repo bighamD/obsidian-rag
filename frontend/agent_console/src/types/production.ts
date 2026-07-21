@@ -1,9 +1,12 @@
 export type SearchMode = "dense" | "keyword" | "hybrid";
 export type RunStatus = "queued" | "running" | "succeeded" | "failed";
+export type PermissionProfile = "standard" | "knowledge_only" | "restricted";
 export type AgentProgressPhase =
   | "memory"
+  | "skill"
   | "planning"
   | "routing"
+  | "authorization"
   | "retrieval"
   | "evidence"
   | "context"
@@ -23,6 +26,9 @@ export interface AgentOptions {
   collectionRouterEnabled: boolean;
   maxCollections: number;
   mcpEnabled: boolean;
+  permissionProfile: PermissionProfile;
+  skillRouterEnabled: boolean;
+  skillName: string;
   memoryWindow: number;
   memoryCompactionEnabled: boolean;
   memoryCompactionTriggerTurns: number;
@@ -42,6 +48,9 @@ export interface AgentAskPayload {
   collection_router_enabled: boolean;
   max_collections: number;
   mcp_enabled: boolean;
+  principal: PermissionPrincipal;
+  skill_router_enabled: boolean;
+  skill_name: string | null;
   memory_window: number;
   memory_compaction_enabled: boolean;
   memory_compaction_trigger_turns: number;
@@ -207,6 +216,40 @@ export interface PlannerToolDefinition {
   read_only: boolean | null;
 }
 
+export interface PermissionPrincipal {
+  subject_id: string;
+  roles: string[];
+  permissions: string[];
+  tool_allowlist: string[];
+  allowed_collections: string[];
+}
+
+export interface PermissionDecision {
+  step_id: string;
+  kind: string;
+  tool_name: string | null;
+  source: string;
+  risk_level: "safe" | "confirm" | "restricted";
+  decision: "allow" | "confirm" | "deny";
+  reason: string;
+  required_permissions: string[];
+  missing_permissions: string[];
+  collections: string[];
+  denied_collections: string[];
+  argument_names: string[];
+  validation_errors: string[];
+}
+
+export interface PermissionReport {
+  principal: PermissionPrincipal;
+  decisions: PermissionDecision[];
+  allow_count: number;
+  confirm_count: number;
+  deny_count: number;
+  all_allowed: boolean;
+  summary: string;
+}
+
 export interface AgentTraceStep {
   node_name: string;
   step_type: string;
@@ -248,6 +291,9 @@ export interface AgentResponse {
   plan: { goal: string; steps: PlanStep[] };
   tool_catalog: PlannerToolDefinition[];
   retrieval_scope: RetrievalScope | null;
+  permission_report: PermissionReport | null;
+  skill_selection: SkillSelection | null;
+  loaded_skill: SkillLoadedSummary | null;
   step_results: StepResult[];
   retry_step_results: StepResult[];
   evidence_check: {
@@ -295,6 +341,33 @@ export interface SkillAgentResult {
   trace: Record<string, unknown>[];
 }
 
+export interface SkillManifest {
+  name: string;
+  description: string;
+  triggers: string[];
+  version: string;
+  entry_file: string;
+  path: string;
+}
+
+export interface SkillSelection {
+  status: "selected" | "forced" | "no_skill" | "disabled" | "invalid_selection" | "router_error";
+  selected_skill: string | null;
+  reason: string;
+  confidence: number | null;
+  candidate_names: string[];
+}
+
+export interface SkillLoadedSummary extends SkillManifest {
+  estimated_tokens: number;
+}
+
+export interface SkillRuntimeResponse {
+  root: string;
+  skills: SkillManifest[];
+  errors: string[];
+}
+
 export interface ProductionAskResponse {
   run: RunRecord;
   agent_response: AgentResponse | null;
@@ -337,6 +410,8 @@ export interface ConsoleConfigResponse {
     collections: boolean;
     mcp_tools?: boolean;
     collection_routing?: boolean;
+    permission_policy?: boolean;
+    skills?: boolean;
   };
   endpoints: {
     ask: string;
@@ -346,6 +421,7 @@ export interface ConsoleConfigResponse {
     runs: string;
     mcp_runtime?: string | null;
     collection_runtime?: string | null;
+    skills_runtime?: string | null;
   };
   default_memory_window: number;
 }

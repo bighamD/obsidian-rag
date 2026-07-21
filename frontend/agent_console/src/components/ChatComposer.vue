@@ -9,6 +9,9 @@ const props = defineProps<{
   collectionRoutingAvailable: boolean;
   isRunning: boolean;
   mcpAvailable: boolean;
+  permissionAvailable: boolean;
+  skillAvailable: boolean;
+  skillNames: string[];
   modelValue: string;
   options: AgentOptions;
 }>();
@@ -85,6 +88,28 @@ function submitOnEnter(event: KeyboardEvent) {
         <label class="toggle-setting"><span>Memory Compaction</span><input :checked="options.memoryCompactionEnabled" :disabled="disabled" type="checkbox" @change="updateOption('memoryCompactionEnabled', ($event.target as HTMLInputElement).checked)" /></label>
         <label v-if="collectionRoutingAvailable" class="toggle-setting"><span>Collection Router</span><input :checked="options.collectionRouterEnabled" :disabled="disabled || Boolean(options.collection.trim())" type="checkbox" @change="updateOption('collectionRouterEnabled', ($event.target as HTMLInputElement).checked)" /></label>
         <label v-if="mcpAvailable" class="toggle-setting"><span>MCP Tools</span><input :checked="options.mcpEnabled" :disabled="disabled" type="checkbox" @change="updateOption('mcpEnabled', ($event.target as HTMLInputElement).checked)" /></label>
+        <label v-if="permissionAvailable">
+          <span>权限预设</span>
+          <select :value="options.permissionProfile" :disabled="disabled" @change="updateOption('permissionProfile', ($event.target as HTMLSelectElement).value as AgentOptions['permissionProfile'])">
+            <option value="standard">标准只读</option>
+            <option value="knowledge_only">仅知识库</option>
+            <option value="restricted">受限主体</option>
+          </select>
+        </label>
+        <label v-if="skillAvailable">
+          <span>强制 Skill</span>
+          <input
+            :value="options.skillName"
+            list="skill-options"
+            placeholder="留空使用自动路由"
+            :disabled="disabled"
+            @input="updateOption('skillName', ($event.target as HTMLInputElement).value)"
+          />
+          <datalist id="skill-options">
+            <option v-for="name in skillNames" :key="name" :value="name" />
+          </datalist>
+        </label>
+        <label v-if="skillAvailable" class="toggle-setting"><span>Skill Router</span><input :checked="options.skillRouterEnabled" :disabled="disabled" type="checkbox" @change="updateOption('skillRouterEnabled', ($event.target as HTMLInputElement).checked)" /></label>
       </div>
       <button class="drawer-collapse" type="button" @click="settingsOpen = false"><ChevronDown :size="15" /> 收起参数</button>
     </div>

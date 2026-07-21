@@ -70,6 +70,9 @@ function updateOptions(value: AgentOptions) {
           :disabled="!consoleState.isConsoleCompatible.value"
           :collection-routing-available="consoleState.consoleConfig.value?.features.collection_routing ?? false"
           :mcp-available="consoleState.consoleConfig.value?.features.mcp_tools ?? false"
+          :permission-available="consoleState.consoleConfig.value?.features.permission_policy ?? false"
+          :skill-available="consoleState.consoleConfig.value?.features.skills ?? false"
+          :skill-names="consoleState.skillRuntime.value?.skills.map((skill) => skill.name) ?? []"
           :options="consoleState.options"
           :is-running="consoleState.isRunning.value"
           @submit="submitQuestion"
@@ -85,6 +88,7 @@ function updateOptions(value: AgentOptions) {
         :mcp-runtime="consoleState.mcpRuntime.value"
         :live-tool-events="consoleState.liveToolEvents.value"
         :response="consoleState.response.value"
+        :skill-runtime="consoleState.skillRuntime.value"
       />
     </div>
 
@@ -98,6 +102,7 @@ function updateOptions(value: AgentOptions) {
         :mcp-runtime="consoleState.mcpRuntime.value"
         :live-tool-events="consoleState.liveToolEvents.value"
         :response="consoleState.response.value"
+        :skill-runtime="consoleState.skillRuntime.value"
       />
     </div>
   </div>
