@@ -11,6 +11,7 @@ from obsidian_rag.core.agent.service import (
     _emit_agent_event,
     _empty_memory_snapshot,
     _non_search_step_result,
+    _permission_blocked_step_result,
     _rerank_metadata_from_step_result,
     _search_results_from_step_result,
 )
@@ -48,6 +49,7 @@ class McpAgentService(CoreAgentService):
             request.question,
             state.get("memory_snapshot")
             or _empty_memory_snapshot(state["conversation_id"], request.memory_window),
+            state.get("skill_context"),
         )
         planner_response = self._planner_service().plan(
             PlanRequest(
@@ -82,7 +84,10 @@ class McpAgentService(CoreAgentService):
         search_results = []
 
         for step in state["plan"].steps:
-            if step.kind == "search":
+            blocked = _permission_blocked_step_result(step, state.get("permission_report"))
+            if blocked is not None:
+                result = blocked
+            elif step.kind == "search":
                 result = self._execute_search_step(step, request, state.get("retrieval_scope"))
                 search_results.extend(_search_results_from_step_result(result))
             elif step.kind == "tool":

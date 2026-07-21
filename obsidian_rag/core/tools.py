@@ -30,6 +30,9 @@ class ToolDefinition:
     input_schema: dict[str, Any] = field(default_factory=dict)
     read_only: bool | None = None
     source: str = "local"
+    risk_level: str | None = None
+    required_permission: str | None = None
+    scope: str | None = None
 
 
 class ToolRegistry:
@@ -155,6 +158,9 @@ def build_search_tool_registry(retrieval_service) -> ToolRegistry:
                 "required": ["query", "top_k", "mode"],
             },
             read_only=True,
+            risk_level="safe",
+            required_permission="knowledge.read",
+            scope="knowledge",
         ),
     )
     return registry

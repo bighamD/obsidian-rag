@@ -12,6 +12,7 @@ from obsidian_rag.core.schemas import (
     StepResult,
     ToolObservation,
 )
+from obsidian_rag.core.permissions.schemas import PermissionReport
 
 
 class ContextBuilder:
@@ -27,6 +28,7 @@ class ContextBuilder:
         retry_step_results: list[StepResult],
         evidence_check: EvidenceCheckResult,
         memory_snapshot: MemorySnapshot,
+        permission_report: PermissionReport | None = None,
     ) -> ContextBundle:
         candidates = _collect_context_chunks([*step_results, *retry_step_results])
         ranked = sorted(candidates, key=_context_rank_key)
@@ -43,6 +45,7 @@ class ContextBuilder:
             token_budget=self.token_budget,
             memory_snapshot=memory_snapshot,
             tool_observations=tool_observations,
+            permission_report=permission_report,
         )
         return ContextBundle(
             messages=messages,
@@ -104,6 +107,7 @@ def _build_messages(
     token_budget: int,
     memory_snapshot: MemorySnapshot,
     tool_observations: list[ToolObservation],
+    permission_report: PermissionReport | None,
 ) -> list[dict[str, str]]:
     context_payload = {
         "question": question,
@@ -115,12 +119,20 @@ def _build_messages(
         "included_chunks": [_prompt_chunk(chunk) for chunk in included_chunks],
         "tool_observations": [_prompt_observation(item) for item in tool_observations],
     }
+    if permission_report is not None:
+        context_payload["permission_report"] = permission_report.model_dump()
+    permission_instruction = (
+        "permission_report 说明哪些步骤被允许、要求确认或拒绝；不要声称被阻止的工具已经执行。"
+        if permission_report is not None
+        else ""
+    )
     return [
         {
             "role": "system",
             "content": (
                 "你是 Obsidian Agent 的答案生成器。请根据 ContextBundle 中的 question、plan、"
                 "conversation_memory、included_chunks 和 tool_observations 完成当前请求。"
+                f"{permission_instruction}"
                 "当 included_chunks 非空时，优先基于知识库证据回答，并保留 chunk_id 或来源线索；"
                 "tool_observations 是工具返回的外部事实，不要把它伪装成知识库 chunk 或来源文件；"
                 "当 included_chunks 为空且计划是 no_search 时，直接回答不依赖本地知识库的通用问题，"
@@ -158,8 +170,12 @@ def _prompt_observation(observation: ToolObservation) -> dict[str, object]:
     }
 
 
-def build_memory_aware_planner_question(question: str, memory_snapshot: MemorySnapshot) -> str:
-    if not memory_snapshot.summary_text and not memory_snapshot.recent_turns:
+def build_memory_aware_planner_question(
+    question: str,
+    memory_snapshot: MemorySnapshot,
+    skill_context: str | None = None,
+) -> str:
+    if not memory_snapshot.summary_text and not memory_snapshot.recent_turns and not skill_context:
         return question
 
     context_sections = []
@@ -172,10 +188,12 @@ def build_memory_aware_planner_question(question: str, memory_snapshot: MemorySn
         history_lines.append(f"助手：{turn.assistant_message}")
     if history_lines:
         context_sections.append("最近对话历史：\n" + "\n".join(history_lines))
+    if skill_context:
+        context_sections.append(skill_context)
     memory_context = "\n\n".join(context_sections)
     return f"""当前问题：
 {question}
 
 {memory_context}
 
-请结合会话摘要和最近对话理解当前问题中的指代，但只规划当前问题需要执行的步骤。"""
+请结合会话摘要、最近对话和已选 Skill 方法理解当前问题，但只规划当前问题需要执行的步骤。"""

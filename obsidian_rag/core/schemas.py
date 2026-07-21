@@ -8,6 +8,8 @@ from pydantic import BaseModel, Field, field_validator
 
 from obsidian_rag.config import COLLECTION_NAME_PATTERN
 from obsidian_rag.core.collections.schemas import RetrievalScope
+from obsidian_rag.core.permissions.schemas import PermissionReport
+from obsidian_rag.core.skills.schemas import SkillLoadedSummary, SkillSelection
 from obsidian_rag.v1.schemas import SearchFilters, SearchHit, SearchMode
 
 PlanStepKind = Literal["search", "tool", "synthesize", "no_search", "clarify"]
@@ -82,8 +84,10 @@ StepStatus = Literal["success", "skipped", "failed"]
 AgentTraceStepType = Literal[
     "memory_read",
     "memory_compaction",
+    "skill",
     "planner",
     "collection_routing",
+    "permission",
     "tool_result",
     "evidence_check",
     "retry",
@@ -94,8 +98,10 @@ AgentTraceStepType = Literal[
 ]
 AgentProgressPhase = Literal[
     "memory",
+    "skill",
     "planning",
     "routing",
+    "authorization",
     "retrieval",
     "evidence",
     "context",
@@ -266,7 +272,8 @@ class ContextBundle(BaseModel):
 
     `messages[1]["content"]` 是真正传给 Answer LLM 的 JSON 字符串，包含：
     `question`、`plan`、`evidence_check`、`token_budget`、
-    `conversation_summary`、`conversation_memory`、`included_chunks` 和 `tool_observations`。
+    `conversation_summary`、`conversation_memory`、`permission_report`、
+    `included_chunks` 和 `tool_observations`。
 
     `included_chunks` 的 `text`、排序字段与 `metadata` 是 API/Console 的调试信息；
     真正的 Answer prompt 只使用其必要投影（包含 `text_preview`）。
@@ -450,6 +457,18 @@ class AgentAskResponse(BaseModel):
     retrieval_scope: RetrievalScope | None = Field(
         default=None,
         description="本轮 search steps 实际允许访问的知识库范围；未注入 Resolver 的旧版本为空。",
+    )
+    permission_report: PermissionReport | None = Field(
+        default=None,
+        description="本轮执行前的逐步骤 allow/confirm/deny 决策；未注入 Policy 的旧版本为空。",
+    )
+    skill_selection: SkillSelection | None = Field(
+        default=None,
+        description="Planner 前的 Skill Router 决策；未注入 SkillResolver 的旧版本为空。",
+    )
+    loaded_skill: SkillLoadedSummary | None = Field(
+        default=None,
+        description="实际注入 Planner Context 的 Skill 摘要，不包含 SKILL.md 完整正文。",
     )
     step_results: list[StepResult] = Field(description="初始计划各步骤的执行结果。")
     retry_step_results: list[StepResult] = Field(description="Evidence 不足后补搜产生的步骤结果。")

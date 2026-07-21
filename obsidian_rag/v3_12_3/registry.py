@@ -46,6 +46,9 @@ def build_agent_tool_registry(
                 input_schema=tool.input_schema,
                 read_only=tool.read_only,
                 source="mcp",
+                risk_level="safe" if tool.read_only is True else "confirm" if tool.read_only is False else "restricted",
+                required_permission="tool.read" if tool.read_only is True else "tool.execute",
+                scope="external_tool",
             ),
         )
         serialized_schema = json.dumps(tool.input_schema, ensure_ascii=False)

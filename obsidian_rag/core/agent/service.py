@@ -21,6 +21,11 @@ from obsidian_rag.core.context import ContextBuilder, build_memory_aware_planner
 from obsidian_rag.core.llm import ChatStreamDelta
 from obsidian_rag.core.mysql_memory import MySQLConversationMemoryStore
 from obsidian_rag.core.planner import PlannerService
+from obsidian_rag.core.permissions.policy import PermissionPolicy
+from obsidian_rag.core.permissions.schemas import PermissionDecision, PermissionPrincipal, PermissionReport
+from obsidian_rag.core.skills.protocol import SkillResolver
+from obsidian_rag.core.skills.registry import build_skill_context
+from obsidian_rag.core.skills.schemas import SkillDocument, SkillLoadedSummary, SkillManifest, SkillSelection
 from obsidian_rag.core.schemas import (
     Plan,
     PlanRequest,
@@ -49,8 +54,12 @@ _ACTIVE_EVENT_SINK: ContextVar[EventSink | None] = ContextVar("agent_event_sink"
 _NODE_PROGRESS_PHASE: dict[str, AgentProgressPhase] = {
     "load_memory": "memory",
     "compact_memory": "memory",
+    "discover_skills": "skill",
+    "skill_router": "skill",
+    "load_skill": "skill",
     "planner": "planning",
     "resolve_retrieval_scope": "routing",
+    "authorize_steps": "authorization",
     "execute_steps": "retrieval",
     "retry_search": "retrieval",
     "evidence_check": "evidence",
@@ -84,6 +93,11 @@ class AgentState(TypedDict, total=False):
     answer_stream: AnswerStreamMetrics
     tool_catalog: list[PlannerToolDefinition]
     retrieval_scope: RetrievalScope
+    permission_report: PermissionReport
+    skill_candidates: list[SkillManifest]
+    skill_selection: SkillSelection
+    loaded_skill: SkillDocument
+    skill_context: str
 
 
 class AgentService:
@@ -98,6 +112,8 @@ class AgentService:
         memory_store: MySQLConversationMemoryStore | None = None,
         memory_compactor: ConversationCompactor | None = None,
         retrieval_scope_resolver: RetrievalScopeResolver | None = None,
+        permission_policy: PermissionPolicy | None = None,
+        skill_resolver: SkillResolver | None = None,
     ):
         self.retrieval_service = retrieval_service
         self.planner_service = planner_service
@@ -108,6 +124,8 @@ class AgentService:
         self.memory_store = memory_store or MySQLConversationMemoryStore()
         self.memory_compactor = memory_compactor
         self.retrieval_scope_resolver = retrieval_scope_resolver
+        self.permission_policy = permission_policy
+        self.skill_resolver = skill_resolver
         self.graph = self._build_graph()
 
     def ask(self, request: AgentAskRequest) -> AgentAskResponse:
@@ -206,6 +224,7 @@ class AgentService:
             "node_timings": [],
             "answer_stream": AnswerStreamMetrics(mode="complete"),
             "tool_catalog": [],
+            "skill_candidates": [],
         }
 
     def _response_from_state(self, final_state: AgentState, request: AgentAskRequest) -> AgentAskResponse:
@@ -229,6 +248,23 @@ class AgentService:
             retrieval_scope=(
                 RetrievalScope.model_validate(_model_data(final_state["retrieval_scope"]))
                 if final_state.get("retrieval_scope")
+                else None
+            ),
+            permission_report=(
+                PermissionReport.model_validate(_model_data(final_state["permission_report"]))
+                if final_state.get("permission_report")
+                else None
+            ),
+            skill_selection=(
+                SkillSelection.model_validate(_model_data(final_state["skill_selection"]))
+                if final_state.get("skill_selection")
+                else None
+            ),
+            loaded_skill=(
+                SkillLoadedSummary.from_document(
+                    SkillDocument.model_validate(_model_data(final_state["loaded_skill"]))
+                )
+                if final_state.get("loaded_skill")
                 else None
             ),
             step_results=[StepResult.model_validate(_model_data(item)) for item in final_state.get("step_results", [])],
@@ -273,11 +309,20 @@ class AgentService:
         graph = StateGraph(AgentState)
         graph.add_node("load_memory", self._timed_node("load_memory", self._load_memory_node))
         graph.add_node("compact_memory", self._timed_node("compact_memory", self._compact_memory_node))
+        if self.skill_resolver is not None:
+            graph.add_node("discover_skills", self._timed_node("discover_skills", self._discover_skills_node))
+            graph.add_node("skill_router", self._timed_node("skill_router", self._skill_router_node))
+            graph.add_node("load_skill", self._timed_node("load_skill", self._load_skill_node))
         graph.add_node("planner", self._timed_node("planner", self._planner_node))
         if self.retrieval_scope_resolver is not None:
             graph.add_node(
                 "resolve_retrieval_scope",
                 self._timed_node("resolve_retrieval_scope", self._resolve_retrieval_scope_node),
+            )
+        if self.permission_policy is not None:
+            graph.add_node(
+                "authorize_steps",
+                self._timed_node("authorize_steps", self._authorize_steps_node),
             )
         graph.add_node("execute_steps", self._timed_node("execute_steps", self._execute_steps_node))
         graph.add_node("evidence_check", self._timed_node("evidence_check", self._evidence_check_node))
@@ -288,12 +333,23 @@ class AgentService:
 
         graph.add_edge(START, "load_memory")
         graph.add_edge("load_memory", "compact_memory")
-        graph.add_edge("compact_memory", "planner")
+        if self.skill_resolver is not None:
+            graph.add_edge("compact_memory", "discover_skills")
+            graph.add_edge("discover_skills", "skill_router")
+            graph.add_edge("skill_router", "load_skill")
+            graph.add_edge("load_skill", "planner")
+        else:
+            graph.add_edge("compact_memory", "planner")
         if self.retrieval_scope_resolver is not None:
             graph.add_edge("planner", "resolve_retrieval_scope")
-            graph.add_edge("resolve_retrieval_scope", "execute_steps")
+            graph.add_edge(
+                "resolve_retrieval_scope",
+                "authorize_steps" if self.permission_policy is not None else "execute_steps",
+            )
         else:
-            graph.add_edge("planner", "execute_steps")
+            graph.add_edge("planner", "authorize_steps" if self.permission_policy is not None else "execute_steps")
+        if self.permission_policy is not None:
+            graph.add_edge("authorize_steps", "execute_steps")
         graph.add_edge("execute_steps", "evidence_check")
         graph.add_conditional_edges(
             "evidence_check",
@@ -365,6 +421,107 @@ class AgentService:
         )
         return state
 
+    def _discover_skills_node(self, state: AgentState) -> AgentState:
+        state = _copy_state(state)
+        state["graph_path"].append("discover_skills")
+        candidates = self.skill_resolver.list_manifests() if self.skill_resolver is not None else []
+        state["skill_candidates"] = candidates
+        state["trace"].append(
+            AgentTraceStep(
+                node_name="discover_skills",
+                step_type="skill",
+                result_count=len(candidates),
+                reason=f"Skill Registry 发现 {len(candidates)} 个候选 Skill。",
+                metadata={
+                    "candidate_names": [item.name for item in candidates],
+                    "registry_errors": self.skill_resolver.errors if self.skill_resolver is not None else [],
+                },
+            )
+        )
+        return state
+
+    def _skill_router_node(self, state: AgentState) -> AgentState:
+        state = _copy_state(state)
+        state["graph_path"].append("skill_router")
+        request = state["request"]
+        if self.skill_resolver is None:
+            selection = SkillSelection(status="disabled", reason="未注入 SkillResolver。")
+        else:
+            selection = self.skill_resolver.select(
+                question=request.question,
+                candidates=state.get("skill_candidates", []),
+                skill_name=getattr(request, "skill_name", None),
+                router_enabled=bool(getattr(request, "skill_router_enabled", True)),
+            )
+        state["skill_selection"] = selection
+        state["trace"].append(
+            AgentTraceStep(
+                node_name="skill_router",
+                step_type="skill",
+                result_count=1 if selection.selected_skill else 0,
+                reason=selection.reason,
+                metadata={
+                    "status": selection.status,
+                    "selected_skill": selection.selected_skill,
+                    "confidence": selection.confidence,
+                    "candidate_names": selection.candidate_names,
+                },
+            )
+        )
+        return state
+
+    def _load_skill_node(self, state: AgentState) -> AgentState:
+        state = _copy_state(state)
+        state["graph_path"].append("load_skill")
+        selection = state.get("skill_selection")
+        selected_skill = selection.selected_skill if selection else None
+        if not selected_skill or self.skill_resolver is None:
+            state["trace"].append(
+                AgentTraceStep(
+                    node_name="load_skill",
+                    step_type="skill",
+                    result_count=0,
+                    reason="本轮没有选中 Skill，不向 Planner 注入方法上下文。",
+                )
+            )
+            return state
+        try:
+            document = self.skill_resolver.load(selected_skill)
+        except (KeyError, OSError, ValueError) as exc:
+            state["skill_selection"] = selection.model_copy(
+                update={
+                    "status": "router_error",
+                    "selected_skill": None,
+                    "reason": f"Skill 加载失败，已跳过方法注入：{exc}",
+                }
+            )
+            state["trace"].append(
+                AgentTraceStep(
+                    node_name="load_skill",
+                    step_type="error",
+                    result_count=0,
+                    reason=state["skill_selection"].reason,
+                    metadata={"error_type": type(exc).__name__},
+                )
+            )
+            return state
+        state["loaded_skill"] = document
+        state["skill_context"] = build_skill_context(state["request"].question, document)
+        state["trace"].append(
+            AgentTraceStep(
+                node_name="load_skill",
+                step_type="skill",
+                result_count=1,
+                reason=f"已加载 {document.name} 并准备注入 Planner Context。",
+                metadata={
+                    "selected_skill": document.name,
+                    "path": document.path,
+                    "estimated_tokens": document.estimated_tokens,
+                },
+            )
+        )
+        return state
+
     def _compact_memory_node(self, state: AgentState) -> AgentState:
         state = _copy_state(state)
         state["graph_path"].append("compact_memory")
@@ -418,6 +575,7 @@ class AgentService:
             request.question,
             state.get("memory_snapshot")
             or _empty_memory_snapshot(state["conversation_id"], request.memory_window),
+            state.get("skill_context"),
         )
         planner_response = planner.plan(
             PlanRequest(
@@ -447,33 +605,25 @@ class AgentService:
         search_results: list[SearchLikeResult] = []
 
         for step in state["plan"].steps:
-            if step.kind == "search":
+            blocked = _permission_blocked_step_result(step, state.get("permission_report"))
+            if blocked is not None:
+                result = blocked
+            elif step.kind == "search":
                 result = self._execute_search_step(step, request, state.get("retrieval_scope"))
-                step_results.append(result)
                 search_results.extend(_search_results_from_step_result(result))
-                state["trace"].append(
-                    AgentTraceStep(
-                        node_name="execute_steps",
-                        step_type="tool_result" if result.status == "success" else "error",
-                        step_id=step.id,
-                        tool_name=result.tool_name,
-                        query=result.query,
-                        result_count=result.result_count,
-                        reason=result.reason or result.error,
-                        metadata={**result.metadata, **_rerank_metadata_from_step_result(result)},
-                    )
-                )
-                continue
-
-            result = _non_search_step_result(step)
+            else:
+                result = _non_search_step_result(step)
             step_results.append(result)
             state["trace"].append(
                 AgentTraceStep(
                     node_name="execute_steps",
-                    step_type="tool_result",
+                    step_type="tool_result" if result.status != "failed" else "error",
                     step_id=step.id,
                     tool_name=result.tool_name,
-                    reason=result.reason,
+                    query=result.query,
+                    result_count=result.result_count,
+                    reason=result.reason or result.error,
+                    metadata={**result.metadata, **_rerank_metadata_from_step_result(result)},
                 )
             )
 
@@ -481,6 +631,38 @@ class AgentService:
         state["search_results"] = search_results
         state["used_retrieval"] = bool(search_results)
         state["sources"] = format_sources(search_results) if search_results else []
+        return state
+
+    def _authorize_steps_node(self, state: AgentState) -> AgentState:
+        state = _copy_state(state)
+        state["graph_path"].append("authorize_steps")
+        request = state["request"]
+        principal = PermissionPrincipal.model_validate(
+            _model_data(getattr(request, "principal", None) or PermissionPrincipal())
+        )
+        report = self.permission_policy.authorize(
+            plan=state["plan"],
+            principal=principal,
+            tool_registry=self.tool_registry,
+            retrieval_scope=state.get("retrieval_scope"),
+            run_id=state["run_id"],
+            conversation_id=state["conversation_id"],
+        )
+        state["permission_report"] = report
+        state["trace"].append(
+            AgentTraceStep(
+                node_name="authorize_steps",
+                step_type="permission",
+                result_count=len(report.decisions),
+                reason=report.summary,
+                metadata={
+                    "allow_count": report.allow_count,
+                    "confirm_count": report.confirm_count,
+                    "deny_count": report.deny_count,
+                    "all_allowed": report.all_allowed,
+                },
+            )
+        )
         return state
 
     def _resolve_retrieval_scope_node(self, state: AgentState) -> AgentState:
@@ -567,6 +749,22 @@ class AgentService:
             if query in attempted_queries:
                 continue
             original_step_id = evidence_check.missing_step_ids[index - 1] if index <= len(evidence_check.missing_step_ids) else "unknown"
+            permission_decision = _permission_decision_for_step(state.get("permission_report"), original_step_id)
+            if permission_decision is not None and permission_decision.decision != "allow":
+                retry_results.append(
+                    StepResult(
+                        step_id=f"retry_{original_step_id}_{retry_count}",
+                        kind="search",
+                        tool_name="search_notes",
+                        query=query,
+                        status="skipped" if permission_decision.decision == "confirm" else "failed",
+                        error=permission_decision.reason,
+                        reason=f"补搜未执行：原步骤权限决定为 {permission_decision.decision}。",
+                        metadata={"permission": permission_decision.model_dump()},
+                    )
+                )
+                attempted_queries.append(query)
+                continue
             tool_result = self.tool_registry.run(
                 "search_notes",
                 query=query,
@@ -629,6 +827,7 @@ class AgentService:
             evidence_check=state.get("evidence_check") or _empty_evidence_check(),
             memory_snapshot=state.get("memory_snapshot")
             or _empty_memory_snapshot(state["conversation_id"], request.memory_window),
+            permission_report=state.get("permission_report"),
         )
         state["context_bundle"] = context_bundle
         state["trace"].append(
@@ -774,6 +973,7 @@ def _copy_state(state: AgentState) -> AgentState:
     copied["trace"] = list(state.get("trace", []))
     copied["node_timings"] = list(state.get("node_timings", []))
     copied["tool_catalog"] = list(state.get("tool_catalog", []))
+    copied["skill_candidates"] = list(state.get("skill_candidates", []))
     return copied
 
 
@@ -1011,6 +1211,37 @@ def _non_search_step_result(step: PlanStep) -> StepResult:
     )
 
 
+def _permission_decision_for_step(
+    report: PermissionReport | None,
+    step_id: str,
+) -> PermissionDecision | None:
+    if report is None:
+        return None
+    return next((item for item in report.decisions if item.step_id == step_id), None)
+
+
+def _permission_blocked_step_result(
+    step: PlanStep,
+    report: PermissionReport | None,
+) -> StepResult | None:
+    decision = _permission_decision_for_step(report, step.id)
+    if decision is None or decision.decision == "allow":
+        return None
+    status = "skipped" if decision.decision == "confirm" else "failed"
+    return StepResult(
+        step_id=step.id,
+        kind=step.kind,
+        tool_name=decision.tool_name or step.tool_name or ("search_notes" if step.kind == "search" else step.kind),
+        query=step.query,
+        arguments=step.arguments,
+        instruction=step.instruction,
+        status=status,
+        error=decision.reason,
+        reason=f"Permission Policy 返回 {decision.decision}，未执行该步骤。",
+        metadata={"permission": decision.model_dump()},
+    )
+
+
 def _search_results_from_step_result(result: StepResult) -> list[SearchResult]:
     search_results: list[SearchResult] = []
     for hit in result.results:
@@ -1110,10 +1341,19 @@ def _suggest_retry_query(query: str | None) -> str | None:
 def _route_after_evidence_check(state: AgentState) -> str:
     evidence_check = state.get("evidence_check")
     request = state["request"]
+    retryable_missing_steps = [
+        step_id
+        for step_id in evidence_check.missing_step_ids
+        if (
+            (decision := _permission_decision_for_step(state.get("permission_report"), step_id)) is None
+            or decision.decision == "allow"
+        )
+    ] if evidence_check else []
     if (
         evidence_check
         and not evidence_check.is_sufficient
         and evidence_check.suggested_queries
+        and retryable_missing_steps
         and state.get("retry_count", 0) < request.max_retries
     ):
         return "retry_search"
