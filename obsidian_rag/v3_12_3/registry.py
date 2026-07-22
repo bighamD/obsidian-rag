@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 
+from obsidian_rag.core.collections import SearchCollectionPolicy
 from obsidian_rag.core.schemas import PlannerToolDefinition
 from obsidian_rag.core.tools import ToolDefinition, ToolRegistry, ToolResult, build_search_tool_registry
 from obsidian_rag.v3_12_3.connection import McpConnectionManager
@@ -10,10 +11,11 @@ from obsidian_rag.v3_12_3.connection import McpConnectionManager
 def build_agent_tool_registry(
     retrieval_service,
     manager: McpConnectionManager,
+    collection_policy: SearchCollectionPolicy | None = None,
 ) -> tuple[ToolRegistry, list[PlannerToolDefinition], dict[str, str]]:
     """构建当前 Agent Run 使用的本地 + MCP Registry 与精简 Planner Catalog。"""
 
-    registry = build_search_tool_registry(retrieval_service)
+    registry = build_search_tool_registry(retrieval_service, collection_policy)
     remote_tools, errors = manager.list_tools()
     planner_tools: list[PlannerToolDefinition] = []
     schema_chars = 0

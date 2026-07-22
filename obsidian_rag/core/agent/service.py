@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import uuid
 from collections.abc import Callable
 from contextvars import ContextVar
@@ -15,6 +16,7 @@ from obsidian_rag.schema import SearchResult
 from obsidian_rag.v1.retrieval.models import RankedSearchResult
 from obsidian_rag.v1.schemas import to_search_hit
 from obsidian_rag.core.compaction import ConversationCompactor
+from obsidian_rag.core.collections.policy import SearchCollectionPolicy
 from obsidian_rag.core.collections.protocol import RetrievalScopeResolver
 from obsidian_rag.core.collections.schemas import RetrievalScope, RetrievalScopeRequest
 from obsidian_rag.core.context import ContextBuilder, build_memory_aware_planner_question
@@ -44,6 +46,7 @@ from obsidian_rag.core.schemas import (
     MemoryCompactionResult,
     MemoryWriteResult,
     StepResult,
+    ToolObservation,
 )
 from obsidian_rag.core.tools import ToolRegistry, build_search_tool_registry
 
@@ -113,20 +116,24 @@ class AgentService:
         memory_store: MySQLConversationMemoryStore | None = None,
         memory_compactor: ConversationCompactor | None = None,
         retrieval_scope_resolver: RetrievalScopeResolver | None = None,
+        collection_policy: SearchCollectionPolicy | None = None,
         permission_policy: PermissionPolicy | None = None,
         skill_resolver: SkillResolver | None = None,
+        planner_tools: list[PlannerToolDefinition] | None = None,
     ):
         self.retrieval_service = retrieval_service
         self.planner_service = planner_service
         self.chat_client = chat_client
         self.chat_client_factory = chat_client_factory
-        self.tool_registry = tool_registry or build_search_tool_registry(retrieval_service)
+        self.collection_policy = collection_policy
+        self.tool_registry = tool_registry or build_search_tool_registry(retrieval_service, collection_policy)
         self.context_builder = context_builder
         self.memory_store = memory_store or MySQLConversationMemoryStore()
         self.memory_compactor = memory_compactor
         self.retrieval_scope_resolver = retrieval_scope_resolver
         self.permission_policy = permission_policy
         self.skill_resolver = skill_resolver
+        self.planner_tools = list(planner_tools or [])
         self.graph = self._build_graph()
 
     def ask(self, request: AgentAskRequest) -> AgentAskResponse:
@@ -224,7 +231,7 @@ class AgentService:
             "trace": [],
             "node_timings": [],
             "answer_stream": AnswerStreamMetrics(mode="complete"),
-            "tool_catalog": [],
+            "tool_catalog": self._catalog_for_request(request),
             "skill_candidates": [],
         }
 
@@ -594,6 +601,8 @@ class AgentService:
         state = _copy_state(state)
         request = state["request"]
         state["graph_path"].append("planner")
+        catalog = self._catalog_for_request(request)
+        state["tool_catalog"] = catalog
         planner = self._planner_service()
         planner_question = build_memory_aware_planner_question(
             request.question,
@@ -608,18 +617,78 @@ class AgentService:
                 mode=request.mode,
                 filters=request.filters,
                 max_steps=request.max_steps,
+                tools=catalog,
+                knowledge_bases=self._knowledge_base_catalog(),
+                explicit_collection=request.collection,
+                max_collections=self.collection_policy.max_collections if self.collection_policy else 2,
             )
         )
-        state["plan"] = planner_response.plan
+        plan, retrieval_scope = self._prepare_search_collections(planner_response.plan, request)
+        state["plan"] = plan
+        if retrieval_scope is not None:
+            state["retrieval_scope"] = retrieval_scope
         state["trace"].append(
             AgentTraceStep(
                 node_name="planner",
                 step_type="planner",
-                reason="Planner 生成可执行计划。",
-                metadata={"planner_graph_path": planner_response.graph_path, "step_count": len(planner_response.plan.steps)},
+                reason="Planner 根据检索能力和 Tool Catalog 生成可执行计划。",
+                metadata={
+                    "planner_graph_path": planner_response.graph_path,
+                    "step_count": len(plan.steps),
+                    "tool_catalog": [tool.name for tool in catalog],
+                    "selected_collections": (
+                        retrieval_scope.selected_collections if retrieval_scope is not None else []
+                    ),
+                },
             )
         )
         return state
+
+    def _catalog_for_request(self, request: AgentAskRequest) -> list[PlannerToolDefinition]:
+        """返回本次 Planner 可见的 Tool；版本层可以覆写更细的可见性策略。"""
+
+        if not getattr(request, "mcp_enabled", True):
+            return []
+        selected = getattr(request, "mcp_tool_names", None)
+        if not selected:
+            return list(self.planner_tools)
+        allowed = set(selected)
+        return [tool for tool in self.planner_tools if tool.name in allowed]
+
+    def _knowledge_base_catalog(self):
+        return self.collection_policy.list_manifests() if self.collection_policy is not None else []
+
+    def _prepare_search_collections(
+        self,
+        plan: Plan,
+        request: AgentAskRequest,
+    ) -> tuple[Plan, RetrievalScope | None]:
+        if self.collection_policy is None:
+            return plan, None
+
+        scopes: list[tuple[str, RetrievalScope]] = []
+        normalized_steps: list[PlanStep] = []
+        for step in plan.steps:
+            if step.kind != "search":
+                normalized_steps.append(step)
+                continue
+            planned_collections = _planned_collections(step)
+            scope = self.collection_policy.resolve(
+                planner_collections=planned_collections,
+                explicit_collection=request.collection,
+            )
+            arguments = dict(step.arguments)
+            if scope.selected_collections:
+                arguments["collections"] = list(scope.selected_collections)
+            elif request.collection:
+                arguments["collections"] = [request.collection]
+            scopes.append((step.id, scope))
+            normalized_steps.append(step.model_copy(update={"arguments": arguments}))
+
+        return plan.model_copy(update={"steps": normalized_steps}), _aggregate_retrieval_scopes(
+            scopes,
+            self.collection_policy,
+        )
 
     def _execute_steps_node(self, state: AgentState) -> AgentState:
         state = _copy_state(state)
@@ -635,6 +704,8 @@ class AgentService:
             elif step.kind == "search":
                 result = self._execute_search_step(step, request, state.get("retrieval_scope"))
                 search_results.extend(_search_results_from_step_result(result))
+            elif step.kind == "tool":
+                result = self._execute_tool_step(step, run_id=state["run_id"])
             else:
                 result = _non_search_step_result(step)
             step_results.append(result)
@@ -647,7 +718,13 @@ class AgentService:
                     query=result.query,
                     result_count=result.result_count,
                     reason=result.reason or result.error,
-                    metadata={**result.metadata, **_rerank_metadata_from_step_result(result)},
+                    metadata={
+                        **_rerank_metadata_from_step_result(result),
+                        **result.metadata,
+                        "argument_names": sorted(result.arguments),
+                        "observation_source": result.observation.source if result.observation else None,
+                        "tool_metadata": result.observation.metadata if result.observation else {},
+                    },
                 )
             )
 
@@ -656,6 +733,60 @@ class AgentService:
         state["used_retrieval"] = bool(search_results)
         state["sources"] = format_sources(search_results) if search_results else []
         return state
+
+    def _execute_tool_step(self, step: PlanStep, *, run_id: str | None = None) -> StepResult:
+        """通过统一 Registry 执行非检索 Tool，并生成可进入 Context 的 Observation。"""
+
+        tool_name = step.tool_name or ""
+        definition = next((item for item in self.tool_registry.list_tools() if item.name == tool_name), None)
+        _emit_agent_event(
+            _ACTIVE_EVENT_SINK.get(),
+            "tool_started",
+            {
+                "step_id": step.id,
+                "tool_name": tool_name,
+                "source": definition.source if definition else "unknown",
+                "argument_names": sorted(step.arguments),
+            },
+        )
+        result = self.tool_registry.run(tool_name, **step.arguments)
+        status = "success" if result.status == "success" else "failed"
+        summary = _observation_summary(result.data, result.error)
+        observation = ToolObservation(
+            step_id=step.id,
+            tool_name=result.tool_name,
+            source=definition.source if definition else str(result.metadata.get("source") or "unknown"),
+            status=status,
+            data=result.data,
+            summary=summary,
+            metadata=result.metadata,
+            error=result.error,
+        )
+        _emit_agent_event(
+            _ACTIVE_EVENT_SINK.get(),
+            "tool_finished",
+            {
+                "step_id": step.id,
+                "tool_name": result.tool_name,
+                "source": observation.source,
+                "status": status,
+                "result_count": 1 if status == "success" else 0,
+                "duration_ms": result.metadata.get("duration_ms"),
+                "error": result.error,
+            },
+        )
+        return StepResult(
+            step_id=step.id,
+            kind="tool",
+            tool_name=result.tool_name,
+            arguments=step.arguments,
+            instruction=summary,
+            status=status,
+            result_count=1 if status == "success" else 0,
+            error=result.error,
+            reason=step.reason,
+            observation=observation,
+        )
 
     def _authorize_steps_node(self, state: AgentState) -> AgentState:
         state = _copy_state(state)
@@ -742,6 +873,30 @@ class AgentService:
             retry_count=state.get("retry_count", 0),
             attempted_queries=state.get("attempted_queries", []),
         )
+        failed_tools = [
+            item
+            for item in state.get("step_results", [])
+            if item.kind == "tool" and item.status == "failed"
+        ]
+        if failed_tools:
+            evidence_check = EvidenceCheckResult(
+                is_sufficient=False,
+                missing_points=[
+                    *evidence_check.missing_points,
+                    *(f"{item.step_id} 工具执行失败：{item.error or item.tool_name}" for item in failed_tools),
+                ],
+                suggested_queries=evidence_check.suggested_queries,
+                checked_step_ids=[
+                    *evidence_check.checked_step_ids,
+                    *(item.step_id for item in failed_tools),
+                ],
+                missing_step_ids=[
+                    *evidence_check.missing_step_ids,
+                    *(item.step_id for item in failed_tools),
+                ],
+                retry_count=evidence_check.retry_count,
+                reason="知识库证据检查完成，但部分 Tool Observation 缺失。",
+            )
         state["evidence_check"] = evidence_check
         state["trace"].append(
             AgentTraceStep(
@@ -795,7 +950,12 @@ class AgentService:
                 top_k=request.top_k,
                 mode=request.mode,
                 filters=request.filters,
-                **_retrieval_scope_kwargs(state.get("retrieval_scope"), request.collection),
+                **_retry_collection_kwargs(
+                    state["plan"],
+                    original_step_id,
+                    state.get("retrieval_scope"),
+                    request.collection,
+                ),
             )
             results = list(tool_result.results)
             step_result = StepResult(
@@ -889,17 +1049,23 @@ class AgentService:
         state["answer_stream"] = stream_metrics.model_copy(
             update={"visible_character_count": len(answer)}
         )
+        observations = [item.observation for item in state.get("step_results", []) if item.observation]
         state["trace"].append(
             AgentTraceStep(
                 node_name="synthesize_answer",
                 step_type="synthesize",
                 result_count=len(state.get("search_results", [])),
                 reason=(
-                    "基于检索证据综合生成最终答案。"
+                    "综合知识库 chunks 与 Tool Observations 生成最终答案。"
+                    if observations
+                    else "基于检索证据综合生成最终答案。"
                     if state.get("used_retrieval")
                     else "未执行检索，交由通用 Answer LLM 回答 no_search/clarify 请求。"
                 ),
-                metadata={"answer_stream": state["answer_stream"].model_dump()},
+                metadata={
+                    "answer_stream": state["answer_stream"].model_dump(),
+                    "tool_observation_count": len(observations),
+                },
             )
         )
         _mark_synthesize_steps_success(state["step_results"])
@@ -957,7 +1123,7 @@ class AgentService:
             top_k=request.top_k,
             mode=request.mode,
             filters=request.filters,
-            **_retrieval_scope_kwargs(retrieval_scope, request.collection),
+            **_search_step_collection_kwargs(step, retrieval_scope, request.collection),
         )
         results = list(tool_result.results)
         status = "success" if tool_result.status == "success" else "failed"
@@ -966,6 +1132,10 @@ class AgentService:
             kind=step.kind,
             tool_name=tool_result.tool_name,
             query=query,
+            arguments={
+                **step.arguments,
+                **_search_step_collection_kwargs(step, retrieval_scope, request.collection),
+            },
             status=status,
             result_count=len(results),
             results=[to_search_hit(result) for result in results],
@@ -1020,6 +1190,76 @@ def _retrieval_scope_kwargs(
     if scope is not None:
         return {"collections": []}
     return _collection_kwargs(explicit_collection)
+
+
+def _planned_collections(step: PlanStep) -> Any:
+    if "collections" not in step.arguments:
+        return None
+    values = step.arguments.get("collections")
+    return values if isinstance(values, list) else values
+
+
+def _search_step_collection_kwargs(
+    step: PlanStep,
+    scope: RetrievalScope | None,
+    explicit_collection: str | None,
+) -> dict[str, Any]:
+    if explicit_collection:
+        return {"collection": explicit_collection}
+    if "collections" in step.arguments:
+        values = step.arguments.get("collections")
+        return {"collections": values if isinstance(values, list) else values}
+    value = step.arguments.get("collection")
+    if isinstance(value, str) and value:
+        return {"collection": value}
+    return _retrieval_scope_kwargs(scope, explicit_collection)
+
+
+def _retry_collection_kwargs(
+    plan: Plan,
+    original_step_id: str,
+    scope: RetrievalScope | None,
+    explicit_collection: str | None,
+) -> dict[str, Any]:
+    original = next((step for step in plan.steps if step.id == original_step_id), None)
+    if original is not None:
+        return _search_step_collection_kwargs(original, scope, explicit_collection)
+    return _retrieval_scope_kwargs(scope, explicit_collection)
+
+
+def _aggregate_retrieval_scopes(
+    scopes: list[tuple[str, RetrievalScope]],
+    policy: SearchCollectionPolicy,
+) -> RetrievalScope:
+    if not scopes:
+        return RetrievalScope(status="not_required", reason="Planner 没有生成 search step。")
+    selected_ids = list(dict.fromkeys(item for _, scope in scopes for item in scope.selected_ids))
+    selected_collections = list(
+        dict.fromkeys(item for _, scope in scopes for item in scope.selected_collections)
+    )
+    errors = {
+        step_id: scope.reason
+        for step_id, scope in scopes
+        if scope.status in {"invalid_selection", "no_collection"}
+    }
+    statuses = {scope.status for _, scope in scopes}
+    if errors and not selected_collections:
+        status = "invalid_selection" if "invalid_selection" in statuses else "no_collection"
+    elif len(selected_collections) > 1:
+        status = "multi_selected"
+    elif selected_collections:
+        status = "explicit" if "explicit" in statuses else "selected"
+    else:
+        status = "no_collection"
+    return RetrievalScope(
+        status=status,
+        selected_ids=selected_ids,
+        selected_collections=selected_collections,
+        candidate_ids=[item.id for item in policy.list_manifests()],
+        reason="汇总 Planner 各 search step 的知识库选择。",
+        registry_path=str(policy.registry.path),
+        errors=errors,
+    )
 
 
 def _response_collection_name(
@@ -1092,6 +1332,16 @@ def _rerank_metadata_from_step_result(step_result: StepResult) -> dict[str, Any]
         return {}
     run = step_result.results[0].metadata.get("rerank_run")
     return {"rerank": run} if isinstance(run, dict) else {}
+
+
+def _observation_summary(data: Any, error: str | None) -> str:
+    if error:
+        return f"工具调用失败：{error}"
+    try:
+        text = json.dumps(data, ensure_ascii=False, default=str)
+    except TypeError:
+        text = str(data)
+    return text if len(text) <= 600 else f"{text[:600]}..."
 
 
 def _emit_agent_event(

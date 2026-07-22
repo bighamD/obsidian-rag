@@ -68,7 +68,6 @@ function updateOptions(value: AgentOptions) {
         <ChatComposer
           v-model="question"
           :disabled="!consoleState.isConsoleCompatible.value"
-          :collection-routing-available="consoleState.consoleConfig.value?.features.collection_routing ?? false"
           :mcp-available="consoleState.consoleConfig.value?.features.mcp_tools ?? false"
           :permission-available="consoleState.consoleConfig.value?.features.permission_policy ?? false"
           :skill-available="consoleState.consoleConfig.value?.features.skills ?? false"

@@ -22,9 +22,6 @@ export interface AgentProgress {
 }
 
 export interface AgentOptions {
-  collection: string;
-  collectionRouterEnabled: boolean;
-  maxCollections: number;
   mcpEnabled: boolean;
   permissionProfile: PermissionProfile;
   skillRouterEnabled: boolean;
@@ -46,9 +43,6 @@ export interface AgentOptions {
 export interface AgentAskPayload {
   question: string;
   conversation_id: string;
-  collection: string | null;
-  collection_router_enabled: boolean;
-  max_collections: number;
   mcp_enabled: boolean;
   principal: PermissionPrincipal;
   skill_router_enabled: boolean;

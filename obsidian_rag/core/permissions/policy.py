@@ -84,14 +84,17 @@ class StaticPermissionPolicy:
         retrieval_scope: Any,
     ) -> PermissionDecision:
         if step.kind == "search":
-            collections = list(getattr(retrieval_scope, "selected_collections", []) or [])
+            arguments = dict(getattr(step, "arguments", {}) or {})
+            collections = _step_collections(arguments)
+            if not collections:
+                collections = list(getattr(retrieval_scope, "selected_collections", []) or [])
             return self._decide(
                 step=step,
                 principal=principal,
                 definition=definitions.get("search_notes"),
                 tool_name="search_notes",
                 collections=collections,
-                arguments={},
+                arguments=arguments,
             )
         if step.kind == "tool":
             tool_name = step.tool_name or ""
@@ -197,6 +200,14 @@ def _risk_from_definition(definition: ToolDefinition) -> str:
 
 def _matches_any(value: str, patterns: list[str]) -> bool:
     return any(fnmatch(value, pattern) for pattern in patterns)
+
+
+def _step_collections(arguments: dict[str, Any]) -> list[str]:
+    values = arguments.get("collections")
+    if isinstance(values, list):
+        return list(dict.fromkeys(item for item in values if isinstance(item, str) and item))
+    value = arguments.get("collection")
+    return [value] if isinstance(value, str) and value else []
 
 
 def _validate_arguments(schema: dict[str, Any], arguments: dict[str, Any]) -> list[str]:

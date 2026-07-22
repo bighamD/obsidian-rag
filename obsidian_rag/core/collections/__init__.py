@@ -1,3 +1,4 @@
+from obsidian_rag.core.collections.policy import SearchCollectionPolicy
 from obsidian_rag.core.collections.protocol import RetrievalScopeResolver
 from obsidian_rag.core.collections.registry import KnowledgeBaseRegistry
 from obsidian_rag.core.collections.resolver import CollectionScopeResolver
@@ -16,4 +17,5 @@ __all__ = [
     "RetrievalScope",
     "RetrievalScopeRequest",
     "RetrievalScopeResolver",
+    "SearchCollectionPolicy",
 ]

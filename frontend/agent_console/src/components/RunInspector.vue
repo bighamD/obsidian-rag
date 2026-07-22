@@ -216,7 +216,11 @@ function toolCalls(toolName: string): StepResult[] {
       </section>
 
       <section v-else-if="activeTab === 'collections'" class="inspector-section">
-        <CollectionRoutingPanel :runtime="collectionRuntime" :scope="agent?.retrieval_scope ?? null" />
+        <CollectionRoutingPanel
+          :runtime="collectionRuntime"
+          :scope="agent?.retrieval_scope ?? null"
+          :step-results="agent?.step_results ?? []"
+        />
       </section>
 
       <section v-else-if="activeTab === 'permission'" class="inspector-section">

@@ -7,7 +7,7 @@ from zoneinfo import ZoneInfo
 from pydantic import BaseModel, Field, field_validator
 
 from obsidian_rag.config import COLLECTION_NAME_PATTERN
-from obsidian_rag.core.collections.schemas import RetrievalScope
+from obsidian_rag.core.collections.schemas import KnowledgeBaseManifest, RetrievalScope
 from obsidian_rag.core.permissions.schemas import PermissionReport
 from obsidian_rag.core.skills.schemas import SkillLoadedSummary, SkillSelection
 from obsidian_rag.core.sandbox.schemas import ArtifactRecord
@@ -29,6 +29,21 @@ class PlanRequest(BaseModel):
         default_factory=list,
         description="本次允许 Planner 选择的外部 Tool Catalog；为空时不得生成 tool step。",
     )
+    knowledge_bases: list[KnowledgeBaseManifest] = Field(
+        default_factory=list,
+        description="Planner 可为 search step 选择的轻量知识库目录，不包含知识库正文。",
+    )
+    explicit_collection: str | None = Field(
+        default=None,
+        pattern=COLLECTION_NAME_PATTERN,
+        description="用户显式限定的 Collection；有值时所有 search step 必须只使用它。",
+    )
+    max_collections: int = Field(
+        default=2,
+        ge=1,
+        le=3,
+        description="单个 search step 最多可以选择的知识库数量。",
+    )
 
 
 class PlannerToolDefinition(BaseModel):
@@ -48,7 +63,10 @@ class PlanStep(BaseModel):
     kind: PlanStepKind = Field(description="search、tool、synthesize、no_search 或 clarify。")
     query: str | None = Field(default=None, description="search 步骤使用的查询词。")
     tool_name: str | None = Field(default=None, description="tool 步骤选择的统一工具名称；其他步骤为空。")
-    arguments: dict[str, Any] = Field(default_factory=dict, description="tool 步骤传给工具的结构化参数。")
+    arguments: dict[str, Any] = Field(
+        default_factory=dict,
+        description="search 步骤可携带 collections；tool 步骤携带符合工具 Schema 的参数。",
+    )
     instruction: str | None = Field(default=None, description="非 search 步骤的执行说明。")
     depends_on: list[str] = Field(default_factory=list, description="该步骤依赖的前置步骤 ID。")
     reason: str | None = Field(default=None, description="生成该步骤的可观察原因。")

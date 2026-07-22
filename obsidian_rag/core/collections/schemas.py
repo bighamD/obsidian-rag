@@ -20,13 +20,13 @@ RetrievalScopeStatus = Literal[
 
 
 class KnowledgeBaseManifest(BaseModel):
-    """Registry 中一个允许 Collection Router 选择的知识库。"""
+    """Registry 中一个可提供给 Planner 选择的知识库。"""
 
-    id: str = Field(pattern=COLLECTION_NAME_PATTERN, description="提供给 Router 的稳定知识库 ID。")
+    id: str = Field(pattern=COLLECTION_NAME_PATTERN, description="提供给 Planner 的稳定知识库 ID。")
     collection: str = Field(pattern=COLLECTION_NAME_PATTERN, description="实际 Qdrant 和 Keyword Index Collection。")
     description: str = Field(min_length=1, description="知识库领域与内容范围说明。")
-    triggers: list[str] = Field(default_factory=list, description="帮助 Router 判断适用范围的关键词或问题示例。")
-    enabled: bool = Field(default=True, description="是否允许该知识库进入 Router candidates。")
+    triggers: list[str] = Field(default_factory=list, description="帮助 Planner 判断适用范围的关键词或问题示例。")
+    enabled: bool = Field(default=True, description="是否允许该知识库进入 Planner candidates。")
 
 
 class RetrievalScopeRequest(BaseModel):

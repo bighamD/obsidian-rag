@@ -40,9 +40,6 @@ const MAX_MESSAGES_PER_SESSION = 40;
 const DISPLAY_HISTORY_WINDOW = 20;
 
 const defaultOptions: AgentOptions = {
-  collection: "",
-  collectionRouterEnabled: true,
-  maxCollections: 2,
   mcpEnabled: true,
   permissionProfile: "standard",
   skillRouterEnabled: true,
@@ -578,9 +575,6 @@ export function buildAgentAskPayload(
   return {
     question,
     conversation_id: conversationId,
-    collection: options.collection.trim() || null,
-    collection_router_enabled: options.collectionRouterEnabled,
-    max_collections: options.maxCollections,
     mcp_enabled: options.mcpEnabled,
     principal: principalForProfile(options.permissionProfile),
     skill_router_enabled: options.skillRouterEnabled,

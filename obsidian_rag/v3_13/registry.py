@@ -1,15 +1,24 @@
 from __future__ import annotations
 
+from obsidian_rag.core.collections import SearchCollectionPolicy
 from obsidian_rag.core.schemas import PlannerToolDefinition
 from obsidian_rag.core.tools import ToolDefinition, ToolResult
 from obsidian_rag.v3_12_3.connection import McpConnectionManager
 from obsidian_rag.v3_12_3.registry import build_agent_tool_registry
 
 
-def build_permission_agent_tool_registry(retrieval_service, manager: McpConnectionManager):
+def build_permission_agent_tool_registry(
+    retrieval_service,
+    manager: McpConnectionManager,
+    collection_policy: SearchCollectionPolicy | None = None,
+):
     """复用 Local/MCP Registry，并加入一个无副作用的 confirm 教学工具。"""
 
-    registry, planner_tools, errors = build_agent_tool_registry(retrieval_service, manager)
+    registry, planner_tools, errors = build_agent_tool_registry(
+        retrieval_service,
+        manager,
+        collection_policy,
+    )
 
     def simulate_workspace_write(path: str, content: str) -> ToolResult:
         return ToolResult(

@@ -17,7 +17,7 @@ PLANNER_SYSTEM_PROMPT = """你是 Obsidian 本地知识库 RAG 的 Planner。
 Planner 只负责规划，不执行检索、不生成最终答案。
 
 可选 step.kind：
-- search：需要查询本地知识库。必须提供 query。
+- search：需要查询本地知识库。必须提供 query，并在 arguments.collections 中选择知识库。
 - tool：必须从 user payload 的 tools 中选择一个工具，提供 tool_name 和符合 input_schema 的 arguments。
 - synthesize：综合前面步骤结果。必须提供 instruction，可用 depends_on 表示依赖步骤。
 - no_search：问题明显依赖实时外部信息、闲聊或不适合本地知识库。必须提供 instruction。
@@ -32,7 +32,10 @@ JSON 格式：
       "kind": "search | tool | synthesize | no_search | clarify",
       "query": "当 kind=search 时提供检索词，否则为 null",
       "tool_name": "当 kind=tool 时必须来自 tools[].name，否则为 null",
-      "arguments": {"当 kind=tool 时": "根据 input_schema 构造参数"},
+      "arguments": {
+        "collections": ["当 kind=search 时，从 knowledge_bases[].collection 中选择"],
+        "当 kind=tool 时": "根据 input_schema 构造参数"
+      },
       "instruction": "非 search 步骤的执行说明，search 可为 null",
       "depends_on": ["s1"],
       "reason": "一句话说明为什么需要这一步"
@@ -43,7 +46,14 @@ JSON 格式：
 规划要求：
 - 简单知识库问题：1 个 search step + 1 个 synthesize step。
 - 多主题知识库问题：每个主题一个 search step，最后一个 synthesize step。
-- tools 非空且某个工具明确能提供所需外部事实时，生成 tool step；不得编造工具名或参数。
+- search step 只能选择 knowledge_bases 中 enabled=true 的 collection，数量不得超过 max_collections。
+- explicit_collection 非空时，所有 search step 的 arguments.collections 必须只包含该值。
+- knowledge_bases 为空时可省略 collections，由执行层使用默认知识库兼容路径。
+- tools 非空且某个工具能提供所需外部事实或完成用户要求的真实动作时，生成 tool step；不得编造工具名或参数。
+- 用户明确要求创建、编写、生成或保存脚本/文件，并且 tools 中存在 sandbox::write_file 时，必须生成该 tool step；arguments.path 给出合理文件名，arguments.content 给出完整可用内容，不要使用省略号或占位符。
+- 用户明确要求运行、执行、测试或验证脚本，并且 tools 中同时存在 sandbox::write_file 和 sandbox::run_command 时，先创建脚本，再生成依赖写入步骤的 run_command step。
+- 用户只是询问代码怎么写、要求代码示例或算法解释，没有要求创建、保存、运行文件时，不要为了展示代码而调用 Sandbox Tool，可使用 no_search 交给 Answer 节点回答。
+- 只有计划中包含对应 tool step 时，后续答案才能声称文件已创建或命令已执行。
 - tools 为空或没有合适工具时，实时天气、股价、新闻等问题返回 1 个 no_search step。
 - 一个问题同时需要知识库和外部工具时，可以组合 search + tool + synthesize。
 - 指代不明的问题：返回 1 个 clarify step。
@@ -217,6 +227,9 @@ def _build_planner_messages(request: PlanRequest) -> list[dict[str, str]]:
         "filters": request.filters.model_dump(exclude_none=True) if request.filters else None,
         "max_steps": request.max_steps,
         "tools": [tool.model_dump(mode="json") for tool in request.tools],
+        "knowledge_bases": [item.model_dump(mode="json") for item in request.knowledge_bases],
+        "explicit_collection": request.explicit_collection,
+        "max_collections": request.max_collections,
     }
     return [
         {"role": "system", "content": PLANNER_SYSTEM_PROMPT},
