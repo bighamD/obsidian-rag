@@ -2,6 +2,7 @@
 import { Bot, CircleAlert, LoaderCircle, UserRound } from "lucide-vue-next";
 import { nextTick, ref, watch } from "vue";
 
+import ArtifactDownloads from "@/components/ArtifactDownloads.vue";
 import type { ConsoleMessage } from "@/types/production";
 import { formatDateTime, formatDuration, renderSafeMarkdown } from "@/utils/format";
 
@@ -11,6 +12,10 @@ const props = defineProps<{
 }>();
 
 const scrollContainer = ref<HTMLElement | null>(null);
+
+function messageArtifacts(message: ConsoleMessage) {
+  return message.run?.agent_response?.sandbox_artifacts ?? [];
+}
 
 watch(
   () => [
@@ -66,6 +71,10 @@ watch(
         </p>
         <p v-else-if="message.role !== 'assistant'" class="message-content">{{ message.text }}</p>
         <p v-if="message.streamError" class="message-content stream-error">流式连接中断：{{ message.streamError }}</p>
+        <ArtifactDownloads
+          v-if="message.role === 'assistant'"
+          :artifacts="messageArtifacts(message)"
+        />
         <div v-if="message.sources?.length" class="source-row">
           <span v-for="source in message.sources" :key="source" class="source-chip">{{ source }}</span>
         </div>
