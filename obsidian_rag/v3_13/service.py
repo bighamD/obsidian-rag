@@ -105,6 +105,8 @@ class PermissionLearningService:
             question=request.question,
             candidates=candidates,
             skill_name=request.skill_name,
+            skill_names=request.skill_names,
+            selection_mode=request.skill_selection_mode,
             router_enabled=request.skill_router_enabled,
         )
         return SkillRouteDebugResponse(question=request.question, selection=selection)

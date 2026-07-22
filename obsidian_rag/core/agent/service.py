@@ -24,7 +24,7 @@ from obsidian_rag.core.planner import PlannerService
 from obsidian_rag.core.permissions.policy import PermissionPolicy
 from obsidian_rag.core.permissions.schemas import PermissionDecision, PermissionPrincipal, PermissionReport
 from obsidian_rag.core.skills.protocol import SkillResolver
-from obsidian_rag.core.skills.registry import build_skill_context
+from obsidian_rag.core.skills.registry import build_skills_context
 from obsidian_rag.core.skills.schemas import SkillDocument, SkillLoadedSummary, SkillManifest, SkillSelection
 from obsidian_rag.core.schemas import (
     Plan,
@@ -97,6 +97,7 @@ class AgentState(TypedDict, total=False):
     skill_candidates: list[SkillManifest]
     skill_selection: SkillSelection
     loaded_skill: SkillDocument
+    loaded_skills: list[SkillDocument]
     skill_context: str
 
 
@@ -267,6 +268,10 @@ class AgentService:
                 if final_state.get("loaded_skill")
                 else None
             ),
+            loaded_skills=[
+                SkillLoadedSummary.from_document(SkillDocument.model_validate(_model_data(item)))
+                for item in final_state.get("loaded_skills", [])
+            ],
             step_results=[StepResult.model_validate(_model_data(item)) for item in final_state.get("step_results", [])],
             retry_step_results=[
                 StepResult.model_validate(_model_data(item)) for item in final_state.get("retry_step_results", [])
@@ -451,6 +456,8 @@ class AgentService:
                 question=request.question,
                 candidates=state.get("skill_candidates", []),
                 skill_name=getattr(request, "skill_name", None),
+                skill_names=list(getattr(request, "skill_names", []) or []),
+                selection_mode=getattr(request, "skill_selection_mode", "augment"),
                 router_enabled=bool(getattr(request, "skill_router_enabled", True)),
             )
         state["skill_selection"] = selection
@@ -458,11 +465,18 @@ class AgentService:
             AgentTraceStep(
                 node_name="skill_router",
                 step_type="skill",
-                result_count=1 if selection.selected_skill else 0,
+                result_count=len(selection.selected_skills or ([selection.selected_skill] if selection.selected_skill else [])),
                 reason=selection.reason,
                 metadata={
                     "status": selection.status,
                     "selected_skill": selection.selected_skill,
+                    "selected_skills": selection.selected_skills,
+                    "explicit_skills": selection.explicit_skills,
+                    "implicit_skills": selection.implicit_skills,
+                    "router_called": selection.router_called,
+                    "routing_decision": (
+                        selection.routing_decision.model_dump() if selection.routing_decision else None
+                    ),
                     "confidence": selection.confidence,
                     "candidate_names": selection.candidate_names,
                 },
@@ -474,8 +488,10 @@ class AgentService:
         state = _copy_state(state)
         state["graph_path"].append("load_skill")
         selection = state.get("skill_selection")
-        selected_skill = selection.selected_skill if selection else None
-        if not selected_skill or self.skill_resolver is None:
+        selected_skills = list(selection.selected_skills) if selection else []
+        if not selected_skills and selection and selection.selected_skill:
+            selected_skills = [selection.selected_skill]
+        if not selected_skills or self.skill_resolver is None:
             state["trace"].append(
                 AgentTraceStep(
                     node_name="load_skill",
@@ -485,14 +501,20 @@ class AgentService:
                 )
             )
             return state
-        try:
-            document = self.skill_resolver.load(selected_skill)
-        except (KeyError, OSError, ValueError) as exc:
+        documents: list[SkillDocument] = []
+        load_errors: list[str] = []
+        for selected_skill in selected_skills:
+            try:
+                documents.append(self.skill_resolver.load(selected_skill))
+            except (KeyError, OSError, ValueError) as exc:
+                load_errors.append(f"{selected_skill}: {exc}")
+        if not documents:
             state["skill_selection"] = selection.model_copy(
                 update={
                     "status": "router_error",
                     "selected_skill": None,
-                    "reason": f"Skill 加载失败，已跳过方法注入：{exc}",
+                    "selected_skills": [],
+                    "reason": f"Skill 加载失败，已跳过方法注入：{'; '.join(load_errors)}",
                 }
             )
             state["trace"].append(
@@ -501,22 +523,24 @@ class AgentService:
                     step_type="error",
                     result_count=0,
                     reason=state["skill_selection"].reason,
-                    metadata={"error_type": type(exc).__name__},
+                    metadata={"load_errors": load_errors},
                 )
             )
             return state
-        state["loaded_skill"] = document
-        state["skill_context"] = build_skill_context(state["request"].question, document)
+        state["loaded_skill"] = documents[0]
+        state["loaded_skills"] = documents
+        state["skill_context"] = build_skills_context(state["request"].question, documents)
         state["trace"].append(
             AgentTraceStep(
                 node_name="load_skill",
                 step_type="skill",
-                result_count=1,
-                reason=f"已加载 {document.name} 并准备注入 Planner Context。",
+                result_count=len(documents),
+                reason=f"已加载 {len(documents)} 个 Skills 并准备注入 Planner Context。",
                 metadata={
-                    "selected_skill": document.name,
-                    "path": document.path,
-                    "estimated_tokens": document.estimated_tokens,
+                    "selected_skills": [document.name for document in documents],
+                    "paths": [document.path for document in documents],
+                    "estimated_tokens": sum(document.estimated_tokens for document in documents),
+                    "load_errors": load_errors,
                 },
             )
         )

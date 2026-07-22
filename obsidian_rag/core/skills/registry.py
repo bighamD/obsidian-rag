@@ -78,18 +78,30 @@ class SkillRegistry:
         )
 
 
-def build_skill_context(question: str, skill: SkillDocument) -> str:
-    """把已选 Skill 方法正文投影到 Planner 输入，不执行 Skill scripts。"""
+def build_skills_context(question: str, skills: list[SkillDocument]) -> str:
+    """把多个已选 Skill 正文按优先级投影到 Planner，不执行 scripts。"""
 
-    return (
-        "[Selected Skill Context]\n"
-        f"name: {skill.name}\n"
-        f"description: {skill.description}\n"
-        "method:\n"
-        f"{skill.content}\n\n"
-        "[User Question]\n"
-        f"{question}"
-    )
+    sections = []
+    for index, skill in enumerate(skills, start=1):
+        sections.append(
+            "\n".join(
+                [
+                    f"[Selected Skill {index}]",
+                    f"name: {skill.name}",
+                    f"priority: {index}",
+                    f"description: {skill.description}",
+                    "method:",
+                    skill.content,
+                ]
+            )
+        )
+    return "\n\n".join([*sections, "[User Question]\n" + question])
+
+
+def build_skill_context(question: str, skill: SkillDocument) -> str:
+    """兼容旧调用方的单 Skill Context 包装。"""
+
+    return build_skills_context(question, [skill])
 
 
 def _split_front_matter(raw_text: str) -> tuple[dict, str]:

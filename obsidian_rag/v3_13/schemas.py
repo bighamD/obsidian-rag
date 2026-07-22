@@ -10,7 +10,7 @@ from obsidian_rag.core.permissions.schemas import (
     PermissionPrincipal,
     PermissionReport,
 )
-from obsidian_rag.core.skills.schemas import SkillManifest, SkillSelection
+from obsidian_rag.core.skills.schemas import SkillManifest, SkillSelection, SkillSelectionMode
 from obsidian_rag.v3_12_3.schemas import McpTransport
 from obsidian_rag.v3_12.schemas import McpToolCallResponse
 from obsidian_rag.v3_12_4.schemas import RoutedMcpAskRequest
@@ -25,13 +25,22 @@ class PermissionAskRequest(RoutedMcpAskRequest):
     )
     skill_router_enabled: bool = Field(
         default=True,
-        description="是否在 Planner 前调用 Core LLM Skill Router。",
+        description="是否启用隐式 Skill 路由；高置信度由 Matcher 直选，只有候选歧义时调用 LLM。",
     )
     skill_name: str | None = Field(
         default=None,
         min_length=1,
         max_length=120,
-        description="可选的强制 Skill 名称；填写后跳过 LLM Skill Router。",
+        description="兼容旧客户端的单数显式 Skill；新客户端优先使用 skill_names。",
+    )
+    skill_names: list[str] = Field(
+        default_factory=list,
+        max_length=4,
+        description="用户明确指定的 Skills，按顺序作为 Planner 方法优先级并稳定去重。",
+    )
+    skill_selection_mode: SkillSelectionMode = Field(
+        default="augment",
+        description="augment 允许补充隐式 Skill；exclusive 仅使用显式 Skills。",
     )
 
 
@@ -39,8 +48,10 @@ class SkillRouteDebugRequest(BaseModel):
     """只执行 Skill 发现与选择、不进入 Planner 的 Swagger 调试输入。"""
 
     question: str = Field(min_length=1, description="用于选择 Skill 的原始问题。")
-    skill_router_enabled: bool = Field(default=True, description="是否允许调用 LLM Skill Router。")
+    skill_router_enabled: bool = Field(default=True, description="是否启用隐式 Skill 匹配和条件 LLM Router。")
     skill_name: str | None = Field(default=None, min_length=1, description="可选的强制 Skill 名称。")
+    skill_names: list[str] = Field(default_factory=list, max_length=4, description="明确指定的多个 Skills。")
+    skill_selection_mode: SkillSelectionMode = Field(default="augment", description="显式 Skill 的增强或独占模式。")
 
 
 class SkillRouteDebugResponse(BaseModel):
@@ -106,7 +117,7 @@ class PermissionRuntimeConfigResponse(BaseModel):
     collection_routing: bool = Field(description="是否保留 V3.12.4 Collection Router。")
     multi_collection_retrieval: bool = Field(description="是否保留多 Collection 检索。")
     permission_policy_enabled: bool = Field(description="是否在 Tool Executor 前启用统一 Policy。")
-    skill_router_enabled: bool = Field(description="是否在 Planner 前启用 Core Skill Router。")
+    skill_router_enabled: bool = Field(description="是否在 Planner 前启用 Matcher 与条件 LLM Skill Router。")
     decisions: list[Literal["allow", "confirm", "deny"]] = Field(description="当前策略支持的决定类型。")
     approval_resume_enabled: bool = Field(description="是否已支持真正的人工审批暂停和恢复。")
     sandbox_enabled: bool = Field(description="是否已启用隔离执行环境。")

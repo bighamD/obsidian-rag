@@ -124,7 +124,7 @@ V3.14-V3.15  Sandbox、Recovery/HITL（计划）
 | Run Lifecycle / Metrics | V3.10 | V3.10.2 |
 | Agent Console | V3.10.1 | V3.10.2、V3.12.1 |
 | SSE / Answer Streaming | V3.10.2 | V3.12.1 |
-| Skill System | V3.11；V3.13 提升到 Core 主线 | V3.13 |
+| Skill System | V3.11；V3.13 提升到 Core 主线并增加显式多选和条件 Router | V3.13 |
 | Structured Ingestion / Parent-Child | V3.11.1 | V3.11.2、V3.12.2 |
 | Multi-Collection Routing | V3.11.3 | V3.12.4 完整 Agent 集成 |
 | MCP Protocol | V3.12 | V3.12.3 |

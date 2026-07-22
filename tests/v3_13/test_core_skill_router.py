@@ -21,10 +21,22 @@ class FakeSkillResolver:
             )
         ]
 
-    def select(self, *, question, candidates, skill_name, router_enabled):
+    def select(
+        self,
+        *,
+        question,
+        candidates,
+        skill_name,
+        skill_names=None,
+        selection_mode="augment",
+        router_enabled=True,
+    ):
+        selected = list(skill_names or []) or ([skill_name] if skill_name else ["food-safety"])
         return SkillSelection(
-            status="forced" if skill_name else "selected",
-            selected_skill=skill_name or "food-safety",
+            status="forced" if skill_name or skill_names else "selected",
+            selected_skill=selected[0],
+            selected_skills=selected,
+            explicit_skills=selected if skill_name or skill_names else [],
             reason="测试选择。",
             candidate_names=[item.name for item in candidates],
         )
@@ -99,5 +111,6 @@ def test_core_skill_nodes_load_context_before_planner(tmp_path: Path):
     assert response.skill_selection.selected_skill == "food-safety"
     assert response.loaded_skill is not None
     assert response.loaded_skill.name == "food-safety"
-    assert "Selected Skill Context" in planner.question
+    assert [item.name for item in response.loaded_skills] == ["food-safety"]
+    assert "Selected Skill 1" in planner.question
     assert "先检索食品安全知识库" in planner.question

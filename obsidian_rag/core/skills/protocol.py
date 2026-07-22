@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Protocol
 
-from obsidian_rag.core.skills.schemas import SkillDocument, SkillManifest, SkillSelection
+from obsidian_rag.core.skills.schemas import SkillDocument, SkillManifest, SkillSelection, SkillSelectionMode
 
 
 class SkillResolver(Protocol):
@@ -22,7 +22,9 @@ class SkillResolver(Protocol):
         question: str,
         candidates: list[SkillManifest],
         skill_name: str | None,
-        router_enabled: bool,
+        skill_names: list[str] | None = None,
+        selection_mode: SkillSelectionMode = "augment",
+        router_enabled: bool = True,
     ) -> SkillSelection: ...
 
     def load(self, name: str) -> SkillDocument: ...

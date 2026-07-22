@@ -77,7 +77,7 @@ AI Agent = LLM + Harness
 | --- | --- | --- |
 | Context / 上下文 | V3.7、V3.8.1 | V3.7 独立 `ContextBuilder`；V3.8.1 加入滚动摘要和最近对话。 |
 | Tool Calling / 工具调用 | V3.2、V3.3、V3.5 | 已覆盖：模型选择工具、LangGraph 编排、`ToolRegistry` 执行工具。 |
-| Skills / 技能系统 | V3.11 | 已覆盖：Skill Registry、LLM Skill Router、按需加载 `SKILL.md`。 |
+| Skills / 技能系统 | V3.11；V3.13 Core 增强 | 已覆盖：Skill Registry、显式单/多 Skill、Trigger/BM25 候选匹配、条件 LLM Skill Router、按需加载多个 `SKILL.md`。 |
 | MCP / 外部工具协议 | V3.12、V3.12.3 | V3.12 覆盖协议与 Server；V3.12.3 已补配置化连接、Session 复用和完整 Agent 自动选择。 |
 | File I/O / 文件读写 | V0、V1 | 已覆盖基础：Markdown/PDF loader、chunk、ingest。后续不作为 agent 主线重点。 |
 | Shell Execution / 终端执行 | V3.14 Sandbox Execution | 后期只在隔离 Sandbox 中开放，不直接把宿主机 Shell 暴露给模型。 |

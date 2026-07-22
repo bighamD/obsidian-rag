@@ -179,8 +179,9 @@ V3.13 已完成：
 - Local `search_notes`、MCP Tool、retry search 与显式 MCP call 统一经过 `allow/confirm/deny` Policy。
 - `confirm` 和 `deny` 返回结构化 StepResult，不调用 Tool，也不让 Agent 500。
 - PermissionReport 进入 Context、Trace、Audit、JSON/SSE 和共享 Agent Console。
-- 将 V3.11 Skill Registry、LLM Skill Router 和按需加载提升到 `obsidian_rag/core/skills/`，并在 Planner 前接入同一个 Core AgentState。
-- 共享 Console 支持 Skill Router 开关、强制 Skill、候选列表、选择结果和加载摘要。
+- 将 V3.11 Skill Registry、条件 LLM Skill Router 和按需加载提升到 `obsidian_rag/core/skills/`，并在 Planner 前接入同一个 Core AgentState。
+- Core Skill 路由支持显式单/多 Skill、`augment/exclusive`、Trigger/BM25/词项覆盖率候选匹配，以及 `need_llm_skill_router()` 灰区升级策略。
+- 共享 Console 支持输入 `/` 选择显式 Skills，并展示候选分数、显式/隐式来源、Router 是否调用和全部加载摘要。
 - 提供独立 `obsidian_rag/v3_13/`、FastAPI、CLI、测试代码、Guide、SVG 和断点配置。
 
 V3.13 仍然不做：
