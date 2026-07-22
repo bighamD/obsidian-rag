@@ -133,7 +133,7 @@ V3.12.2 Retrieval Reranking：系统能扩大 RRF 候选、使用 matched child 
 V3.12.3 MCP Agent Integration：系统能复用 MCP 连接，让 Planner 自动选择只读 MCP Tool，并把 Tool Observation 送入 Context
 V3.12.4 Unified Knowledge Routing：系统能在 Planner 确认 search 后选择知识库范围，并对跨库候选统一 Rerank
 V3.13 Permission Policy：系统能在执行前判断 allow / confirm / deny（已完成静态策略版）
-V3.14 Sandbox Execution：系统能在隔离环境中执行文件和 Shell 工具
+V3.14 Sandbox Execution：系统能在 Docker 隔离环境中执行受控文件和白名单命令（已完成）
 V3.15 Recovery & HITL：系统能从中断和失败中恢复并等待人工输入
 ```
 
@@ -1044,13 +1044,16 @@ V3.12.4 将 V3.11.3 Collection Router、V3.12.2 Multi-Collection Reranking 与 V
 - 网络访问开关和环境变量白名单。
 - 将生成文件登记为 Artifacts，并在 response/trace 中返回元数据。
 - 所有 Sandbox Tool Call 先经过 V3.13 Policy Engine。
-- V3.13 已将 V3.11 的 Skill Registry、LLM Skill Router 和懒加载提升到 `obsidian_rag/core/skills/`；Skill Context 在 Planner 前进入同一个 AgentState，仍不执行 scripts。
+- V3.13 已将 V3.11 的 Skill Registry 和懒加载提升到 `obsidian_rag/core/skills/`；显式单/多 Skill 先确定，隐式候选经过 Trigger、BM25 和词项覆盖率匹配，仅在候选灰区或相互竞争时调用 LLM Skill Router。最终 Skill Context 在 Planner 前进入同一个 AgentState，仍不执行 scripts。
+
+V3.14 已完成：新增 `obsidian_rag/core/sandbox/`，实现每 Run Workspace、路径逃逸和 Symlink 防护、短生命周期 Docker Container、`network=none`、只读根文件系统、Capability/CPU/内存/PID/超时/输出限制，以及 Artifact 的 hash、MIME、列表和下载。四个 `sandbox::*` Tool 进入统一 Registry、Planner Catalog、V3.13 Policy、Tool Observation、JSON/SSE 和共享 Agent Console。
 
 版本边界：
 
 - 不直接暴露任意宿主机 Shell。
 - 第一版只支持少量白名单命令和临时目录。
 - Secret 不进入普通 AgentState、trace 或工具输出。
+- Docker 不可用时 fail closed，不降级成宿主机 `subprocess`。
 
 ## Phase 12：Recovery & HITL
 

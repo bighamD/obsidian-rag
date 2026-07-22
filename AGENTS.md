@@ -101,7 +101,7 @@ docs/assets/rag-v3-4-planner-flow.svg
 已完成到：
 
 ```text
-V3.13 Permission Policy
+V3.14 Sandbox Execution
 ```
 
 V3.12 在 V3.11 Skill System 之后增加标准化外部工具协议：
@@ -190,10 +190,25 @@ V3.13 仍然不做：
 - 不开放真实文件写入、宿主机 Shell、Sandbox、多租户认证或持久化审计数据库。
 - 不执行 Skill `scripts/` 或 `assets/`，Skill 仍然只是 Planner 方法上下文。
 
+V3.14 已完成：
+
+- 新增 `obsidian_rag/core/sandbox/`，使用短生命周期 Docker Container 提供真实隔离。
+- 每个 Agent Run 使用独立 Workspace，拒绝绝对路径、目录逃逸和 Symlink 穿透。
+- 提供 `sandbox::read_file`、`write_file`、`list_files`、`run_command`，所有调用继续经过 V3.13 Policy。
+- 默认关闭网络，使用只读根文件系统、`cap-drop=ALL`、`no-new-privileges`、CPU/内存/PID/超时和输出限制。
+- 生成文件登记为 Artifact，进入 JSON/SSE、下载接口和共享 Agent Console。
+- Docker 不可用时返回 unavailable，不降级成宿主机 Shell。
+
+V3.14 仍然不做：
+
+- 不开放 `bash -c`、`sh -c`、宿主机任意 Shell 或项目目录写入。
+- 不执行 Skill `scripts/`，不实现 Container Pool、多租户调度或持久 Artifact 元数据数据库。
+- 不实现 `confirm → interrupt → resume`，该能力进入 V3.15。
+
 V3.10.3 和 V3.11.1-V3.11.3 是已完成的扩展学习版本，不改变当前主线。下一阶段建议：
 
 ```text
-V3.14 Sandbox Execution
+V3.15 Recovery & HITL
 ```
 
 ## CodeGraph

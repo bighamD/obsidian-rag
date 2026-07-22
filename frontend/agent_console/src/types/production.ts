@@ -1,6 +1,6 @@
 export type SearchMode = "dense" | "keyword" | "hybrid";
 export type RunStatus = "queued" | "running" | "succeeded" | "failed";
-export type PermissionProfile = "standard" | "knowledge_only" | "restricted";
+export type PermissionProfile = "standard" | "knowledge_only" | "restricted" | "sandbox";
 export type AgentProgressPhase =
   | "memory"
   | "skill"
@@ -28,7 +28,9 @@ export interface AgentOptions {
   mcpEnabled: boolean;
   permissionProfile: PermissionProfile;
   skillRouterEnabled: boolean;
-  skillName: string;
+  skillNames: string[];
+  skillSelectionMode: "augment" | "exclusive";
+  sandboxEnabled: boolean;
   memoryWindow: number;
   memoryCompactionEnabled: boolean;
   memoryCompactionTriggerTurns: number;
@@ -51,6 +53,9 @@ export interface AgentAskPayload {
   principal: PermissionPrincipal;
   skill_router_enabled: boolean;
   skill_name: string | null;
+  skill_names: string[];
+  skill_selection_mode: "augment" | "exclusive";
+  sandbox_enabled: boolean;
   memory_window: number;
   memory_compaction_enabled: boolean;
   memory_compaction_trigger_turns: number;
@@ -294,6 +299,9 @@ export interface AgentResponse {
   permission_report: PermissionReport | null;
   skill_selection: SkillSelection | null;
   loaded_skill: SkillLoadedSummary | null;
+  loaded_skills: SkillLoadedSummary[];
+  sandbox_workspace_id: string | null;
+  sandbox_artifacts: ArtifactRecord[];
   step_results: StepResult[];
   retry_step_results: StepResult[];
   evidence_check: {
@@ -353,9 +361,32 @@ export interface SkillManifest {
 export interface SkillSelection {
   status: "selected" | "forced" | "no_skill" | "disabled" | "invalid_selection" | "router_error";
   selected_skill: string | null;
+  selected_skills: string[];
+  explicit_skills: string[];
+  implicit_skills: string[];
   reason: string;
   confidence: number | null;
   candidate_names: string[];
+  candidates: SkillCandidate[];
+  routing_decision: SkillRoutingDecision | null;
+  router_called: boolean;
+}
+
+export interface SkillCandidate {
+  name: string;
+  score: number;
+  bm25_score: number;
+  overlap_score: number;
+  trigger_score: number;
+  matched_triggers: string[];
+}
+
+export interface SkillRoutingDecision {
+  path: "no_skill" | "direct" | "llm_router" | "explicit_only" | "disabled";
+  selected_skill_names: string[];
+  reason: string;
+  top_score: number | null;
+  score_margin: number | null;
 }
 
 export interface SkillLoadedSummary extends SkillManifest {
@@ -366,6 +397,51 @@ export interface SkillRuntimeResponse {
   root: string;
   skills: SkillManifest[];
   errors: string[];
+}
+
+export interface ArtifactRecord {
+  artifact_id: string;
+  run_id: string;
+  relative_path: string;
+  mime_type: string;
+  size_bytes: number;
+  sha256: string;
+  created_at: string;
+}
+
+export interface SandboxProfile {
+  name: string;
+  image: string;
+  network_disabled: boolean;
+  read_only_root: boolean;
+  timeout_seconds: number;
+  max_output_bytes: number;
+  max_file_bytes: number;
+  memory_mb: number;
+  cpus: number;
+  pids_limit: number;
+  allowed_commands: string[];
+}
+
+export interface SandboxRuntimeStatus {
+  backend: "docker";
+  available: boolean;
+  docker_version: string | null;
+  workspace_root: string;
+  profile: SandboxProfile;
+  error: string | null;
+}
+
+export interface SandboxRuntimeConfigResponse {
+  version: "v3.14";
+  json_endpoint: string;
+  stream_endpoint: string;
+  sandbox_call_endpoint: string;
+  artifacts_endpoint: string;
+  sandbox: SandboxRuntimeStatus;
+  permission_policy_enabled: boolean;
+  skill_router_enabled: boolean;
+  approval_resume_enabled: boolean;
 }
 
 export interface ProductionAskResponse {
@@ -412,6 +488,7 @@ export interface ConsoleConfigResponse {
     collection_routing?: boolean;
     permission_policy?: boolean;
     skills?: boolean;
+    sandbox?: boolean;
   };
   endpoints: {
     ask: string;
@@ -422,6 +499,8 @@ export interface ConsoleConfigResponse {
     mcp_runtime?: string | null;
     collection_runtime?: string | null;
     skills_runtime?: string | null;
+    sandbox_runtime?: string | null;
+    sandbox_artifacts?: string | null;
   };
   default_memory_window: number;
 }

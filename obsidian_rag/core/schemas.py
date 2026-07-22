@@ -10,6 +10,7 @@ from obsidian_rag.config import COLLECTION_NAME_PATTERN
 from obsidian_rag.core.collections.schemas import RetrievalScope
 from obsidian_rag.core.permissions.schemas import PermissionReport
 from obsidian_rag.core.skills.schemas import SkillLoadedSummary, SkillSelection
+from obsidian_rag.core.sandbox.schemas import ArtifactRecord
 from obsidian_rag.v1.schemas import SearchFilters, SearchHit, SearchMode
 
 PlanStepKind = Literal["search", "tool", "synthesize", "no_search", "clarify"]
@@ -469,6 +470,18 @@ class AgentAskResponse(BaseModel):
     loaded_skill: SkillLoadedSummary | None = Field(
         default=None,
         description="实际注入 Planner Context 的 Skill 摘要，不包含 SKILL.md 完整正文。",
+    )
+    loaded_skills: list[SkillLoadedSummary] = Field(
+        default_factory=list,
+        description="实际注入 Planner Context 的全部 Skill 摘要；loaded_skill 保留为第一个兼容值。",
+    )
+    sandbox_workspace_id: str | None = Field(
+        default=None,
+        description="V3.14 Sandbox 使用的独立 Workspace ID；未启用 Sandbox 时为空。",
+    )
+    sandbox_artifacts: list[ArtifactRecord] = Field(
+        default_factory=list,
+        description="本轮 Sandbox Workspace 中登记的可下载文件。",
     )
     step_results: list[StepResult] = Field(description="初始计划各步骤的执行结果。")
     retry_step_results: list[StepResult] = Field(description="Evidence 不足后补搜产生的步骤结果。")

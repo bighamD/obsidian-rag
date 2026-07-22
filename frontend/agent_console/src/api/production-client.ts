@@ -10,6 +10,7 @@ import type {
   ProductionAskResponse,
   RunRecord,
   SkillRuntimeResponse,
+  SandboxRuntimeConfigResponse,
 } from "@/types/production";
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? "/api";
@@ -144,9 +145,26 @@ export async function streamAgent(
 }
 
 export function normalizeProductionResponse(response: ProductionAskResponse): ProductionAskResponse {
+  const agent = response.agent_response ?? response.skill_result?.agent_response ?? null;
+  if (agent?.skill_selection) {
+    const selection = agent.skill_selection;
+    selection.selected_skills = selection.selected_skills?.length
+      ? selection.selected_skills
+      : selection.selected_skill ? [selection.selected_skill] : [];
+    selection.explicit_skills = selection.explicit_skills ?? [];
+    selection.implicit_skills = selection.implicit_skills ?? [];
+    selection.candidates = selection.candidates ?? [];
+    selection.routing_decision = selection.routing_decision ?? null;
+    selection.router_called = selection.router_called ?? false;
+  }
+  if (agent) {
+    agent.loaded_skills = agent.loaded_skills?.length
+      ? agent.loaded_skills
+      : agent.loaded_skill ? [agent.loaded_skill] : [];
+  }
   return {
     ...response,
-    agent_response: response.agent_response ?? response.skill_result?.agent_response ?? null,
+    agent_response: agent,
   };
 }
 
@@ -168,6 +186,10 @@ export async function fetchCollectionRuntime(path = "/collections/runtime"): Pro
 
 export async function fetchSkillRuntime(path = "/skills/runtime"): Promise<SkillRuntimeResponse> {
   return request<SkillRuntimeResponse>(path);
+}
+
+export async function fetchSandboxRuntime(path = "/sandbox/runtime"): Promise<SandboxRuntimeConfigResponse> {
+  return request<SandboxRuntimeConfigResponse>(path);
 }
 
 export async function fetchConversation(

@@ -19,6 +19,7 @@ def create_console_router(
     collection_routing: bool = False,
     permission_policy: bool = False,
     skills: bool = False,
+    sandbox: bool = False,
 ) -> APIRouter:
     """为共享 console.v1 契约创建带正确学习版本回显的 Router。"""
 
@@ -41,6 +42,7 @@ def create_console_router(
                 collection_routing=collection_routing,
                 permission_policy=permission_policy,
                 skills=skills,
+                sandbox=sandbox,
             ),
             endpoints=ConsoleEndpoints(
                 ask="/agent/ask",
@@ -51,6 +53,8 @@ def create_console_router(
                 mcp_runtime="/mcp/runtime" if mcp_tools else None,
                 collection_runtime="/collections/runtime" if collection_routing else None,
                 skills_runtime="/skills/runtime" if skills else None,
+                sandbox_runtime="/sandbox/runtime" if sandbox else None,
+                sandbox_artifacts="/sandbox/artifacts/{run_id}" if sandbox else None,
             ),
             default_memory_window=3,
         )

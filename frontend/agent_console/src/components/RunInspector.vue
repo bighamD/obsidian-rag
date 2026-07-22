@@ -19,6 +19,7 @@ import CollectionRoutingPanel from "@/components/CollectionRoutingPanel.vue";
 import McpRuntimePanel from "@/components/McpRuntimePanel.vue";
 import PermissionPanel from "@/components/PermissionPanel.vue";
 import SkillPanel from "@/components/SkillPanel.vue";
+import SandboxPanel from "@/components/SandboxPanel.vue";
 import type {
   McpLiveToolEvent,
   CollectionRuntimeResponse,
@@ -27,6 +28,7 @@ import type {
   ProductionAskResponse,
   StepResult,
   SkillRuntimeResponse,
+  SandboxRuntimeConfigResponse,
 } from "@/types/production";
 import { formatDateTime, formatDuration, shortId, statusLabel } from "@/utils/format";
 
@@ -38,9 +40,10 @@ const props = defineProps<{
   liveToolEvents: McpLiveToolEvent[];
   response: ProductionAskResponse | null;
   skillRuntime: SkillRuntimeResponse | null;
+  sandboxRuntime: SandboxRuntimeConfigResponse | null;
 }>();
 
-const activeTab = ref<"overview" | "skill" | "plan" | "collections" | "permission" | "evidence" | "context" | "mcp">("overview");
+const activeTab = ref<"overview" | "skill" | "plan" | "collections" | "permission" | "sandbox" | "evidence" | "context" | "mcp">("overview");
 
 const agent = computed(() => props.response?.agent_response ?? null);
 const run = computed(() => props.response?.run ?? null);
@@ -65,6 +68,8 @@ const showCollectionsTab = computed(
 );
 const showPermissionTab = computed(() => Boolean(agent.value?.permission_report));
 const showSkillTab = computed(() => Boolean(props.skillRuntime || agent.value?.skill_selection));
+const sandboxObservations = computed(() => toolObservations.value.filter((item) => item.source === "sandbox"));
+const showSandboxTab = computed(() => Boolean(props.sandboxRuntime || agent.value?.sandbox_artifacts?.length || sandboxObservations.value.length));
 const timeline = computed(() => {
   if (!run.value) {
     return [];
@@ -117,6 +122,7 @@ function toolCalls(toolName: string): StepResult[] {
       <button :class="{ active: activeTab === 'plan' }" role="tab" @click="activeTab = 'plan'">计划与工具</button>
       <button v-if="showCollectionsTab" :class="{ active: activeTab === 'collections' }" role="tab" @click="activeTab = 'collections'">知识库</button>
       <button v-if="showPermissionTab" :class="{ active: activeTab === 'permission' }" role="tab" @click="activeTab = 'permission'">权限</button>
+      <button v-if="showSandboxTab" :class="{ active: activeTab === 'sandbox' }" role="tab" @click="activeTab = 'sandbox'">Sandbox</button>
       <button :class="{ active: activeTab === 'evidence' }" role="tab" @click="activeTab = 'evidence'">证据</button>
       <button :class="{ active: activeTab === 'context' }" role="tab" @click="activeTab = 'context'">上下文</button>
       <button v-if="showMcpTab" :class="{ active: activeTab === 'mcp' }" role="tab" @click="activeTab = 'mcp'">MCP</button>
@@ -176,6 +182,7 @@ function toolCalls(toolName: string): StepResult[] {
           :runtime="skillRuntime"
           :selection="agent?.skill_selection ?? null"
           :loaded-skill="agent?.loaded_skill ?? null"
+          :loaded-skills="agent?.loaded_skills ?? []"
         />
       </section>
 
@@ -214,6 +221,15 @@ function toolCalls(toolName: string): StepResult[] {
 
       <section v-else-if="activeTab === 'permission'" class="inspector-section">
         <PermissionPanel :report="agent?.permission_report ?? null" />
+      </section>
+
+      <section v-else-if="activeTab === 'sandbox'" class="inspector-section">
+        <SandboxPanel
+          :runtime="sandboxRuntime"
+          :workspace-id="agent?.sandbox_workspace_id ?? null"
+          :artifacts="agent?.sandbox_artifacts ?? []"
+          :observations="sandboxObservations"
+        />
       </section>
 
       <section v-else-if="activeTab === 'evidence'" class="inspector-section">

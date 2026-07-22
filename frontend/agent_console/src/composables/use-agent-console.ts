@@ -11,6 +11,7 @@ import {
   fetchMcpRuntime,
   fetchRuns,
   fetchSkillRuntime,
+  fetchSandboxRuntime,
   normalizeProductionResponse,
   streamAgent,
 } from "@/api/production-client";
@@ -31,6 +32,7 @@ import type {
   ProductionAskResponse,
   RunRecord,
   SkillRuntimeResponse,
+  SandboxRuntimeConfigResponse,
 } from "@/types/production";
 
 const MAX_SESSIONS = 50;
@@ -44,7 +46,9 @@ const defaultOptions: AgentOptions = {
   mcpEnabled: true,
   permissionProfile: "standard",
   skillRouterEnabled: true,
-  skillName: "",
+  skillNames: [],
+  skillSelectionMode: "augment",
+  sandboxEnabled: true,
   memoryWindow: 3,
   memoryCompactionEnabled: true,
   memoryCompactionTriggerTurns: 4,
@@ -73,6 +77,7 @@ export function useAgentConsole() {
   const mcpRuntime = ref<McpRuntimeResponse | null>(null);
   const collectionRuntime = ref<CollectionRuntimeResponse | null>(null);
   const skillRuntime = ref<SkillRuntimeResponse | null>(null);
+  const sandboxRuntime = ref<SandboxRuntimeConfigResponse | null>(null);
   const liveToolEvents = ref<McpLiveToolEvent[]>([]);
   const deletingConversationId = ref<string | null>(null);
   const options = reactive<AgentOptions>({ ...defaultOptions });
@@ -105,6 +110,7 @@ export function useAgentConsole() {
       refreshMcpRuntime(),
       refreshCollectionRuntime(),
       refreshSkillRuntime(),
+      refreshSandboxRuntime(),
     ]);
     await refreshConversationList({ initial, hydrateActive: true });
   }
@@ -184,6 +190,21 @@ export function useAgentConsole() {
       skillRuntime.value = await fetchSkillRuntime(path);
     } catch {
       skillRuntime.value = null;
+    }
+  }
+
+  async function refreshSandboxRuntime() {
+    const path = consoleConfig.value?.features.sandbox
+      ? consoleConfig.value.endpoints.sandbox_runtime
+      : null;
+    if (!path) {
+      sandboxRuntime.value = null;
+      return;
+    }
+    try {
+      sandboxRuntime.value = await fetchSandboxRuntime(path);
+    } catch {
+      sandboxRuntime.value = null;
     }
   }
 
@@ -341,6 +362,7 @@ export function useAgentConsole() {
         refreshMcpRuntime(),
         refreshCollectionRuntime(),
         refreshSkillRuntime(),
+        refreshSandboxRuntime(),
         assistant?.memory_write.saved ? refreshConversationList() : Promise.resolve(false),
       ]);
     } catch (error) {
@@ -421,6 +443,7 @@ export function useAgentConsole() {
     refreshWorkspace,
     requestError,
     response,
+    sandboxRuntime,
     skillRuntime,
     selectConversation,
     sessions,
@@ -561,7 +584,10 @@ export function buildAgentAskPayload(
     mcp_enabled: options.mcpEnabled,
     principal: principalForProfile(options.permissionProfile),
     skill_router_enabled: options.skillRouterEnabled,
-    skill_name: options.skillName.trim() || null,
+    skill_name: options.skillNames[0] ?? null,
+    skill_names: [...new Set(options.skillNames)],
+    skill_selection_mode: options.skillSelectionMode,
+    sandbox_enabled: options.sandboxEnabled,
     memory_window: options.memoryWindow,
     memory_compaction_enabled: options.memoryCompactionEnabled,
     memory_compaction_trigger_turns: options.memoryCompactionTriggerTurns,
@@ -577,6 +603,15 @@ export function buildAgentAskPayload(
 }
 
 function principalForProfile(profile: AgentOptions["permissionProfile"]): AgentAskPayload["principal"] {
+  if (profile === "sandbox") {
+    return {
+      subject_id: "console_sandbox",
+      roles: ["user"],
+      permissions: ["knowledge.read", "tool.read", "sandbox.read", "sandbox.write", "sandbox.execute"],
+      tool_allowlist: ["search_notes", "demo::*", "sandbox::*"],
+      allowed_collections: ["*"],
+    };
+  }
   if (profile === "knowledge_only") {
     return {
       subject_id: "console_knowledge_only",

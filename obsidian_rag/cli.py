@@ -460,6 +460,35 @@ def main() -> None:
     agent313_audit.add_argument("--limit", type=int, default=20)
     agent313_audit.add_argument("--api-base", default="http://127.0.0.1:8022")
 
+    agent314_parser = subparsers.add_parser(
+        "agent-v3-14",
+        help="Run V3.14 Docker Sandbox Agent and explicit Sandbox tools",
+    )
+    agent314_subparsers = agent314_parser.add_subparsers(dest="agent314_command", required=True)
+    agent314_ask = agent314_subparsers.add_parser("ask", help="Run the Sandbox-aware Agent JSON or SSE")
+    _add_production_ask_arguments(agent314_ask, "已迁移到 MySQL，此参数仅为旧 CLI 兼容保留")
+    agent314_ask.add_argument("--collection")
+    agent314_ask.add_argument("--disable-collection-router", action="store_true")
+    agent314_ask.add_argument("--max-collections", type=int, default=2, choices=[1, 2, 3])
+    agent314_ask.add_argument("--disable-mcp", action="store_true")
+    agent314_ask.add_argument("--mcp-tool-name", action="append", dest="mcp_tool_names")
+    agent314_ask.add_argument("--disable-sandbox", action="store_true")
+    agent314_ask.add_argument("--disable-skill-router", action="store_true")
+    agent314_ask.add_argument("--skill-name")
+    agent314_ask.add_argument(
+        "--principal-profile",
+        choices=["standard", "knowledge-only", "restricted", "sandbox"],
+        default="standard",
+    )
+    agent314_ask.add_argument("--json", action="store_true")
+    agent314_ask.add_argument("--api-base", default="http://127.0.0.1:8023")
+    agent314_sandbox = agent314_subparsers.add_parser("sandbox", help="Call one Sandbox Tool through Policy")
+    agent314_sandbox.add_argument("tool_name", choices=["read_file", "write_file", "list_files", "run_command"])
+    agent314_sandbox.add_argument("--run-id", default="sandbox_cli_debug")
+    agent314_sandbox.add_argument("--arguments", default="{}")
+    agent314_sandbox.add_argument("--principal-profile", choices=["standard", "restricted", "sandbox"], default="sandbox")
+    agent314_sandbox.add_argument("--api-base", default="http://127.0.0.1:8023")
+
     agent3103_parser = subparsers.add_parser("agent-v3-10-3", help="Run V3.10.3 LangGraph Advanced Patterns")
     agent3103_subparsers = agent3103_parser.add_subparsers(dest="agent3103_command", required=True)
     agent3103_ask_parser = agent3103_subparsers.add_parser("ask", help="Call the Advanced Graph JSON or SSE endpoint")
@@ -954,6 +983,45 @@ def main() -> None:
         )
         return
 
+    if args.command == "agent-v3-14" and args.agent314_command == "ask":
+        run_agent3121_ask(
+            question=args.question,
+            conversation_id=args.conversation_id,
+            collection=args.collection,
+            memory_window=args.memory_window,
+            memory_compaction_enabled=not args.disable_memory_compaction,
+            memory_compaction_trigger_turns=args.memory_compaction_trigger_turns,
+            memory_compaction_trigger_tokens=args.memory_compaction_trigger_tokens,
+            top_k=args.top_k,
+            mode=args.mode,
+            max_steps=args.max_steps,
+            max_retries=args.max_retries,
+            filter_path=args.filter_path,
+            context_max_chunks=args.context_max_chunks,
+            context_token_budget=args.context_token_budget,
+            api_base=args.api_base,
+            stream=not args.json,
+            mcp_enabled=not args.disable_mcp,
+            mcp_tool_names=args.mcp_tool_names,
+            collection_router_enabled=not args.disable_collection_router,
+            max_collections=args.max_collections,
+            principal=_permission_principal(args.principal_profile),
+            sandbox_enabled=not args.disable_sandbox,
+            skill_router_enabled=not args.disable_skill_router,
+            skill_name=args.skill_name,
+        )
+        return
+
+    if args.command == "agent-v3-14":
+        run_agent314_sandbox(
+            api_base=args.api_base,
+            tool_name=args.tool_name,
+            run_id=args.run_id,
+            arguments_json=args.arguments,
+            principal_profile=args.principal_profile,
+        )
+        return
+
     if args.command == "agent-v3-10-3" and args.agent3103_command == "ask":
         run_agent3103_ask(
             question=args.question,
@@ -1053,6 +1121,9 @@ def run_agent3121_ask(
     collection_router_enabled: bool | None = None,
     max_collections: int | None = None,
     principal: dict | None = None,
+    sandbox_enabled: bool | None = None,
+    skill_router_enabled: bool | None = None,
+    skill_name: str | None = None,
 ) -> None:
     """调用 V3.12.1 公共 Core；SSE 只打印最终可见 answer_delta。"""
 
@@ -1080,6 +1151,11 @@ def run_agent3121_ask(
         payload["max_collections"] = max_collections or 2
     if principal is not None:
         payload["principal"] = principal
+    if sandbox_enabled is not None:
+        payload["sandbox_enabled"] = sandbox_enabled
+    if skill_router_enabled is not None:
+        payload["skill_router_enabled"] = skill_router_enabled
+        payload["skill_name"] = skill_name
     base = api_base.rstrip("/")
     if not stream:
         response = httpx.post(f"{base}/agent/ask", json=payload, timeout=None)
@@ -1246,6 +1322,20 @@ def _permission_principal(profile: str) -> dict:
             "tool_allowlist": ["search_notes", "demo::*", "local::*"],
             "allowed_collections": ["*"],
         }
+    if profile == "sandbox":
+        return {
+            "subject_id": "cli_sandbox",
+            "roles": ["user"],
+            "permissions": [
+                "knowledge.read",
+                "tool.read",
+                "sandbox.read",
+                "sandbox.write",
+                "sandbox.execute",
+            ],
+            "tool_allowlist": ["search_notes", "demo::*", "sandbox::*"],
+            "allowed_collections": ["*"],
+        }
     return {
         "subject_id": "cli_standard",
         "roles": ["user"],
@@ -1253,6 +1343,31 @@ def _permission_principal(profile: str) -> dict:
         "tool_allowlist": ["search_notes", "demo::*"],
         "allowed_collections": ["*"],
     }
+
+
+def run_agent314_sandbox(
+    *,
+    api_base: str,
+    tool_name: str,
+    run_id: str,
+    arguments_json: str,
+    principal_profile: str,
+) -> None:
+    arguments = json.loads(arguments_json)
+    if not isinstance(arguments, dict):
+        raise ValueError("--arguments 必须解析为 JSON object")
+    response = httpx.post(
+        f"{api_base.rstrip('/')}/sandbox/call",
+        json={
+            "run_id": run_id,
+            "name": f"sandbox::{tool_name}",
+            "arguments": arguments,
+            "principal": _permission_principal(principal_profile),
+        },
+        timeout=None,
+    )
+    response.raise_for_status()
+    print(json.dumps(response.json(), ensure_ascii=False, indent=2))
 
 
 def run_agent3122_rerank(

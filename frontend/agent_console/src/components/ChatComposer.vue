@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { ChevronDown, Send, Settings2, X } from "lucide-vue-next";
-import { ref } from "vue";
+import { computed, shallowRef } from "vue";
 
-import type { AgentOptions, SearchMode } from "@/types/production";
+import SkillPicker from "@/components/SkillPicker.vue";
+import type { AgentOptions, SearchMode, SkillManifest } from "@/types/production";
 
 const props = defineProps<{
   disabled: boolean;
@@ -11,7 +12,8 @@ const props = defineProps<{
   mcpAvailable: boolean;
   permissionAvailable: boolean;
   skillAvailable: boolean;
-  skillNames: string[];
+  skills: SkillManifest[];
+  sandboxAvailable: boolean;
   modelValue: string;
   options: AgentOptions;
 }>();
@@ -22,7 +24,23 @@ const emit = defineEmits<{
   submit: [];
 }>();
 
-const settingsOpen = ref(false);
+const settingsOpen = shallowRef(false);
+const activeSkillIndex = shallowRef(0);
+
+const slashMatch = computed(() => props.modelValue.match(/(?:^|\s)\/([a-z0-9_-]*)$/i));
+const slashQuery = computed(() => slashMatch.value?.[1]?.toLowerCase() ?? "");
+const skillCandidates = computed(() => {
+  if (!props.skillAvailable || !slashMatch.value) {
+    return [];
+  }
+  return props.skills
+    .filter((skill) => !props.options.skillNames.includes(skill.name))
+    .filter((skill) => {
+      const query = slashQuery.value;
+      return !query || skill.name.toLowerCase().includes(query) || skill.description.toLowerCase().includes(query);
+    })
+    .slice(0, 8);
+});
 
 function updateOption<Key extends keyof AgentOptions>(key: Key, value: AgentOptions[Key]) {
   emit("update:options", { ...props.options, [key]: value });
@@ -35,10 +53,50 @@ function submit() {
 }
 
 function submitOnEnter(event: KeyboardEvent) {
+  if (skillCandidates.value.length) {
+    if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+      event.preventDefault();
+      const direction = event.key === "ArrowDown" ? 1 : -1;
+      activeSkillIndex.value = (
+        activeSkillIndex.value + direction + skillCandidates.value.length
+      ) % skillCandidates.value.length;
+      return;
+    }
+    if (event.key === "Enter" && !event.shiftKey) {
+      event.preventDefault();
+      selectSkill(skillCandidates.value[activeSkillIndex.value]?.name);
+      return;
+    }
+  }
   if (event.key === "Enter" && !event.shiftKey) {
     event.preventDefault();
     submit();
   }
+}
+
+function updateQuestion(value: string) {
+  activeSkillIndex.value = 0;
+  emit("update:modelValue", value);
+}
+
+function selectSkill(name: string | undefined) {
+  if (!name) {
+    return;
+  }
+  updateOption("skillNames", [...new Set([...props.options.skillNames, name])]);
+  const match = slashMatch.value;
+  if (match && match.index !== undefined) {
+    const prefix = props.modelValue.slice(0, match.index).trimEnd();
+    updateQuestion(prefix ? `${prefix} ` : "");
+  }
+}
+
+function removeSkill(name: string) {
+  updateOption("skillNames", props.options.skillNames.filter((item) => item !== name));
+}
+
+function selectSkillFromSettings(value: string) {
+  selectSkill(value || undefined);
 }
 </script>
 
@@ -94,26 +152,37 @@ function submitOnEnter(event: KeyboardEvent) {
             <option value="standard">标准只读</option>
             <option value="knowledge_only">仅知识库</option>
             <option value="restricted">受限主体</option>
+            <option v-if="sandboxAvailable" value="sandbox">Sandbox 执行</option>
           </select>
         </label>
         <label v-if="skillAvailable">
-          <span>强制 Skill</span>
-          <input
-            :value="options.skillName"
-            list="skill-options"
-            placeholder="留空使用自动路由"
-            :disabled="disabled"
-            @input="updateOption('skillName', ($event.target as HTMLInputElement).value)"
-          />
-          <datalist id="skill-options">
-            <option v-for="name in skillNames" :key="name" :value="name" />
-          </datalist>
+          <span>添加显式 Skill</span>
+          <select :disabled="disabled" value="" @change="selectSkillFromSettings(($event.target as HTMLSelectElement).value); ($event.target as HTMLSelectElement).value = ''">
+            <option value="">选择 Skill</option>
+            <option v-for="skill in skills" :key="skill.name" :value="skill.name" :disabled="options.skillNames.includes(skill.name)">{{ skill.name }}</option>
+          </select>
+        </label>
+        <label v-if="skillAvailable">
+          <span>Skill 选择模式</span>
+          <select :value="options.skillSelectionMode" :disabled="disabled" @change="updateOption('skillSelectionMode', ($event.target as HTMLSelectElement).value as AgentOptions['skillSelectionMode'])">
+            <option value="augment">显式 + 隐式补充</option>
+            <option value="exclusive">仅显式 Skills</option>
+          </select>
         </label>
         <label v-if="skillAvailable" class="toggle-setting"><span>Skill Router</span><input :checked="options.skillRouterEnabled" :disabled="disabled" type="checkbox" @change="updateOption('skillRouterEnabled', ($event.target as HTMLInputElement).checked)" /></label>
+        <label v-if="sandboxAvailable" class="toggle-setting"><span>Sandbox Tools</span><input :checked="options.sandboxEnabled" :disabled="disabled" type="checkbox" @change="updateOption('sandboxEnabled', ($event.target as HTMLInputElement).checked)" /></label>
       </div>
       <button class="drawer-collapse" type="button" @click="settingsOpen = false"><ChevronDown :size="15" /> 收起参数</button>
     </div>
 
+    <SkillPicker
+      v-if="skillAvailable"
+      :active-index="activeSkillIndex"
+      :candidates="skillCandidates"
+      :selected-names="options.skillNames"
+      @remove="removeSkill"
+      @select="selectSkill"
+    />
     <div class="composer">
       <textarea
         :value="modelValue"
@@ -121,7 +190,7 @@ function submitOnEnter(event: KeyboardEvent) {
         rows="2"
         aria-label="输入问题"
         placeholder="输入问题"
-        @input="emit('update:modelValue', ($event.target as HTMLTextAreaElement).value)"
+        @input="updateQuestion(($event.target as HTMLTextAreaElement).value)"
         @keydown="submitOnEnter"
       />
       <div class="composer-actions">
