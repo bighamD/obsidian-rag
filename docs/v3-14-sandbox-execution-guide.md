@@ -20,6 +20,17 @@ V3.14：PlanStep → PermissionDecision → Sandbox Tool Executor → Docker →
 - Artifact 的 MIME、size、SHA-256、列表和下载接口。
 - Agent Console 的 Sandbox Profile、Tool Result 和 Artifact 页签。
 
+### Core Tool Agent 收敛
+
+V3.14 同步把 V3.12.3 已稳定复用的 Tool Catalog、`kind="tool"` 执行、
+`ToolObservation`、Tool Evidence 和 Answer 汇总提升到
+`obsidian_rag/core/agent/service.py`。`McpAgentService` 只保留兼容类名，
+后续版本不再依赖它复制公共 Graph Node。
+
+Sandbox 版本层只保留 Tool 可见性、`run_id` 执行上下文和 Artifact 回传。
+`run_id` 由当前 `AgentState` 显式传给 Tool Executor，不保存在共享 Service
+成员变量中，避免并发 Run 相互覆盖 Workspace。
+
 ## 版本边界
 
 本版本做：
@@ -44,9 +55,9 @@ V3.14：PlanStep → PermissionDecision → Sandbox Tool Executor → Docker →
 ```text
 Skill Router
 → Planner
-→ Collection Router
+→ Planner 选择 search.arguments.collections
 → Permission Policy
-→ SandboxAgentService
+→ search_notes / SandboxAgentService
 → ToolRegistry
 → SandboxRuntime
 → DockerSandboxBackend
@@ -55,6 +66,10 @@ Skill Router
 ```
 
 Planner 只能看到 Tool Definition，不能直接得到 Docker Client。Permission 先检查 `sandbox.read/write/execute` 和 `sandbox::*` allowlist；只有 `allow` 才会进入 Runtime。
+
+V3.14 当前生产主线不再固定调用独立的 LLM Collection Router。Planner 在同一次规划调用中读取 Knowledge Base Catalog，并为每个 search step 输出 `arguments.collections`；`search_notes` 再确定性校验 Registry、数量上限和实际物理 Collection。V3.11.3、V3.12.4 仍保留旧 Router 作为教学对照。
+
+共享 Agent Console 不再提供显式 Collection、Collection Router 开关或最大知识库数参数。右侧 Collection 面板只负责观察 Planner 为各 search step 请求了哪些知识库、Tool 实际执行了哪些物理 Collections，以及 Registry 校验错误。
 
 ## Thread、Process 与 Container
 
@@ -205,7 +220,6 @@ artifacts 包含 hello.py 和 result.txt
   "sandbox_enabled": true,
   "mcp_enabled": true,
   "skill_router_enabled": true,
-  "collection_router_enabled": true,
   "principal": {
     "subject_id": "swagger_sandbox",
     "roles": ["user"],
@@ -245,6 +259,15 @@ GET  /sandbox/artifacts/{run_id}/{artifact_id}
 | `core/sandbox/artifacts.py` | Artifact 扫描、SHA-256 和安全路径解析 |
 | `core/sandbox/runtime.py` | 文件、命令和 Artifact 的统一编排 |
 
+### Core Collection Selection
+
+| 文件 | 作用 |
+| --- | --- |
+| `core/collections/policy.py` | 将 Planner 选择确定性规范为 Registry 中的物理 Collections |
+| `core/planner.py` | 把 Knowledge Base Catalog 提供给 Planner，并要求 search step 输出 `arguments.collections` |
+| `core/tools.py` | `search_notes` 二次校验 Collection 并执行单库或多库检索 |
+| `core/permissions/policy.py` | 按每个 search step 的 Collections 执行 ACL 校验 |
+
 ### V3.14
 
 | 文件 | 作用 |
@@ -262,18 +285,30 @@ GET  /sandbox/artifacts/{run_id}/{artifact_id}
 
 | 顺序 | 文件与位置 | 函数 | 观察变量 |
 | --- | --- | --- | --- |
-| 1 | `v3_14/dependencies.py:31` | `get_sandbox_runtime()` | `profile`、Workspace root、Backend |
-| 2 | `v3_14/dependencies.py:43` | `build_agent()` | Registry、Planner Catalog、Sandbox Runtime |
-| 3 | `v3_14/agent.py:35` | `_execute_tool_step()` | `step.tool_name`、内部 `_run_id` |
-| 4 | `core/permissions/policy.py:116` | `_decide()` | sandbox permission、allowlist、Schema、risk |
-| 5 | `v3_14/registry.py:18` | `write_file()` | `path`、`content`、`_run_id` |
-| 6 | `core/sandbox/runtime.py:27` | `write_file()` | Path Guard、文件大小、Artifacts |
-| 7 | `v3_14/registry.py:24` | `run_command()` | `command`、`args`、ToolResult |
-| 8 | `core/sandbox/runtime.py:62` | `run_command()` | Workspace、ExecutionRequest |
-| 9 | `core/sandbox/docker.py:49` | `execute()` | Docker argv、limits、exit code、timeout |
-| 10 | `v3_14/service.py:54` | `sandbox_call()` | PermissionReport、executed、ToolResult |
-| 11 | `v3_14/routes/sandbox.py:23` | `artifacts()` | run_id、Artifact 列表 |
-| 12 | `v3_14/routes/sandbox.py:28` | `download()` | artifact_id、安全下载路径 |
+| 1 | `v3_14/dependencies.py:32` | `get_sandbox_runtime()` | `profile`、Workspace root、Backend |
+| 2 | `v3_14/dependencies.py:53` | `build_agent()` | Collection Policy、Registry、Planner Catalog、Sandbox Runtime |
+| 3 | `core/agent/service.py:693` | `_execute_steps_node()` | search/tool 分支、当前 `run_id` |
+| 4 | `core/agent/service.py:737` | `_execute_tool_step()` | Registry、ToolResult、ToolObservation |
+| 5 | `v3_14/agent.py:29` | `_execute_tool_step()` | Sandbox Tool 判断、内部 `_run_id` 注入 |
+| 6 | `core/permissions/policy.py:119` | `_decide()` | sandbox permission、allowlist、Schema、risk |
+| 7 | `v3_14/registry.py:28` | `write_file()` | `path`、`content`、`_run_id` |
+| 8 | `core/sandbox/runtime.py:27` | `write_file()` | Path Guard、文件大小、Artifacts |
+| 9 | `v3_14/registry.py:34` | `run_command()` | `command`、`args`、ToolResult |
+| 10 | `core/sandbox/runtime.py:62` | `run_command()` | Workspace、ExecutionRequest |
+| 11 | `core/sandbox/docker.py:49` | `execute()` | Docker argv、limits、exit code、timeout |
+| 12 | `v3_14/service.py:54` | `sandbox_call()` | PermissionReport、executed、ToolResult |
+| 13 | `v3_14/routes/sandbox.py:23` | `artifacts()` | run_id、Artifact 列表 |
+| 14 | `v3_14/routes/sandbox.py:28` | `download()` | artifact_id、安全下载路径 |
+
+Collection 选择主链建议增加这些断点：
+
+| 顺序 | 文件与函数 | 观察变量 |
+| --- | --- | --- |
+| C1 | `core/planner.py:218` `_build_planner_messages()` | `knowledge_bases`、`explicit_collection`、`max_collections` |
+| C2 | `core/agent/service.py:661` `_prepare_search_collections()` | `step.arguments`、`planned_collections`、`scope` |
+| C3 | `core/collections/policy.py:25` `SearchCollectionPolicy.resolve()` | `requested`、`unknown`、`selected_collections` |
+| C4 | `core/permissions/policy.py:79` `_authorize_step()` | 当前 search step 的 `collections`、`denied_collections` |
+| C5 | `core/tools.py:94` `search_notes()` | `requested_collections`、`retrieval_scope`、`collection_errors` |
 
 ## CLI
 

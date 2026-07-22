@@ -1,5 +1,9 @@
 # V3.12.4 Unified Knowledge Routing 学习指南
 
+> 当前代码说明：继承关系仍保留版本语义，但 V3.12.3 的通用 Tool Agent
+> 节点已在 V3.14 阶段合并到 Core。下文提到的重写节点，应以
+> `obsidian_rag/core/agent/service.py` 中同名函数为当前实现位置。
+
 V3.12.4 把之前相互独立的能力组合成一条完整 Agent 主链路：
 
 ```text
@@ -410,7 +414,7 @@ Context top_k
 | 3 | `obsidian_rag/core/agent/service.py:486` | `_resolve_retrieval_scope_node()` | `search_required`、`scope.status`、`selected_collections` |
 | 4 | `obsidian_rag/core/collections/resolver.py:21` | `resolve()` | 显式、disabled、Router 分支 |
 | 5 | `obsidian_rag/core/collections/router.py:31` | `route()` | `candidates`、`raw`、`decision` |
-| 6 | `obsidian_rag/v3_12_3/agent.py:77` | `_execute_steps_node()` | `retrieval_scope`、search/tool steps |
+| 6 | `obsidian_rag/core/agent/service.py:693` | `_execute_steps_node()` | `retrieval_scope`、search/tool steps |
 | 7 | `obsidian_rag/core/agent/service.py:724` | `_execute_search_step()` | `_retrieval_scope_kwargs()` |
 | 8 | `obsidian_rag/core/tools.py:87` | `search_notes()` | `collection`、`collections`、`outcome` |
 | 9 | `obsidian_rag/reranking/retrieval.py:53` | `search_collections()` | `results_by_collection`、`fused`、`errors` |

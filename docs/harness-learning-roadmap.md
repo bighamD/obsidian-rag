@@ -1048,6 +1048,10 @@ V3.12.4 将 V3.11.3 Collection Router、V3.12.2 Multi-Collection Reranking 与 V
 
 V3.14 已完成：新增 `obsidian_rag/core/sandbox/`，实现每 Run Workspace、路径逃逸和 Symlink 防护、短生命周期 Docker Container、`network=none`、只读根文件系统、Capability/CPU/内存/PID/超时/输出限制，以及 Artifact 的 hash、MIME、列表和下载。四个 `sandbox::*` Tool 进入统一 Registry、Planner Catalog、V3.13 Policy、Tool Observation、JSON/SSE 和共享 Agent Console。
 
+V3.14 主线同时完成一次生产化收敛：Knowledge Base Catalog 直接进入 Planner，search step 在 `arguments.collections` 中选择知识库；`search_notes` 内部使用确定性 Core Policy 校验 Registry、数量上限和物理 Collection。独立 LLM Collection Router 只保留在 V3.11.3/V3.12.4 教学链路，生产主图不再固定增加一次 Router LLM。
+
+V3.14 还将 V3.12.3 已稳定复用的 Tool Catalog、`kind="tool"` 执行、`ToolObservation`、Tool Evidence 和 Answer 汇总提升到 Core Agent。版本类继续保留学习语义和依赖装配，Sandbox 特有的 Tool 可见性、Run Context 与 Artifact 回传留在 V3.14 适配层。
+
 版本边界：
 
 - 不直接暴露任意宿主机 Shell。

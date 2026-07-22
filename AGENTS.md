@@ -192,6 +192,7 @@ V3.13 仍然不做：
 
 V3.14 已完成：
 
+- 生产主线由 Planner 在同一次调用中为 search step 选择 Collections，`search_notes` 负责 Registry、上限和实际检索校验；不再固定调用独立 LLM Collection Router。
 - 新增 `obsidian_rag/core/sandbox/`，使用短生命周期 Docker Container 提供真实隔离。
 - 每个 Agent Run 使用独立 Workspace，拒绝绝对路径、目录逃逸和 Symlink 穿透。
 - 提供 `sandbox::read_file`、`write_file`、`list_files`、`run_command`，所有调用继续经过 V3.13 Policy。

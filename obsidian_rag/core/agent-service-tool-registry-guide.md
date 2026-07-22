@@ -54,6 +54,7 @@ load_memory
 | --- | --- |
 | `retrieval_service` | 执行单库或多库检索、Reranking |
 | `tool_registry` | 保存完整 Tool Definition 和执行函数 |
+| `planner_tools` | 提供给 Planner 的精简 Tool Catalog |
 | `retrieval_scope_resolver` | 解析本轮允许检索的 Collection 范围 |
 | `permission_policy` | 对 Planner 步骤生成 `allow/confirm/deny` 决策 |
 | `memory_store` | 读取和保存 Conversation Turn |
@@ -75,25 +76,25 @@ if self.permission_policy is not None:
 
 文件：`obsidian_rag/v3_12_3/agent.py`
 
-`McpAgentService` 继承 Core Agent，增加动态工具选择和 Tool Observation：
+`McpAgentService` 当前只是 V3.12.3 的兼容类名：
 
-- 保存 `planner_tools`。
-- 把当前请求允许的 Tool Catalog 传给 Planner。
-- 执行 `kind="tool"` 的计划步骤。
-- 把工具结果转换为 `ToolObservation`。
-- 在 Evidence 和 Answer 阶段考虑 Tool Observation。
+```python
+class McpAgentService(CoreAgentService):
+    """通用 Tool Agent 能力已经提升到 CoreAgentService。"""
+```
 
-主要覆盖方法：
+以下能力已经合并到 `obsidian_rag/core/agent/service.py`：
 
 ```text
-__init__
-_initial_state
-_planner_node
-_execute_steps_node
-_execute_tool_step
-_evidence_check_node
-_synthesize_answer_node
+保存 planner_tools
+Planner 接收 Tool Catalog
+执行 kind="tool" 步骤
+生成 ToolObservation
+Tool 失败进入 Evidence Check
+Answer Context 消费 Tool Observation
 ```
+
+版本目录现在负责表达学习阶段和装配依赖，不再复制公共 Graph Node。
 
 ### 2.3 RoutedMcpAgentService
 
@@ -177,7 +178,7 @@ PermissionAwareAgentService(
 )
 ```
 
-`McpAgentService.__init__()` 先保存：
+Core `AgentService.__init__()` 直接保存：
 
 ```python
 self.planner_tools = planner_tools
@@ -440,7 +441,7 @@ kind="tool" + tool_name="search_notes"
 ### 7.1 Planner 阶段
 
 ```text
-McpAgentService._planner_node()
+Core AgentService._planner_node()
 → _catalog_for_request(request)
 → 从 self.planner_tools 生成当前请求 Catalog
 → 写入 AgentState.tool_catalog
@@ -561,14 +562,14 @@ Executor 通过 ToolRegistry.run 执行 allow 步骤
 | 4 | `obsidian_rag/v3_13/dependencies.py` | `build_agent` | `registry.list_tools()`、`planner_tools` |
 | 5 | `obsidian_rag/v3_12_3/registry.py` | `build_agent_tool_registry` | Local Registry、`remote_tools`、Catalog 限制 |
 | 6 | `obsidian_rag/v3_13/registry.py` | `build_permission_agent_tool_registry` | simulate Tool 两处注册 |
-| 7 | `obsidian_rag/v3_12_3/agent.py` | `McpAgentService.__init__` | `self.planner_tools` 与传给 Core 的 Registry |
-| 8 | `obsidian_rag/core/agent/service.py` | `AgentService.__init__` | Resolver、Policy 是否注入，Graph 构建条件 |
-| 9 | `obsidian_rag/v3_12_3/agent.py` | `_planner_node` | `catalog`、`PlanRequest.tools`、最终 `plan` |
+| 7 | `obsidian_rag/core/agent/service.py` | `AgentService.__init__` | `planner_tools`、Registry、Resolver、Policy |
+| 8 | `obsidian_rag/core/agent/service.py` | `_planner_node` | `catalog`、`PlanRequest.tools`、最终 `plan` |
+| 9 | `obsidian_rag/core/agent/service.py` | `_catalog_for_request` | 请求级 Tool 可见性 |
 | 10 | `obsidian_rag/core/agent/service.py` | `_resolve_retrieval_scope_node` | `search_required`、`retrieval_scope` |
 | 11 | `obsidian_rag/core/agent/service.py` | `_authorize_steps_node` | `principal`、Registry、`permission_report` |
-| 12 | `obsidian_rag/v3_12_3/agent.py` | `_execute_steps_node` | blocked、search、tool 三类分支 |
+| 12 | `obsidian_rag/core/agent/service.py` | `_execute_steps_node` | blocked、search、tool 三类分支 |
 | 13 | `obsidian_rag/core/agent/service.py` | `_execute_search_step` | `registry.run("search_notes")` 参数与结果 |
-| 14 | `obsidian_rag/v3_12_3/agent.py` | `_execute_tool_step` | `step.tool_name`、`ToolResult`、`ToolObservation` |
+| 14 | `obsidian_rag/core/agent/service.py` | `_execute_tool_step` | `step.tool_name`、`ToolResult`、`ToolObservation` |
 
 ## 10. 复习问题
 

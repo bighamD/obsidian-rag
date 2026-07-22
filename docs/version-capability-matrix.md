@@ -103,7 +103,7 @@ V3.15         Recovery/HITL（计划）
 | 版本 | 主题 | 核心职责与新增能力 | 明确边界 | 状态 |
 | --- | --- | --- | --- | --- |
 | V3.13 | Permission Policy + Core Skill Integration | Principal、Tool allowlist、Schema 校验、风险等级、Collection scope、`allow/confirm/deny`；Core Skill 支持显式多选、`augment/exclusive`、Trigger/BM25 匹配和仅歧义时调用 LLM Router | `confirm` 暂不 interrupt/resume；Skill 不执行 scripts；不执行宿主机任意 Shell 或真实写入 | [代码](../obsidian_rag/v3_13) · [公共 Policy](../obsidian_rag/core/permissions) · [Core Skills](../obsidian_rag/core/skills) · [Guide](v3-13-permission-policy-guide.md) |
-| V3.14 | Docker Sandbox Execution | 每 Run Workspace、Path Guard、Docker 隔离、白名单命令、网络/资源/超时/输出限制、Artifact 下载、Console | 不开放宿主机任意 Shell；不执行 Skill scripts；不实现 approval resume | [代码](../obsidian_rag/v3_14) · [Core Sandbox](../obsidian_rag/core/sandbox) · [Guide](v3-14-sandbox-execution-guide.md) |
+| V3.14 | Docker Sandbox Execution + Core Tool Agent 收敛 + Planner Collection Selection | 通用 Tool Catalog、执行和 Observation 提升到 Core；Planner 同次调用选择 search Collections；每 Run Workspace、Docker 隔离、资源限制和 Artifact 下载 | 不固定调用 LLM Collection Router；不开放宿主机任意 Shell；不实现 approval resume | [代码](../obsidian_rag/v3_14) · [Core Agent](../obsidian_rag/core/agent) · [Core Sandbox](../obsidian_rag/core/sandbox) · [Guide](v3-14-sandbox-execution-guide.md) |
 | V3.15 | Recovery & HITL | 持久 Checkpoint、interrupt/resume、幂等、失败恢复和人工介入 | 不把 Memory、RunStore 和 Checkpoint 混为一类状态 | 计划中 |
 
 ## 能力反查
