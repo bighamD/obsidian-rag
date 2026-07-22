@@ -14,10 +14,10 @@ import {
 } from "lucide-vue-next";
 import { computed, ref } from "vue";
 
-import RetrievedChunkList from "@/components/RetrievedChunkList.vue";
 import CollectionRoutingPanel from "@/components/CollectionRoutingPanel.vue";
 import McpRuntimePanel from "@/components/McpRuntimePanel.vue";
 import PermissionPanel from "@/components/PermissionPanel.vue";
+import RetrievedChunkList from "@/components/RetrievedChunkList.vue";
 import SkillPanel from "@/components/SkillPanel.vue";
 import SandboxPanel from "@/components/SandboxPanel.vue";
 import type {
@@ -101,6 +101,14 @@ async function copy(value: string | null | undefined) {
 
 function toolCalls(toolName: string): StepResult[] {
   return allStepResults.value.filter((result) => result.tool_name === toolName);
+}
+
+function json(value: unknown): string {
+  try {
+    return JSON.stringify(value, null, 2) ?? "null";
+  } catch {
+    return String(value ?? "null");
+  }
 }
 </script>
 
@@ -194,7 +202,10 @@ function toolCalls(toolName: string): StepResult[] {
             <div>
               <div class="plan-title"><strong>{{ item.step.kind }}</strong><span :class="['step-status', item.result?.status ?? 'skipped']">{{ item.result?.status ?? 'planned' }}</span></div>
               <p>{{ item.step.tool_name || item.step.query || item.step.instruction || item.step.reason || '无附加说明' }}</p>
-              <small v-if="item.step.kind === 'tool' && Object.keys(item.step.arguments).length">{{ JSON.stringify(item.step.arguments) }}</small>
+              <pre
+                v-if="item.step.kind === 'tool' && Object.keys(item.step.arguments).length"
+                class="json-format-block"
+              >{{ json(item.step.arguments) }}</pre>
             </div>
           </li>
         </ol>
@@ -206,8 +217,10 @@ function toolCalls(toolName: string): StepResult[] {
             </summary>
             <div class="tool-call-list">
               <article v-for="call in toolCalls(tool.tool_name)" :key="call.step_id" class="tool-call-detail">
-                <div><strong>{{ call.step_id }}</strong><span>{{ call.query || call.instruction || call.reason || '无查询参数' }}</span></div>
-                <RetrievedChunkList :hits="call.results" :empty-text="call.error || '该次工具调用没有返回检索结果。'" />
+                <div><strong>{{ call.step_id }}</strong><span>{{ call.query || call.reason || '工具执行结果' }}</span></div>
+                <pre v-if="call.observation" class="json-format-block">{{ json(call.observation.data) }}</pre>
+                <RetrievedChunkList v-else-if="call.results.length" :hits="call.results" />
+                <p v-else class="muted-text">{{ call.error || '该次工具调用没有返回结构化结果。' }}</p>
               </article>
             </div>
           </details>

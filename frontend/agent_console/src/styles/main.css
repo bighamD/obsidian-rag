@@ -29,7 +29,7 @@ button:disabled { cursor: not-allowed; opacity: 0.48; }
 .new-conversation-button { height: 34px; padding: 0 12px; color: #fff; background: #0f766e; border: 1px solid #0f766e; font-size: 13px; font-weight: 680; }
 .new-conversation-button:hover { background: #0b635d; }
 
-.workspace-grid { display: grid; grid-template-columns: 220px minmax(410px, 1fr) 380px; min-height: 0; overflow: hidden; }
+.workspace-grid { display: grid; grid-template-columns: 220px minmax(410px, 1fr) 440px; min-height: 0; overflow: hidden; }
 .conversation-sidebar { display: flex; flex-direction: column; min-height: 0; padding: 18px 12px 12px; background: #f8fafb; border-right: 1px solid #dce3e8; }
 .sidebar-head, .inspector-head, .settings-head, .section-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .sidebar-head { flex: 0 0 auto; padding: 0 4px 14px; }
@@ -93,8 +93,10 @@ h2 { margin: 2px 0 0; font-size: 15px; letter-spacing: 0; }
 
 .node-timing-list { display: grid; gap: 6px; margin-top: 16px; }.node-timing-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 6px 8px; background: #f7fafb; border: 1px solid #e3eaed; border-radius: 4px; }.node-timing-row code { min-width: 0; overflow: hidden; color: #476276; font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }.node-timing-row strong { color: #0d6b61; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; }
 
+.json-format-block { max-height: 360px; min-width: 0; overflow: auto; margin: 8px 0 0; padding: 10px; color: #d8e5ef; background: #12283a; border: 1px solid #28475b; border-radius: 6px; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 11px; line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere; }
+
 .plan-list > li > div, .result-disclosure, .result-disclosure > summary, .tool-disclosure, .tool-disclosure > summary, .chunk-disclosure, .chunk-disclosure > summary, .tool-call-list, .tool-call-detail, .retrieved-chunk-list, .retrieved-chunk-item, .retrieved-chunk-card { width: 100%; min-width: 0; }
 .mobile-inspector-layer { display: none; }.desktop-hidden { display: none; }
-@media (max-width: 1120px) { .workspace-grid { grid-template-columns: 200px minmax(370px, 1fr) 340px; }.settings-grid { grid-template-columns: repeat(3, minmax(110px, 1fr)); } }
-@media (max-width: 900px) { .workspace-grid { grid-template-columns: 190px minmax(0, 1fr); }.desktop-inspector { display: none; }.desktop-hidden { display: inline-grid; }.mobile-inspector-layer { position: fixed; inset: 0; z-index: 10; display: block; }.scrim { position: absolute; inset: 0; width: 100%; background: rgba(16, 24, 40, 0.36); border: 0; }.mobile-inspector { position: absolute; top: 0; right: 0; bottom: 0; width: min(430px, 92vw); box-shadow: -10px 0 30px rgba(40, 60, 80, 0.16); } }
+@media (max-width: 1120px) { .workspace-grid { grid-template-columns: 200px minmax(370px, 1fr) 380px; }.settings-grid { grid-template-columns: repeat(3, minmax(110px, 1fr)); } }
+@media (max-width: 900px) { .workspace-grid { grid-template-columns: 190px minmax(0, 1fr); }.desktop-inspector { display: none; }.desktop-hidden { display: inline-grid; }.mobile-inspector-layer { position: fixed; inset: 0; z-index: 10; display: block; }.scrim { position: absolute; inset: 0; width: 100%; background: rgba(16, 24, 40, 0.36); border: 0; }.mobile-inspector { position: absolute; top: 0; right: 0; bottom: 0; width: min(470px, 94vw); box-shadow: -10px 0 30px rgba(40, 60, 80, 0.16); } }
 @media (max-width: 650px) { .console-shell { grid-template-rows: 58px minmax(0, 1fr); }.app-header { padding: 0 12px; }.brand-lockup span:last-child { display: none; }.new-conversation-button { width: 34px; padding: 0; font-size: 0; }.workspace-grid { grid-template-columns: 1fr; }.conversation-sidebar { display: none; }.chat-pane { grid-template-rows: 54px minmax(0, 1fr) auto; }.conversation-bar { padding: 0 14px; }.chat-transcript { padding: 22px 14px; }.composer-wrap { padding: 0 14px 14px; }.composer { margin-top: 12px; }.settings-drawer { max-height: 56vh; overflow: auto; }.settings-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }.message { gap: 9px; margin-bottom: 20px; }.inline-error { display: none; } }
