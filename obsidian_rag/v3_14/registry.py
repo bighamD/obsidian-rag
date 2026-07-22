@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from obsidian_rag.core.collections import SearchCollectionPolicy
 from obsidian_rag.core.schemas import PlannerToolDefinition
 from obsidian_rag.core.sandbox import SandboxRuntime
 from obsidian_rag.core.tools import ToolDefinition, ToolResult
@@ -7,10 +8,19 @@ from obsidian_rag.v3_12_3.connection import McpConnectionManager
 from obsidian_rag.v3_13.registry import build_permission_agent_tool_registry
 
 
-def build_sandbox_agent_tool_registry(retrieval_service, manager: McpConnectionManager, sandbox: SandboxRuntime):
+def build_sandbox_agent_tool_registry(
+    retrieval_service,
+    manager: McpConnectionManager,
+    sandbox: SandboxRuntime,
+    collection_policy: SearchCollectionPolicy | None = None,
+):
     """在 V3.13 Registry 上增加受控 Sandbox 文件和命令工具。"""
 
-    registry, planner_tools, errors = build_permission_agent_tool_registry(retrieval_service, manager)
+    registry, planner_tools, errors = build_permission_agent_tool_registry(
+        retrieval_service,
+        manager,
+        collection_policy,
+    )
 
     def read_file(path: str, _run_id: str) -> ToolResult:
         return _call("sandbox::read_file", lambda: sandbox.read_file(_run_id, path))
@@ -59,7 +69,11 @@ def build_sandbox_agent_tool_registry(retrieval_service, manager: McpConnectionM
         (
             ToolDefinition(
                 name="sandbox::write_file",
-                description="向本次 Agent Run 的隔离 Workspace 写入 UTF-8 文本文件并登记 Artifact。",
+                description=(
+                    "在本次 Agent Run 的隔离 Workspace 中创建或覆盖 UTF-8 文本文件并登记 Artifact。"
+                    "当用户明确要求创建、编写、生成或保存脚本/文件时使用；path 应包含合理文件名，"
+                    "content 必须是完整可用内容，不能使用省略号或占位符。"
+                ),
                 input_schema={
                     "type": "object",
                     "properties": {
@@ -93,7 +107,10 @@ def build_sandbox_agent_tool_registry(retrieval_service, manager: McpConnectionM
         (
             ToolDefinition(
                 name="sandbox::run_command",
-                description="在无网络、限资源的 Docker Sandbox 中执行白名单程序和参数数组。",
+                description=(
+                    "在无网络、限资源的 Docker Sandbox 中运行、测试或验证已创建的脚本。"
+                    "仅执行白名单程序和参数数组；需要运行新脚本时，应依赖前面的 sandbox::write_file 步骤。"
+                ),
                 input_schema={
                     "type": "object",
                     "properties": {

@@ -10,13 +10,7 @@ class SandboxAgentService(PermissionAwareAgentService):
 
     def __init__(self, *args, sandbox_runtime: SandboxRuntime, **kwargs):
         self.sandbox_runtime = sandbox_runtime
-        self._sandbox_run_id: str | None = None
         super().__init__(*args, **kwargs)
-
-    def _initial_state(self, request):
-        state = super()._initial_state(request)
-        self._sandbox_run_id = state["run_id"]
-        return state
 
     def _catalog_for_request(self, request):
         selected = set(getattr(request, "mcp_tool_names", None) or [])
@@ -32,14 +26,13 @@ class SandboxAgentService(PermissionAwareAgentService):
                 catalog.append(tool)
         return catalog
 
-    def _execute_tool_step(self, step: PlanStep):
+    def _execute_tool_step(self, step: PlanStep, *, run_id: str | None = None):
         if not (step.tool_name or "").startswith("sandbox::"):
-            return super()._execute_tool_step(step)
-        run_id = self._sandbox_run_id
+            return super()._execute_tool_step(step, run_id=run_id)
         if not run_id:
-            return super()._execute_tool_step(step)
+            return super()._execute_tool_step(step, run_id=run_id)
         internal_step = step.model_copy(update={"arguments": {**step.arguments, "_run_id": run_id}})
-        result = super()._execute_tool_step(internal_step)
+        result = super()._execute_tool_step(internal_step, run_id=run_id)
         return result.model_copy(update={"arguments": dict(step.arguments)})
 
     def _response_from_state(self, final_state, request) -> AgentAskResponse:

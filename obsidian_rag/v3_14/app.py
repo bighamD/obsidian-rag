@@ -26,7 +26,10 @@ async def lifespan(_: FastAPI):
 app = FastAPI(
     title="Obsidian RAG V3.14 Sandbox Execution API",
     version="v3.14",
-    description="V3.13 完整 Agent + Docker Sandbox、受控文件/命令工具、资源限制和 Artifacts。",
+    description=(
+        "V3.13 完整 Agent + Planner Collection Selection + Docker Sandbox、"
+        "受控文件/命令工具、资源限制和 Artifacts。"
+    ),
     lifespan=lifespan,
 )
 app.dependency_overrides[get_v313_learning_service] = get_learning_service

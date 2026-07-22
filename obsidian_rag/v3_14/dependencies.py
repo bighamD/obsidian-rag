@@ -11,6 +11,7 @@ from obsidian_rag.core.sandbox import (
     SandboxRuntime,
     SandboxWorkspaceManager,
 )
+from obsidian_rag.core.collections import SearchCollectionPolicy
 from obsidian_rag.llm import OpenAIChatClient
 from obsidian_rag.v3_10.dependencies import get_memory_store, get_run_store
 from obsidian_rag.v3_10_2.runtime.event_bus import RunEventBus
@@ -40,6 +41,15 @@ def get_sandbox_runtime() -> SandboxRuntime:
     return SandboxRuntime(workspaces, backend, artifacts)
 
 
+@lru_cache(maxsize=1)
+def get_search_collection_policy() -> SearchCollectionPolicy:
+    return SearchCollectionPolicy(
+        registry=get_knowledge_base_registry(),
+        default_collection=get_config().collection_name,
+        max_collections=3,
+    )
+
+
 def build_agent() -> SandboxAgentService:
     config = get_config()
     retrieval = get_retrieval_service()
@@ -48,10 +58,11 @@ def build_agent() -> SandboxAgentService:
         retrieval,
         get_mcp_connection_manager(),
         sandbox,
+        get_search_collection_policy(),
     )
     return SandboxAgentService(
         retrieval_service=retrieval,
-        retrieval_scope_resolver=get_collection_scope_resolver(),
+        collection_policy=get_search_collection_policy(),
         permission_policy=get_permission_policy(),
         skill_resolver=get_skill_resolver(),
         tool_registry=registry,
@@ -89,7 +100,10 @@ def get_learning_service() -> SandboxLearningService:
         audit_store=get_permission_audit_store(),
         skill_resolver=get_skill_resolver(),
         tool_registry_factory=lambda: build_sandbox_agent_tool_registry(
-            get_retrieval_service(), get_mcp_connection_manager(), get_sandbox_runtime()
+            get_retrieval_service(),
+            get_mcp_connection_manager(),
+            get_sandbox_runtime(),
+            get_search_collection_policy(),
         )[0],
         sandbox=get_sandbox_runtime(),
     )
