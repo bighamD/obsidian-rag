@@ -9,10 +9,12 @@ import {
   fetchConversations,
   fetchHealth,
   fetchMcpRuntime,
+  fetchPendingApprovals,
   fetchRuns,
   fetchSkillRuntime,
   fetchSandboxRuntime,
   normalizeProductionResponse,
+  resumeApproval,
   streamAgent,
 } from "@/api/production-client";
 import type {
@@ -20,6 +22,8 @@ import type {
   AgentAskPayload,
   AgentOptions,
   AgentProgress,
+  ApprovalAction,
+  ApprovalRecord,
   ConsoleCompatibilityStatus,
   ConsoleConfigResponse,
   ConsoleConversationSummary,
@@ -30,6 +34,7 @@ import type {
   McpLiveToolEvent,
   McpRuntimeResponse,
   ProductionAskResponse,
+  RunEvent,
   RunRecord,
   SkillRuntimeResponse,
   SandboxRuntimeConfigResponse,
@@ -77,12 +82,19 @@ export function useAgentConsole() {
   const sandboxRuntime = ref<SandboxRuntimeConfigResponse | null>(null);
   const liveToolEvents = ref<McpLiveToolEvent[]>([]);
   const deletingConversationId = ref<string | null>(null);
+  const approvalBusy = ref(false);
+  const pendingApprovals = ref<ApprovalRecord[]>([]);
   const options = reactive<AgentOptions>({ ...defaultOptions });
 
   const activeSession = computed(
     () => sessions.value.find((session) => session.id === activeConversationId.value) ?? sessions.value[0],
   );
   const isConsoleCompatible = computed(() => compatibilityStatus.value === "compatible");
+  const activeApproval = computed(() =>
+    response.value?.approval
+    ?? pendingApprovals.value.find((item) => item.request.conversation_id === activeConversationId.value)
+    ?? null,
+  );
 
   onMounted(async () => {
     await loadWorkspace(true);
@@ -110,6 +122,7 @@ export function useAgentConsole() {
       refreshSandboxRuntime(),
     ]);
     await refreshConversationList({ initial, hydrateActive: true });
+    await refreshApprovals();
   }
 
   async function refreshCompatibility(): Promise<boolean> {
@@ -202,6 +215,29 @@ export function useAgentConsole() {
       sandboxRuntime.value = await fetchSandboxRuntime(path);
     } catch {
       sandboxRuntime.value = null;
+    }
+  }
+
+  async function refreshApprovals() {
+    if (!consoleConfig.value?.features.hitl) {
+      pendingApprovals.value = [];
+      return;
+    }
+    try {
+      pendingApprovals.value = (await fetchPendingApprovals()).approvals;
+      const knownIds = new Set(sessions.value.map((session) => session.id));
+      const approvalSessions = pendingApprovals.value
+        .filter((item) => !knownIds.has(item.request.conversation_id))
+        .map((item) => ({
+          ...newSession(item.request.conversation_id),
+          title: `待审批：${item.request.steps[0]?.tool_name ?? "Agent Tool"}`,
+          updatedAt: item.request.created_at,
+        }));
+      if (approvalSessions.length) {
+        sessions.value = [...approvalSessions, ...sessions.value].slice(0, MAX_SESSIONS);
+      }
+    } catch {
+      pendingApprovals.value = [];
     }
   }
 
@@ -362,6 +398,7 @@ export function useAgentConsole() {
         refreshSandboxRuntime(),
         assistant?.memory_write.saved ? refreshConversationList() : Promise.resolve(false),
       ]);
+      await refreshApprovals();
     } catch (error) {
       const message = error instanceof Error ? error.message : "请求失败。";
       requestError.value = message;
@@ -369,6 +406,59 @@ export function useAgentConsole() {
     } finally {
       isRunning.value = false;
       session.updatedAt = new Date().toISOString();
+    }
+  }
+
+  async function decideApproval(
+    action: ApprovalAction,
+    stepArguments: Record<string, Record<string, unknown>> = {},
+  ) {
+    const approval = activeApproval.value;
+    if (!approval || approval.status !== "pending" || approvalBusy.value) {
+      return;
+    }
+    const session = getSessionFrom(sessions.value, activeConversationId.value);
+    let message = [...(session?.messages ?? [])]
+      .reverse()
+      .find((item) => item.run?.run.run_id === approval.request.run_id);
+    if (!message && session) {
+      message = createStreamingAssistantDraft();
+      message.text = "正在从持久审批断点恢复…";
+      appendMessage(session, message);
+    }
+    approvalBusy.value = true;
+    isRunning.value = true;
+    requestError.value = "";
+    if (message) {
+      message.isStreaming = true;
+      message.currentProgress = "正在从审批断点恢复…";
+    }
+    try {
+      const result = await resumeApproval(approval.request.run_id, {
+        action,
+        step_arguments: stepArguments,
+      });
+      response.value = result;
+      if (message && result.agent_response) {
+        reconcileAssistantMessage(message, result);
+      }
+      if (result.agent_response) {
+        memorySnapshot.value = result.agent_response.memory_snapshot;
+      }
+      await Promise.all([refreshRuns(), refreshSandboxRuntime()]);
+      if (result.agent_response?.memory_write.saved) {
+        await refreshConversationList();
+      }
+      await refreshApprovals();
+    } catch (error) {
+      const detail = error instanceof Error ? error.message : "审批恢复失败。";
+      requestError.value = detail;
+      if (message) {
+        markStreamError(message, detail);
+      }
+    } finally {
+      approvalBusy.value = false;
+      isRunning.value = false;
     }
   }
 
@@ -386,10 +476,19 @@ export function useAgentConsole() {
       applyMcpToolEvent(event);
     }
     if (event.data.run) {
+      const liveEvent = liveTimelineEvent(event);
       response.value = {
-        run: event.data.run,
+        run: {
+          ...event.data.run,
+          events: mergeRunEvents(
+            event.data.run.events,
+            response.value?.run.events ?? [],
+            liveEvent ? [liveEvent] : [],
+          ),
+        },
         agent_response: response.value?.agent_response ?? null,
         skill_result: response.value?.skill_result ?? null,
+        approval: response.value?.approval ?? null,
       };
     }
     if (event.data.response) {
@@ -420,7 +519,9 @@ export function useAgentConsole() {
   return {
     activeConversationId,
     activeSession,
+    activeApproval,
     apiOnline,
+    approvalBusy,
     compatibilityError,
     compatibilityStatus,
     consoleConfig,
@@ -428,6 +529,7 @@ export function useAgentConsole() {
     createConversation,
     deleteConversation,
     deletingConversationId,
+    decideApproval,
     hydrateConversation,
     isRunning,
     isConsoleCompatible,
@@ -529,6 +631,7 @@ export function formatProgress(progress: AgentProgress): string {
     planning: { running: "正在生成执行计划…", completed: "执行计划已生成…" },
     routing: { running: "正在选择知识库范围…", completed: "知识库范围已确定…" },
     authorization: { running: "正在检查步骤权限…", completed: "步骤权限已确定…" },
+    approval: { running: "正在等待人工审批…", completed: "人工审批已完成…" },
     evidence: { running: "正在检查证据完整性…", completed: "证据检查已完成…" },
     context: { running: "正在整理回答上下文…", completed: "回答上下文已就绪…" },
     answer: { running: "正在生成回答…", completed: "回答已生成，正在收尾…" },
@@ -686,6 +789,43 @@ function appendMessage(session: ConsoleSession, message: ConsoleMessage) {
 
 function getSessionFrom(sessions: ConsoleSession[], conversationId: string): ConsoleSession | undefined {
   return sessions.find((session) => session.id === conversationId);
+}
+
+function liveTimelineEvent(event: AgentStreamEvent): RunEvent | null {
+  const agent = event.data.agent;
+  if (event.name === "progress" && agent?.node_name && agent.status !== "completed") {
+    return {
+      name: `${agent.node_name}_${agent.status}`,
+      status: event.status,
+      occurred_at: event.occurred_at,
+      detail: event.detail,
+    };
+  }
+  if (event.name === "node_finished" && agent?.node_name) {
+    return {
+      name: `${agent.node_name}_completed`,
+      status: event.status,
+      occurred_at: event.occurred_at,
+      detail: event.detail,
+    };
+  }
+  if ((event.name === "tool_started" || event.name === "tool_finished") && agent?.tool_name) {
+    return {
+      name: `${agent.tool_name}_${event.name === "tool_started" ? "running" : agent.status ?? "completed"}`,
+      status: event.status,
+      occurred_at: event.occurred_at,
+      detail: event.detail,
+    };
+  }
+  return null;
+}
+
+function mergeRunEvents(...groups: RunEvent[][]): RunEvent[] {
+  const merged = new Map<string, RunEvent>();
+  for (const event of groups.flat()) {
+    merged.set(`${event.name}|${event.occurred_at}|${event.detail}`, event);
+  }
+  return [...merged.values()].sort((left, right) => left.occurred_at.localeCompare(right.occurred_at));
 }
 
 function latestSessionRun(session: ConsoleSession | undefined): ProductionAskResponse | null {

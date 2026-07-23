@@ -1,0 +1,110 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="820" viewBox="0 0 1440 820" role="img" aria-labelledby="title desc">
+  <title id="title">V3.15 HITL 暂停与恢复简化时序图</title>
+  <desc id="desc">用发起执行、暂停审批、恢复完成三个阶段解释 confirm、interrupt、人工审批和 Command resume 的关系。</desc>
+  <defs>
+    <linearGradient id="background" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#07162f"/>
+      <stop offset="1" stop-color="#142d52"/>
+    </linearGradient>
+    <linearGradient id="blueCard" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#173b67"/>
+      <stop offset="1" stop-color="#102a4b"/>
+    </linearGradient>
+    <linearGradient id="yellowCard" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#55421d"/>
+      <stop offset="1" stop-color="#332b1a"/>
+    </linearGradient>
+    <linearGradient id="greenCard" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#174c45"/>
+      <stop offset="1" stop-color="#103530"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="160%">
+      <feDropShadow dx="0" dy="10" stdDeviation="12" flood-color="#020817" flood-opacity="0.42"/>
+    </filter>
+    <marker id="arrowBlue" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto">
+      <path d="M0 0L12 6L0 12Z" fill="#75b9ff"/>
+    </marker>
+    <marker id="arrowPurple" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto">
+      <path d="M0 0L12 6L0 12Z" fill="#a894ff"/>
+    </marker>
+    <style>
+      .title { font: 700 34px system-ui, sans-serif; fill: #f6f9ff; }
+      .subtitle { font: 16px system-ui, sans-serif; fill: #afc3df; }
+      .stage { font: 700 15px system-ui, sans-serif; fill: #8fc6ff; }
+      .heading { font: 700 22px system-ui, sans-serif; fill: #ffffff; }
+      .body { font: 15px system-ui, sans-serif; fill: #c6d7ec; }
+      .code { font: 700 15px ui-monospace, SFMono-Regular, Menlo, monospace; fill: #ffffff; }
+      .note { font: 700 14px system-ui, sans-serif; fill: #ffe18b; }
+      .success { font: 700 14px system-ui, sans-serif; fill: #83e6c1; }
+      .card { stroke-width: 1.5; rx: 16; filter: url(#shadow); }
+      .flow { fill: none; stroke: #75b9ff; stroke-width: 4; marker-end: url(#arrowBlue); }
+      .resume { fill: none; stroke: #a894ff; stroke-width: 3; stroke-dasharray: 9 8; marker-end: url(#arrowPurple); }
+    </style>
+  </defs>
+
+  <rect width="1440" height="820" fill="url(#background)"/>
+
+  <text class="title" x="70" y="72">V3.15 · HITL 暂停与恢复</text>
+  <text class="subtitle" x="70" y="106">只记住三件事：先判断风险，confirm 时保存现场，审批后从原位置继续</text>
+
+  <rect x="70" y="154" width="390" height="390" class="card" fill="url(#blueCard)" stroke="#3976aa"/>
+  <rect x="95" y="178" width="94" height="30" rx="15" fill="#173050" stroke="#4f8fc5"/>
+  <text class="stage" x="116" y="199">01 发起</text>
+  <text class="heading" x="105" y="252">检查工具执行风险</text>
+
+  <rect x="105" y="292" width="320" height="70" rx="10" fill="#0d2542" stroke="#315b83"/>
+  <text class="code" x="130" y="323">authorize_steps</text>
+  <text class="body" x="130" y="347">产生 allow / confirm / deny</text>
+
+  <path d="M265 362V397" class="flow"/>
+
+  <rect x="105" y="405" width="320" height="92" rx="10" fill="#0d2542" stroke="#315b83"/>
+  <text class="code" x="130" y="437">approval_gate</text>
+  <text class="body" x="130" y="464">读取 PermissionReport</text>
+  <text class="note" x="130" y="487">发现 confirm，Tool 尚未执行</text>
+
+  <path d="M460 349H515" class="flow"/>
+
+  <rect x="515" y="154" width="410" height="390" class="card" fill="url(#yellowCard)" stroke="#d6aa49"/>
+  <rect x="540" y="178" width="112" height="30" rx="15" fill="#392f1d" stroke="#c89c42"/>
+  <text class="stage" x="560" y="199" fill="#ffe18b">02 暂停</text>
+  <text class="heading" x="550" y="252">保存现场，等待用户决定</text>
+
+  <rect x="550" y="292" width="340" height="90" rx="10" fill="#2b261b" stroke="#957637"/>
+  <text class="code" x="575" y="323">interrupt(payload)</text>
+  <text class="body" x="575" y="350">LangGraph 停在 approval_gate</text>
+  <text class="note" x="575" y="374">Run = waiting_for_approval</text>
+
+  <path d="M720 382V417" class="flow"/>
+
+  <rect x="550" y="425" width="340" height="72" rx="10" fill="#2b261b" stroke="#957637"/>
+  <text class="heading" x="575" y="455">人工审批</text>
+  <text class="body" x="575" y="481">allow · deny · edit</text>
+
+  <path d="M925 349H980" class="resume"/>
+  <text class="note" x="930" y="327">resume</text>
+
+  <rect x="980" y="154" width="390" height="390" class="card" fill="url(#greenCard)" stroke="#49bd9a"/>
+  <rect x="1005" y="178" width="112" height="30" rx="15" fill="#143c37" stroke="#3eaa8b"/>
+  <text class="stage" x="1025" y="199" fill="#83e6c1">03 恢复</text>
+  <text class="heading" x="1015" y="252">从暂停位置继续执行</text>
+
+  <rect x="1015" y="292" width="320" height="70" rx="10" fill="#0d302c" stroke="#328b75"/>
+  <text class="code" x="1040" y="323">Command(resume=...)</text>
+  <text class="body" x="1040" y="347">恢复同一个 thread_id</text>
+
+  <path d="M1175 362V397" class="flow"/>
+
+  <rect x="1015" y="405" width="320" height="92" rx="10" fill="#0d302c" stroke="#328b75"/>
+  <text class="code" x="1040" y="437">execute_steps</text>
+  <text class="body" x="1040" y="464">执行 Tool → 生成答案</text>
+  <text class="success" x="1040" y="487">完成后保存 Memory</text>
+
+  <rect x="70" y="606" width="1300" height="132" rx="16" fill="#0c203b" stroke="#31577f"/>
+  <text class="heading" x="105" y="648">Checkpoint 保存的是什么？</text>
+  <text class="body" x="105" y="681">保存暂停时的 AgentState、待执行节点和 thread_id。审批结果不是重新发起一次 /ask，</text>
+  <text class="body" x="105" y="709">而是使用 Command(resume=...) 恢复原 Graph，因此不会重新执行暂停前已经完成的节点。</text>
+
+  <circle cx="100" cy="772" r="5" fill="#75b9ff"/>
+  <text class="subtitle" x="118" y="778">核心边界：approval_gate 负责暂停；execute_steps 只在审批通过或参数编辑完成后执行。</text>
+</svg>

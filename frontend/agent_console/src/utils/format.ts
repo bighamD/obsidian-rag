@@ -37,6 +37,7 @@ export function statusLabel(status: RunStatus | "idle"): string {
     idle: "就绪",
     queued: "排队中",
     running: "运行中",
+    waiting_for_approval: "等待审批",
     succeeded: "已完成",
     failed: "失败",
   }[status];

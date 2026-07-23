@@ -71,6 +71,86 @@ V3.14 当前生产主线不再固定调用独立的 LLM Collection Router。Plan
 
 共享 Agent Console 不再提供显式 Collection、Collection Router 开关或最大知识库数参数。右侧 Collection 面板只负责观察 Planner 为各 search step 请求了哪些知识库、Tool 实际执行了哪些物理 Collections，以及 Registry 校验错误。
 
+## 完整执行时序图
+
+```mermaid
+%%{init: {"themeVariables": {"fontSize": "18px"}, "sequence": {"actorFontSize": 19, "messageFontSize": 17, "noteFontSize": 17, "labelFontSize": 17, "sequenceNumberFontSize": 16, "messageMargin": 42, "actorMargin": 58}}}%%
+sequenceDiagram
+    autonumber
+    actor User as 用户 / Agent Console
+    participant API as FastAPI
+    participant Runtime as Agent Runtime
+    participant Graph as Core Agent / LangGraph
+    participant Memory as Conversation Memory
+    participant Planner as Planner LLM
+    participant Policy as Permission Policy
+    participant Registry as ToolRegistry
+    participant Sandbox as SandboxRuntime
+    participant Docker as Docker Container
+    participant Artifact as ArtifactRegistry
+    participant Answer as Answer LLM
+
+    User->>API: POST /agent/ask<br/>conversation_id=conv_1
+    API->>Runtime: ask(request)
+    Runtime->>Graph: invoke(initial_state)<br/>生成 run_id=run_A
+
+    Graph->>Memory: load_memory(conv_1, memory_window)
+    Memory-->>Graph: summary_text + recent_turns
+    Graph->>Planner: question + Memory + Skill + Tool Catalog
+    Planner-->>Graph: Plan(search / tool / synthesize)
+    Graph->>Policy: authorize_steps(Plan, Principal, Registry)
+    Policy-->>Graph: PermissionReport
+
+    alt Sandbox Tool 被允许
+        Graph->>Registry: run(sandbox::write_file, _run_id=run_A)
+        Registry->>Sandbox: write_file(run_A, path, content)
+        Sandbox->>Sandbox: 写入 run_A/workspace
+        Sandbox-->>Registry: ToolResult
+        Registry-->>Graph: StepResult + ToolObservation
+
+        Graph->>Registry: run(sandbox::run_command, _run_id=run_A)
+        Registry->>Sandbox: run_command(run_A, command, args)
+        Sandbox->>Docker: docker run<br/>挂载 run_A/workspace
+        Docker-->>Sandbox: exit_code + stdout + stderr
+        Sandbox->>Artifact: list_for_run(run_A)
+        Artifact-->>Sandbox: ArtifactRecord[]
+        Sandbox-->>Registry: ToolResult + artifacts
+        Registry-->>Graph: StepResult + ToolObservation
+    else confirm 或 deny
+        Graph->>Graph: 生成 blocked StepResult
+        Note over Graph,Sandbox: V3.14 不执行 Tool；confirm 的 interrupt/resume 由 V3.15 实现
+    end
+
+    Graph->>Graph: evidence_check + build_context
+    Graph->>Answer: Memory + chunks + Tool Observations
+    Answer-->>Graph: 最终答案
+    Graph->>Memory: save_memory(conv_1)<br/>问答 + sources + tool_calls
+    Graph->>Artifact: list_for_run(run_A)
+    Artifact-->>Graph: 本轮 Artifact 列表
+    Graph-->>Runtime: AgentResponse
+    Runtime-->>API: JSON / SSE 终态
+    API-->>User: answer + run_A + artifacts
+
+    Note over User,Artifact: 同一会话的下一次 /ask 会继续使用 conv_1，但会创建新的 run_B
+    User->>API: POST /agent/ask<br/>“把两数之和改成三数之和”
+    API->>Runtime: ask(request)
+    Runtime->>Graph: invoke(initial_state)<br/>生成 run_id=run_B
+    Graph->>Memory: load_memory(conv_1, memory_window)
+    Memory-->>Graph: 上轮对话语义与摘要
+    Note over Graph,Artifact: run_A Artifact 不会自动挂载到 run_B/workspace<br/>跨轮修改需要显式 import_artifact 能力
+```
+
+时序图中的两个 ID 职责不同：
+
+```text
+conversation_id：跨多轮复用，负责加载历史 Turn 和滚动摘要
+run_id：每次 /ask 新建，负责隔离 Trace、Workspace、Container 和 Artifact
+```
+
+因此下一轮能够理解“改成三数之和”的语义，但当前 V3.14 不能直接读取上一轮
+`run_A/workspace/two_sum.py`。生产化扩展通常会增加 `recent_artifacts` 和
+`sandbox::import_artifact`，将旧 Artifact 复制到当前 Run 后再生成新版本。
+
 ## Thread、Process 与 Container
 
 ![线程、子进程和容器的职责](assets/rag-v3-14-thread-process-container.svg)

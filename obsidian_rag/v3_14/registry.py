@@ -13,6 +13,7 @@ def build_sandbox_agent_tool_registry(
     manager: McpConnectionManager,
     sandbox: SandboxRuntime,
     collection_policy: SearchCollectionPolicy | None = None,
+    side_effect_risk_level: str = "safe",
 ):
     """在 V3.13 Registry 上增加受控 Sandbox 文件和命令工具。"""
 
@@ -85,7 +86,7 @@ def build_sandbox_agent_tool_registry(
                 },
                 read_only=False,
                 source="sandbox",
-                risk_level="safe",
+                risk_level=side_effect_risk_level,
                 required_permission="sandbox.write",
                 scope="sandbox",
             ),
@@ -122,7 +123,7 @@ def build_sandbox_agent_tool_registry(
                 },
                 read_only=False,
                 source="sandbox",
-                risk_level="safe",
+                risk_level=side_effect_risk_level,
                 required_permission="sandbox.execute",
                 scope="sandbox",
             ),

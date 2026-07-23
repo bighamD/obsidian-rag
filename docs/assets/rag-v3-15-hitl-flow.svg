@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="820" viewBox="0 0 1440 820" role="img" aria-labelledby="title desc">
+  <title id="title">V3.15 人工审批暂停与恢复主流程</title>
+  <desc id="desc">展示 Planner、Permission、LangGraph interrupt、PostgreSQL Checkpoint、人工审批、Command resume、Tool Executor 和 Answer 的完整关系。</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#07162f"/><stop offset="1" stop-color="#132a50"/></linearGradient>
+    <filter id="shadow"><feDropShadow dx="0" dy="8" stdDeviation="10" flood-color="#020817" flood-opacity=".35"/></filter>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0 0L10 5L0 10Z" fill="#79b8ff"/></marker>
+    <style>.title{font:700 34px system-ui;fill:#f5f9ff}.sub{font:16px system-ui;fill:#a9bddb}.card{fill:#122a4a;stroke:#315984;stroke-width:1.5;rx:14;filter:url(#shadow)}.hot{fill:#44351b;stroke:#e8bd55}.ok{fill:#123c38;stroke:#48c7a0}.h{font:700 18px system-ui;fill:#fff}.p{font:14px system-ui;fill:#bcd0ea}.tag{font:700 12px system-ui;fill:#ffe08a}.line{stroke:#79b8ff;stroke-width:3;fill:none;marker-end:url(#arrow)}.dash{stroke:#9b87f5;stroke-width:2.5;stroke-dasharray:8 8;fill:none;marker-end:url(#arrow)}</style>
+  </defs>
+  <rect width="1440" height="820" fill="url(#bg)"/>
+  <text class="title" x="72" y="72">V3.15 · confirm 不再等于 blocked</text>
+  <text class="sub" x="72" y="104">Graph 保存中间状态，等待人类决定，再从同一个 thread_id 继续</text>
+  <rect class="card" x="70" y="170" width="220" height="120"/><text class="h" x="98" y="214">Planner</text><text class="p" x="98" y="244">生成 Tool Step</text><text class="p" x="98" y="267">包含 arguments</text>
+  <rect class="card" x="350" y="170" width="220" height="120"/><text class="h" x="378" y="214">Permission Policy</text><text class="p" x="378" y="244">allow / confirm / deny</text><text class="tag" x="378" y="270">命中 confirm</text>
+  <rect class="card hot" x="630" y="150" width="250" height="160"/><text class="h" x="660" y="198">approval_gate</text><text class="p" x="660" y="228">interrupt(payload)</text><text class="p" x="660" y="254">Graph 暂停</text><text class="p" x="660" y="280">Tool 尚未执行</text>
+  <rect class="card" x="960" y="150" width="280" height="160"/><text class="h" x="990" y="198">PostgreSQL 持久层</text><text class="p" x="990" y="228">checkpoint_* tables</text><text class="p" x="990" y="254">hitl_* tables · JSONB</text><text class="tag" x="990" y="282">连接池 · 跨重启恢复</text>
+  <path class="line" d="M290 230H350"/><path class="line" d="M570 230H630"/><path class="line" d="M880 230H960"/>
+  <rect class="card hot" x="960" y="410" width="280" height="160"/><text class="h" x="990" y="458">人工审批</text><text class="p" x="990" y="488">allow：按原参数继续</text><text class="p" x="990" y="514">deny：保留 blocked 结果</text><text class="p" x="990" y="540">edit：改参数后继续</text>
+  <rect class="card ok" x="630" y="410" width="250" height="160"/><text class="h" x="660" y="458">Command(resume=...)</text><text class="p" x="660" y="488">恢复相同 thread_id</text><text class="p" x="660" y="514">更新 Plan / Permission</text><text class="p" x="660" y="540">继续后续 Edge</text>
+  <rect class="card" x="350" y="430" width="220" height="120"/><text class="h" x="378" y="474">Tool Executor</text><text class="p" x="378" y="504">幂等键检查</text><text class="p" x="378" y="528">Sandbox 执行</text>
+  <rect class="card" x="70" y="430" width="220" height="120"/><text class="h" x="98" y="474">Answer / Memory</text><text class="p" x="98" y="504">Context 汇总</text><text class="p" x="98" y="528">保存最终 Turn</text>
+  <path class="dash" d="M1100 310V410"/><path class="line" d="M960 490H880"/><path class="line" d="M630 490H570"/><path class="line" d="M350 490H290"/>
+  <rect x="70" y="650" width="1170" height="92" rx="12" fill="#0d203b" stroke="#284c75"/>
+  <text class="h" x="98" y="690">关键边界</text><text class="p" x="98" y="720">interrupt 保存的是 Graph 中间执行状态；审批 Store 保存人类决定；Conversation Memory 只在最终回答后保存 Turn。</text>
+</svg>

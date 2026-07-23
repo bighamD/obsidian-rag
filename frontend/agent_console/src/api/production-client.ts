@@ -1,6 +1,8 @@
 import type {
   AgentStreamEvent,
   AgentAskPayload,
+  ApprovalResumePayload,
+  ApprovalListResponse,
   ConsoleConfigResponse,
   ConsoleConversationDeleteResponse,
   ConsoleConversationListResponse,
@@ -73,6 +75,21 @@ export async function askAgent(payload: AgentAskPayload): Promise<ProductionAskR
     body: JSON.stringify(payload),
   });
   return normalizeProductionResponse(response);
+}
+
+export async function resumeApproval(
+  runId: string,
+  payload: ApprovalResumePayload,
+): Promise<ProductionAskResponse> {
+  const response = await request<ProductionAskResponse>(
+    `/approvals/${encodeURIComponent(runId)}/resume`,
+    { method: "POST", body: JSON.stringify(payload) },
+  );
+  return normalizeProductionResponse(response);
+}
+
+export async function fetchPendingApprovals(): Promise<ApprovalListResponse> {
+  return request<ApprovalListResponse>("/approvals?status=pending&limit=100");
 }
 
 export async function streamAgent(

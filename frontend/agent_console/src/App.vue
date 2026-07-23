@@ -5,6 +5,7 @@ import { computed, ref } from "vue";
 import ChatComposer from "@/components/ChatComposer.vue";
 import ChatTranscript from "@/components/ChatTranscript.vue";
 import ConversationSidebar from "@/components/ConversationSidebar.vue";
+import ApprovalPanel from "@/components/ApprovalPanel.vue";
 import RunInspector from "@/components/RunInspector.vue";
 import { useAgentConsole } from "@/composables/use-agent-console";
 import type { AgentOptions } from "@/types/production";
@@ -64,7 +65,15 @@ function updateOptions(value: AgentOptions) {
           <div><p class="section-kicker">当前会话</p><strong>{{ consoleState.activeConversationId.value }}</strong></div>
           <span v-if="consoleState.requestError.value" class="inline-error">{{ consoleState.requestError.value }}</span>
         </div>
-        <ChatTranscript :is-running="consoleState.isRunning.value" :messages="activeMessages" />
+        <div class="chat-main">
+          <ApprovalPanel
+            v-if="consoleState.consoleConfig.value?.features.hitl && consoleState.activeApproval.value"
+            :approval="consoleState.activeApproval.value"
+            :busy="consoleState.approvalBusy.value"
+            @decide="consoleState.decideApproval"
+          />
+          <ChatTranscript :is-running="consoleState.isRunning.value" :messages="activeMessages" />
+        </div>
         <ChatComposer
           v-model="question"
           :disabled="!consoleState.isConsoleCompatible.value"

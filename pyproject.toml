@@ -13,10 +13,12 @@ dependencies = [
     "langchain-classic>=1.0.0,<2.0.0",
     "langchain-text-splitters>=1.1.0,<2.0.0",
     "langgraph>=0.2.0",
+    "langgraph-checkpoint-postgres>=3.1.0,<4.0.0",
     "llama-index-core>=0.14.0,<0.15.0",
     "mcp>=1.0,<2.0",
     "openai>=1.90.0",
     "pymysql>=1.1.1",
+    "psycopg[binary,pool]>=3.3.0,<4.0.0",
     "python-dotenv>=1.0.1",
     "pyyaml>=6.0.2",
     "qdrant-client>=1.14.0",
@@ -26,7 +28,11 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
     "debugpy>=1.8.0",
+    "langgraph-checkpoint-sqlite>=3.1.0,<4.0.0",
     "pytest>=8.0.0",
+]
+migration = [
+    "langgraph-checkpoint-sqlite>=3.1.0,<4.0.0",
 ]
 rerank = [
     "sentence-transformers>=3.0.0,<6.0.0",

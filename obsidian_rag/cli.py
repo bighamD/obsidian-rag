@@ -489,6 +489,38 @@ def main() -> None:
     agent314_sandbox.add_argument("--principal-profile", choices=["standard", "restricted", "sandbox"], default="sandbox")
     agent314_sandbox.add_argument("--api-base", default="http://127.0.0.1:8023")
 
+    agent315_parser = subparsers.add_parser(
+        "agent-v3-15",
+        help="Run V3.15 persistent checkpoint and HITL approval flow",
+    )
+    agent315_subparsers = agent315_parser.add_subparsers(dest="agent315_command", required=True)
+    agent315_ask = agent315_subparsers.add_parser("ask", help="Start a recoverable Agent Run")
+    _add_production_ask_arguments(agent315_ask, "已迁移到 MySQL，此参数仅为旧 CLI 兼容保留")
+    agent315_ask.add_argument("--collection")
+    agent315_ask.add_argument("--disable-collection-router", action="store_true")
+    agent315_ask.add_argument("--max-collections", type=int, default=2, choices=[1, 2, 3])
+    agent315_ask.add_argument("--disable-mcp", action="store_true")
+    agent315_ask.add_argument("--mcp-tool-name", action="append", dest="mcp_tool_names")
+    agent315_ask.add_argument("--disable-sandbox", action="store_true")
+    agent315_ask.add_argument("--disable-skill-router", action="store_true")
+    agent315_ask.add_argument("--skill-name")
+    agent315_ask.add_argument(
+        "--principal-profile",
+        choices=["standard", "knowledge-only", "restricted", "sandbox"],
+        default="sandbox",
+    )
+    agent315_ask.add_argument("--json", action="store_true")
+    agent315_ask.add_argument("--api-base", default="http://127.0.0.1:8024")
+    agent315_resume = agent315_subparsers.add_parser("resume", help="Resume a waiting Run")
+    agent315_resume.add_argument("run_id")
+    agent315_resume.add_argument("--action", choices=["allow", "deny", "edit"], required=True)
+    agent315_resume.add_argument("--step-arguments", default="{}", help="edit 时使用的 step_id -> arguments JSON object")
+    agent315_resume.add_argument("--comment")
+    agent315_resume.add_argument("--api-base", default="http://127.0.0.1:8024")
+    agent315_recover = agent315_subparsers.add_parser("recover", help="Retry a failed Run from its latest checkpoint")
+    agent315_recover.add_argument("run_id")
+    agent315_recover.add_argument("--api-base", default="http://127.0.0.1:8024")
+
     agent3103_parser = subparsers.add_parser("agent-v3-10-3", help="Run V3.10.3 LangGraph Advanced Patterns")
     agent3103_subparsers = agent3103_parser.add_subparsers(dest="agent3103_command", required=True)
     agent3103_ask_parser = agent3103_subparsers.add_parser("ask", help="Call the Advanced Graph JSON or SSE endpoint")
@@ -1022,6 +1054,49 @@ def main() -> None:
         )
         return
 
+    if args.command == "agent-v3-15" and args.agent315_command == "ask":
+        run_agent3121_ask(
+            question=args.question,
+            conversation_id=args.conversation_id,
+            collection=args.collection,
+            memory_window=args.memory_window,
+            memory_compaction_enabled=not args.disable_memory_compaction,
+            memory_compaction_trigger_turns=args.memory_compaction_trigger_turns,
+            memory_compaction_trigger_tokens=args.memory_compaction_trigger_tokens,
+            top_k=args.top_k,
+            mode=args.mode,
+            max_steps=args.max_steps,
+            max_retries=args.max_retries,
+            filter_path=args.filter_path,
+            context_max_chunks=args.context_max_chunks,
+            context_token_budget=args.context_token_budget,
+            api_base=args.api_base,
+            stream=not args.json,
+            mcp_enabled=not args.disable_mcp,
+            mcp_tool_names=args.mcp_tool_names,
+            collection_router_enabled=not args.disable_collection_router,
+            max_collections=args.max_collections,
+            principal=_permission_principal(args.principal_profile),
+            sandbox_enabled=not args.disable_sandbox,
+            skill_router_enabled=not args.disable_skill_router,
+            skill_name=args.skill_name,
+        )
+        return
+
+    if args.command == "agent-v3-15" and args.agent315_command == "resume":
+        run_agent315_resume(
+            run_id=args.run_id,
+            action=args.action,
+            step_arguments_json=args.step_arguments,
+            comment=args.comment,
+            api_base=args.api_base,
+        )
+        return
+
+    if args.command == "agent-v3-15":
+        run_agent315_recover(run_id=args.run_id, api_base=args.api_base)
+        return
+
     if args.command == "agent-v3-10-3" and args.agent3103_command == "ask":
         run_agent3103_ask(
             question=args.question,
@@ -1186,7 +1261,7 @@ def run_agent3121_ask(
             data = event.get("data", {})
             if current_event == "answer_delta":
                 print(data.get("delta", ""), end="", flush=True)
-            elif current_event == "run_succeeded":
+            elif current_event in {"run_waiting_for_approval", "run_succeeded"}:
                 final_response = data.get("response")
     print()
     if final_response:
@@ -1364,6 +1439,39 @@ def run_agent314_sandbox(
             "arguments": arguments,
             "principal": _permission_principal(principal_profile),
         },
+        timeout=None,
+    )
+    response.raise_for_status()
+    print(json.dumps(response.json(), ensure_ascii=False, indent=2))
+
+
+def run_agent315_resume(
+    *,
+    run_id: str,
+    action: str,
+    step_arguments_json: str,
+    comment: str | None,
+    api_base: str,
+) -> None:
+    step_arguments = json.loads(step_arguments_json)
+    if not isinstance(step_arguments, dict):
+        raise ValueError("--step-arguments 必须解析为 JSON object")
+    response = httpx.post(
+        f"{api_base.rstrip('/')}/approvals/{run_id}/resume",
+        json={
+            "action": action,
+            "comment": comment,
+            "step_arguments": step_arguments,
+        },
+        timeout=None,
+    )
+    response.raise_for_status()
+    print(json.dumps(response.json(), ensure_ascii=False, indent=2))
+
+
+def run_agent315_recover(*, run_id: str, api_base: str) -> None:
+    response = httpx.post(
+        f"{api_base.rstrip('/')}/recoveries/{run_id}/retry",
         timeout=None,
     )
     response.raise_for_status()

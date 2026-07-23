@@ -568,6 +568,44 @@
 			"request": "launch",
 			"command": "VITE_API_TARGET=http://127.0.0.1:8023 npm run dev",
 			"cwd": "${workspaceFolder}/frontend/agent_console"
+		},
+		{
+			"name": "V3.15 API server: Recovery & HITL",
+			"type": "debugpy",
+			"request": "launch",
+			"module": "uvicorn",
+			"console": "integratedTerminal",
+			"cwd": "${workspaceFolder}",
+			"python": "${workspaceFolder}/.venv/bin/python",
+			"envFile": "${workspaceFolder}/.env",
+			"args": ["obsidian_rag.v3_15.app:app", "--host", "127.0.0.1", "--port", "8024"],
+			"subProcess": false,
+			"justMyCode": true
+		},
+		{
+			"name": "V3.15 CLI: trigger Sandbox approval",
+			"type": "debugpy",
+			"request": "launch",
+			"module": "obsidian_rag.cli",
+			"console": "integratedTerminal",
+			"cwd": "${workspaceFolder}",
+			"python": "${workspaceFolder}/.venv/bin/python",
+			"envFile": "${workspaceFolder}/.env",
+			"args": [
+				"agent-v3-15", "ask",
+				"请在隔离工作区创建 approval-demo.txt，内容为 V3.15 HITL 学习完成。",
+				"--conversation-id", "conv_v315_hitl",
+				"--principal-profile", "sandbox",
+				"--json"
+			],
+			"justMyCode": true
+		},
+		{
+			"name": "Agent Console UI: console.v1 (V3.15 HITL)",
+			"type": "node-terminal",
+			"request": "launch",
+			"command": "VITE_API_TARGET=http://127.0.0.1:8024 npm run dev",
+			"cwd": "${workspaceFolder}/frontend/agent_console"
 		}
 	]
 }

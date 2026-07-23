@@ -1,5 +1,5 @@
 export type SearchMode = "dense" | "keyword" | "hybrid";
-export type RunStatus = "queued" | "running" | "succeeded" | "failed";
+export type RunStatus = "queued" | "running" | "waiting_for_approval" | "succeeded" | "failed";
 export type PermissionProfile = "standard" | "knowledge_only" | "restricted" | "sandbox";
 export type AgentProgressPhase =
   | "memory"
@@ -7,6 +7,7 @@ export type AgentProgressPhase =
   | "planning"
   | "routing"
   | "authorization"
+  | "approval"
   | "retrieval"
   | "evidence"
   | "context"
@@ -438,10 +439,58 @@ export interface SandboxRuntimeConfigResponse {
   approval_resume_enabled: boolean;
 }
 
+export type ApprovalAction = "allow" | "deny" | "edit";
+
+export interface ApprovalStep {
+  step_id: string;
+  tool_name: string;
+  reason: string;
+  arguments: Record<string, unknown>;
+  risk_level: string;
+}
+
+export interface ApprovalRequest {
+  approval_id: string;
+  run_id: string;
+  conversation_id: string;
+  status: "pending";
+  summary: string;
+  steps: ApprovalStep[];
+  permission_report: PermissionReport;
+  created_at: string;
+}
+
+export interface ApprovalDecision {
+  approval_id: string;
+  run_id: string;
+  action: ApprovalAction;
+  comment: string | null;
+  step_arguments: Record<string, Record<string, unknown>>;
+  decided_at: string;
+}
+
+export interface ApprovalRecord {
+  request: ApprovalRequest;
+  status: "pending" | "resolved";
+  decision: ApprovalDecision | null;
+  resolved_at: string | null;
+}
+
+export interface ApprovalResumePayload {
+  action: ApprovalAction;
+  comment?: string | null;
+  step_arguments?: Record<string, Record<string, unknown>>;
+}
+
+export interface ApprovalListResponse {
+  approvals: ApprovalRecord[];
+}
+
 export interface ProductionAskResponse {
   run: RunRecord;
   agent_response: AgentResponse | null;
   skill_result?: SkillAgentResult | null;
+  approval?: ApprovalRecord | null;
 }
 
 export interface ConsoleConversationResponse {
@@ -483,6 +532,7 @@ export interface ConsoleConfigResponse {
     permission_policy?: boolean;
     skills?: boolean;
     sandbox?: boolean;
+    hitl?: boolean;
   };
   endpoints: {
     ask: string;
@@ -495,6 +545,8 @@ export interface ConsoleConfigResponse {
     skills_runtime?: string | null;
     sandbox_runtime?: string | null;
     sandbox_artifacts?: string | null;
+    approvals?: string | null;
+    approval_resume?: string | null;
   };
   default_memory_window: number;
 }

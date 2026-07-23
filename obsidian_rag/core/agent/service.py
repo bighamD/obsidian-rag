@@ -9,6 +9,7 @@ from time import perf_counter
 from typing import Any, Literal, TypedDict
 
 
+from langgraph.errors import GraphInterrupt
 from langgraph.graph import END, START, StateGraph
 
 from obsidian_rag.prompting import format_sources
@@ -63,6 +64,7 @@ _NODE_PROGRESS_PHASE: dict[str, AgentProgressPhase] = {
     "planner": "planning",
     "resolve_retrieval_scope": "routing",
     "authorize_steps": "authorization",
+    "approval_gate": "approval",
     "execute_steps": "retrieval",
     "retry_search": "retrieval",
     "evidence_check": "evidence",
@@ -387,6 +389,9 @@ class AgentService:
             started = perf_counter()
             try:
                 result = handler(state)
+            except GraphInterrupt:
+                # interrupt 是可恢复的控制流，不应被观测层误报为节点失败。
+                raise
             except Exception as exc:
                 _emit_progress_event(
                     _ACTIVE_EVENT_SINK.get(),

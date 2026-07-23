@@ -101,7 +101,7 @@ docs/assets/rag-v3-4-planner-flow.svg
 已完成到：
 
 ```text
-V3.14 Sandbox Execution
+V3.15 Recovery & HITL
 ```
 
 V3.12 在 V3.11 Skill System 之后增加标准化外部工具协议：
@@ -209,8 +209,23 @@ V3.14 仍然不做：
 V3.10.3 和 V3.11.1-V3.11.3 是已完成的扩展学习版本，不改变当前主线。下一阶段建议：
 
 ```text
-V3.15 Recovery & HITL
+V3.15 Recovery & HITL（已完成）
 ```
+
+V3.15 已完成：
+
+- 使用 LangGraph 官方 `PostgresSaver` 持久保存 Graph Checkpoint。
+- 在 Permission 与 Tool Executor 之间增加 `approval_gate`，`confirm` 触发 `interrupt()`。
+- 支持 `allow`、`deny`、`edit` 和 `Command(resume=...)`。
+- Run 增加 `waiting_for_approval`，审批、Run 和 Tool 幂等结果使用 PostgreSQL `JSONB` 持久化。
+- V3.15 PostgreSQL 使用 psycopg ConnectionPool；Conversation Memory 继续使用 MySQL。
+- 成功副作用 Tool 使用持久幂等结果，避免节点恢复时重复执行。
+- 共享 Agent Console 支持审批参数查看、编辑、允许和拒绝。
+
+V3.15 仍然不做：
+
+- 不实现分布式队列、多人会签、复杂 RBAC、审批超时或生产级灾备。
+- 不保证跨 Run 的业务幂等，不把 Conversation Memory、Run Store 与 Checkpoint 合并。
 
 ## CodeGraph
 

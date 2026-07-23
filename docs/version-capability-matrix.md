@@ -34,7 +34,7 @@ V3.13         Permission Policy（已完成）
    ↓
 V3.14         Docker Sandbox Execution（已完成）
    ↓
-V3.15         Recovery/HITL（计划）
+V3.15         Recovery/HITL（当前主线，已完成）
 ```
 
 ## 状态说明
@@ -104,7 +104,7 @@ V3.15         Recovery/HITL（计划）
 | --- | --- | --- | --- | --- |
 | V3.13 | Permission Policy + Core Skill Integration | Principal、Tool allowlist、Schema 校验、风险等级、Collection scope、`allow/confirm/deny`；Core Skill 支持显式多选、`augment/exclusive`、Trigger/BM25 匹配和仅歧义时调用 LLM Router | `confirm` 暂不 interrupt/resume；Skill 不执行 scripts；不执行宿主机任意 Shell 或真实写入 | [代码](../obsidian_rag/v3_13) · [公共 Policy](../obsidian_rag/core/permissions) · [Core Skills](../obsidian_rag/core/skills) · [Guide](v3-13-permission-policy-guide.md) |
 | V3.14 | Docker Sandbox Execution + Core Tool Agent 收敛 + Planner Collection Selection | 通用 Tool Catalog、执行和 Observation 提升到 Core；Planner 同次调用选择 search Collections；每 Run Workspace、Docker 隔离、资源限制和 Artifact 下载 | 不固定调用 LLM Collection Router；不开放宿主机任意 Shell；不实现 approval resume | [代码](../obsidian_rag/v3_14) · [Core Agent](../obsidian_rag/core/agent) · [Core Sandbox](../obsidian_rag/core/sandbox) · [Guide](v3-14-sandbox-execution-guide.md) |
-| V3.15 | Recovery & HITL | 持久 Checkpoint、interrupt/resume、幂等、失败恢复和人工介入 | 不把 Memory、RunStore 和 Checkpoint 混为一类状态 | 计划中 |
+| V3.15 | Recovery & HITL | 官方 LangGraph PostgresSaver、psycopg 连接池、interrupt/resume、PostgreSQL Run/Approval JSONB、allow/deny/edit、Tool 幂等和 Agent Console 审批 | 不做分布式队列、多人会签、复杂 RBAC 或跨 Run 业务幂等 | [代码](../obsidian_rag/v3_15) · [Guide](v3-15-recovery-hitl-guide.md) |
 
 ## 能力反查
 
@@ -154,6 +154,7 @@ V3.15         Recovery/HITL（计划）
 | V3.11.3 vs V3.12.4 | V3.11.3 独立学习 Collection Router；V3.12.4 把它接入 Planner、Reranker、MCP、Context 和 Console |
 | V3.13 Permission vs V3.14 Sandbox | Permission 决定能否执行；Sandbox 决定在哪里、以什么资源执行 |
 | V3.13 confirm vs V3.15 HITL | V3.13 产生 confirm 并阻止执行；V3.15 才保存 Checkpoint、等待人工决定并 resume |
+| Memory vs RunStore vs Checkpoint | Memory 延续跨轮对话；RunStore 展示一次运行生命周期；Checkpoint 保存 Graph 中间状态并驱动 resume |
 
 ## 目录阅读建议
 
