@@ -8,7 +8,7 @@
 
 - 默认用中文回答。
 - 命令、文件名、配置项、API 名称保留英文原文。
-- 解释学习概念时优先结合本仓库已有版本：`v0`、`v1`、`v2`、`v3`、`v3_1`、`v3_2`、`v3_3`、`v3_4`、`v3_5`、`v3_6`、`v3_7`、`v3_8`、`v3_8_1`、`v3_9`、`v3_10`、`v3_10_1`、`v3_10_2`、`v3_10_3`、`v3_11`、`v3_12`、`v3_13`。
+- 解释学习概念时优先结合本仓库已有版本：`v0`、`v1`、`v2`、`v3`、`v3_1`、`v3_2`、`v3_3`、`v3_4`、`v3_5`、`v3_6`、`v3_7`、`v3_8`、`v3_8_1`、`v3_9`、`v3_10`、`v3_10_1`、`v3_10_2`、`v3_10_3`、`v3_11`、`v3_12`、`v3_13`、`v3_14`、`v3_15`；后续生产迁移版本为 `v3_16`、`v3_17`。
 
 ## 本地端口约束
 
@@ -206,10 +206,13 @@ V3.14 仍然不做：
 - 不执行 Skill `scripts/`，不实现 Container Pool、多租户调度或持久 Artifact 元数据数据库。
 - 不实现 `confirm → interrupt → resume`，该能力进入 V3.15。
 
-V3.10.3 和 V3.11.1-V3.11.3 是已完成的扩展学习版本，不改变当前主线。下一阶段建议：
+V3.10.3 和 V3.11.1-V3.11.3 是已完成的扩展学习版本，不改变当前主线。V3.15 完成后，下一阶段切换到官方 DeepAgents 生产迁移：
 
 ```text
-V3.15 Recovery & HITL（已完成）
+V3.16 DeepAgents Tool Loop & Artifact（计划中）
+V3.17 DeepAgents Durable Memory & Context（计划中）
+V3.18 DeepAgents Production Customization（计划中）
+V3.19 Production Hardening & Takeover Drill（计划中）
 ```
 
 V3.15 已完成：
@@ -226,6 +229,23 @@ V3.15 仍然不做：
 
 - 不实现分布式队列、多人会签、复杂 RBAC、审批超时或生产级灾备。
 - 不保证跨 Run 的业务幂等，不把 Conversation Memory、Run Store 与 Checkpoint 合并。
+
+V3.16 计划边界：
+
+- 使用官方 `deepagents.create_deep_agent`，不继续扩展自研 Planner/Executor 作为新生产主线。
+- 核心验收链为 `search_notes -> ToolMessage -> write_file -> approval -> Sandbox -> Artifact download`。
+- 必须验证 `write_file.arguments.content` 基于检索 ToolMessage 动态生成，而不是 Planner 预制。
+- 实施按 Anatomy、Read-only Search、Observation-driven Write、HITL/Sandbox/Artifact、FastAPI/SSE/Console 五个阶段展开。
+- V3.16 不接入持久多轮 Memory、Skills、MCP、Sub-agent 或复杂 Runtime Context；Checkpointer 仅服务 HITL/Recovery。
+- 现有 `obsidian_rag/core/` 保留为原理对照和 Adapter 来源，不在迁移时删除或大规模重写。
+
+V3.17 计划边界：
+
+- 在 V3.16 Tool Loop 稳定后，再接入 DeepAgents 持久多轮会话和 Context 管理。
+- 同线程消息由 PostgreSQL Checkpointer 承载；跨线程长期 Memory 由 LangGraph Store + `StoreBackend` 承载。
+- 使用 `CompositeBackend` 区分线程工作文件与 `/memories/` 持久文件，并通过 Runtime Context 按 tenant/user/assistant 隔离 namespace。
+- 使用 DeepAgents Offloading/Summarization 管理 Context Window，不复刻固定 `memory_window` 或每四轮压缩规则。
+- Conversation Repository、Checkpoint、Long-term Store 和 Summary 必须在 schema、Swagger、文档和 Console 中明确区分。
 
 ## CodeGraph
 

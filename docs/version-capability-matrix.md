@@ -34,7 +34,15 @@ V3.13         Permission Policy（已完成）
    ↓
 V3.14         Docker Sandbox Execution（已完成）
    ↓
-V3.15         Recovery/HITL（当前主线，已完成）
+V3.15         Recovery/HITL（已完成）
+   ↓
+V3.16         DeepAgents Tool Loop & Artifact（下一主线，计划中）
+   ↓
+V3.17         DeepAgents Durable Memory & Context（计划中）
+   ↓
+V3.18         DeepAgents Production Customization（计划中）
+   ↓
+V3.19         Production Hardening & Takeover Drill（计划中）
 ```
 
 ## 状态说明
@@ -106,6 +114,15 @@ V3.15         Recovery/HITL（当前主线，已完成）
 | V3.14 | Docker Sandbox Execution + Core Tool Agent 收敛 + Planner Collection Selection | 通用 Tool Catalog、执行和 Observation 提升到 Core；Planner 同次调用选择 search Collections；每 Run Workspace、Docker 隔离、资源限制和 Artifact 下载 | 不固定调用 LLM Collection Router；不开放宿主机任意 Shell；不实现 approval resume | [代码](../obsidian_rag/v3_14) · [Core Agent](../obsidian_rag/core/agent) · [Core Sandbox](../obsidian_rag/core/sandbox) · [Guide](v3-14-sandbox-execution-guide.md) |
 | V3.15 | Recovery & HITL | 官方 LangGraph PostgresSaver、psycopg 连接池、interrupt/resume、PostgreSQL Run/Approval JSONB、allow/deny/edit、Tool 幂等和 Agent Console 审批 | 不做分布式队列、多人会签、复杂 RBAC 或跨 Run 业务幂等 | [代码](../obsidian_rag/v3_15) · [Guide](v3-15-recovery-hitl-guide.md) |
 
+## Phase G：DeepAgents 生产迁移
+
+| 版本 | 主题 | 核心职责与新增能力 | 明确边界 | 状态 |
+| --- | --- | --- | --- | --- |
+| V3.16 | DeepAgents Tool Loop & Artifact | 使用官方 `create_deep_agent`；适配 `search_notes`、Sandbox Backend、HITL 和 Artifact；跑通 `search -> ToolMessage -> write_file -> approval -> download` | 不做持久多轮 Memory、Skills、MCP、Sub-agent；不继续扩展自研 Planner 数据流 | 计划中 |
+| V3.17 | DeepAgents Durable Memory & Context | PostgreSQL Checkpointer、Conversation Repository、`CompositeBackend`、`StoreBackend`、用户级长期 Memory、Offloading/Summarization 和 Memory Audit | 不把全部 Turn 写成长记忆；不做复杂 Sub-agent 和跨历史向量检索 | 计划中 |
+| V3.18 | DeepAgents Production Customization | 自定义 Middleware、Runtime Context、动态 Tool/Memory scope、Harness Profile、Sub-agent、确定性业务子图和后台 Memory consolidation | 不要求通用 Deep Agent Loop 代替严格事务/DAG；严格流程进入自定义 Sub-agent | 计划中 |
+| V3.19 | Production Hardening & Takeover Drill | LangSmith Trace/Eval、超时取消重试、幂等、SSE replay、Secrets、租户隔离、部署、备份恢复和真实业务迁移 | 不再以单一概念 Demo 为目标，以生产 PR 和故障演练作为验收 | 计划中 |
+
 ## 能力反查
 
 | 想学习的能力 | 首选版本 | 补充版本 |
@@ -113,15 +130,15 @@ V3.15         Recovery/HITL（当前主线，已完成）
 | Dense / Keyword / Hybrid / RRF | V1 | V3.11.3、V3.12.2 |
 | Retrieval / Answer Evaluation | V2 | V3.9、V3.12.2 |
 | Intent Router | V3.1 | V3.2、V3.3 |
-| Tool Calling | V3.2 | V3.5、V3.12.1、V3.12.3 |
+| Tool Calling | V3.2 | V3.5、V3.12.1、V3.12.3、V3.16 DeepAgents Tool Loop |
 | LangGraph 基础编排 | V3.3 | V3.4-V3.6 |
 | LangGraph 高级能力 | V3.10.3 | V3.15 |
 | Planner / Task Decomposition | V3.4 | V3.5、V3.12.3 |
 | Tool Executor / Registry | V3.5 | V3.12.1 |
 | Evidence Checker / Retry | V3.6 | V3.9 |
 | Context Builder | V3.7 | V3.8.1、V3.12.3 |
-| Conversation Memory | V3.8 | V3.8.1 |
-| Memory Compaction | V3.8.1 | V3.12.1 Core |
+| Conversation Memory | V3.8 | V3.8.1；V3.17 DeepAgents 持久线程 |
+| Memory Compaction | V3.8.1 | V3.12.1 Core；V3.17 DeepAgents Summarization |
 | Agent Evaluation | V3.9 | V2 |
 | Run Lifecycle / Metrics | V3.10 | V3.10.2 |
 | Agent Console | V3.10.1 | V3.10.2、V3.12.1 |
@@ -135,6 +152,11 @@ V3.15         Recovery/HITL（当前主线，已完成）
 | Permission / Approval | V3.13 | V3.15 完整 interrupt/resume |
 | Sandbox / Artifacts | V3.14 | V3.14 |
 | Checkpoint / HITL | V3.15 | V3.10.3 |
+| DeepAgents Harness / Middleware | V3.16 | V3.18 深度定制 |
+| Observation-driven Tool Dataflow | V3.16 | V3.5 自研 Executor 对照 |
+| DeepAgents Long-term Memory / StoreBackend | V3.17 | V3.8.1 自研 Memory 对照 |
+| Runtime Context / Sub-agent | V3.18 | V3.10.3 LangGraph Subgraph |
+| Production Reliability / Takeover | V3.19 | V3.9、V3.10、V3.15 |
 
 ## 最容易混淆的版本
 
@@ -155,6 +177,9 @@ V3.15         Recovery/HITL（当前主线，已完成）
 | V3.13 Permission vs V3.14 Sandbox | Permission 决定能否执行；Sandbox 决定在哪里、以什么资源执行 |
 | V3.13 confirm vs V3.15 HITL | V3.13 产生 confirm 并阻止执行；V3.15 才保存 Checkpoint、等待人工决定并 resume |
 | Memory vs RunStore vs Checkpoint | Memory 延续跨轮对话；RunStore 展示一次运行生命周期；Checkpoint 保存 Graph 中间状态并驱动 resume |
+| V3.15 Checkpoint vs V3.17 Memory | V3.15 的 Checkpoint 重点是恢复/HITL；V3.17 才系统处理同线程消息、跨线程 Store Memory 和 Context 生命周期 |
+| 自研 Planner Executor vs V3.16 DeepAgents | 自研 Planner 预先生成步骤和参数；DeepAgents 每次读取 ToolMessage 后再决定下一次 Tool Call |
+| V3.16 vs V3.17 | V3.16 先掌握 Tool Loop、HITL 和 Artifact；V3.17 才加入持久多轮会话和长期 Memory |
 
 ## 目录阅读建议
 
