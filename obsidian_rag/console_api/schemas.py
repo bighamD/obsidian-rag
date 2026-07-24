@@ -26,6 +26,7 @@ class ConsoleFeatures(BaseModel):
     skills: bool = Field(default=False, description="是否支持 Core Skill Router、Skill 选择与加载摘要展示。")
     sandbox: bool = Field(default=False, description="是否支持 Docker Sandbox、受控命令和 Artifacts 展示。")
     hitl: bool = Field(default=False, description="是否支持 LangGraph interrupt、人工审批和持久恢复。")
+    deep_agents: bool = Field(default=False, description="是否返回 DeepAgents messages、Tool Calls 和 ToolMessages 原生观察数据。")
 
 
 class ConsoleEndpoints(BaseModel):
@@ -43,6 +44,7 @@ class ConsoleEndpoints(BaseModel):
     sandbox_artifacts: str | None = Field(default=None, description="按 run_id 查询 Sandbox Artifacts 的路径模板。")
     approvals: str | None = Field(default=None, description="查询待审批请求的路径模板。")
     approval_resume: str | None = Field(default=None, description="提交审批决定并恢复 Graph 的路径模板。")
+    approval_resume_stream: str | None = Field(default=None, description="提交审批决定并通过 SSE 恢复 Graph 的路径模板。")
 
 
 class ConsoleConfigResponse(BaseModel):

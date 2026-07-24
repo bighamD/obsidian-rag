@@ -21,6 +21,9 @@ def create_console_router(
     skills: bool = False,
     sandbox: bool = False,
     hitl: bool = False,
+    deep_agents: bool = False,
+    conversation_memory: bool = True,
+    conversation_management: bool = True,
 ) -> APIRouter:
     """为共享 console.v1 契约创建带正确学习版本回显的 Router。"""
 
@@ -36,8 +39,8 @@ def create_console_router(
                 sse=True,
                 answer_delta=True,
                 reasoning_delta=config.reasoning_stream_enabled,
-                conversation_memory=True,
-                conversation_management=True,
+                conversation_memory=conversation_memory,
+                conversation_management=conversation_management,
                 collections=True,
                 mcp_tools=mcp_tools,
                 collection_routing=collection_routing,
@@ -45,6 +48,7 @@ def create_console_router(
                 skills=skills,
                 sandbox=sandbox,
                 hitl=hitl,
+                deep_agents=deep_agents,
             ),
             endpoints=ConsoleEndpoints(
                 ask="/agent/ask",
@@ -59,8 +63,9 @@ def create_console_router(
                 sandbox_artifacts="/sandbox/artifacts/{run_id}" if sandbox else None,
                 approvals="/approvals/{run_id}" if hitl else None,
                 approval_resume="/approvals/{run_id}/resume" if hitl else None,
+                approval_resume_stream="/approvals/{run_id}/resume/stream" if hitl else None,
             ),
-            default_memory_window=3,
+            default_memory_window=3 if conversation_memory else 0,
         )
 
     @router.get("/conversations", response_model=ConsoleConversationListResponse)

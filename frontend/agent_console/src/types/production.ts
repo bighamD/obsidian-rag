@@ -428,7 +428,7 @@ export interface SandboxRuntimeStatus {
 }
 
 export interface SandboxRuntimeConfigResponse {
-  version: "v3.14";
+  version: "v3.14" | "v3.16";
   json_endpoint: string;
   stream_endpoint: string;
   sandbox_call_endpoint: string;
@@ -486,9 +486,73 @@ export interface ApprovalListResponse {
   approvals: ApprovalRecord[];
 }
 
+export interface DeepAgentToolCall {
+  sequence: number;
+  model_call_index: number;
+  call_id: string;
+  name: string;
+  arguments: Record<string, unknown>;
+  status: "requested" | "waiting_for_approval" | "success" | "failed" | "rejected";
+}
+
+export interface DeepAgentToolMessage {
+  sequence: number;
+  message_id: string | null;
+  tool_call_id: string;
+  tool_name: string;
+  status: "success" | "failed" | "rejected";
+  content: unknown;
+  summary: string;
+}
+
+export interface DeepAgentMessage {
+  sequence: number;
+  message_id: string | null;
+  role: "user" | "assistant" | "tool" | "system" | "other";
+  content: unknown;
+  tool_calls: DeepAgentToolCall[];
+  tool_call_id: string | null;
+  tool_name: string | null;
+}
+
+export interface DeepAgentExecutionEvent {
+  sequence: number;
+  event_type: string;
+  node_name: string | null;
+  status: string;
+  detail: string;
+  occurred_at: string;
+  duration_ms: number | null;
+  tool_name: string | null;
+  tool_call_id: string | null;
+  metadata: Record<string, unknown>;
+}
+
+export interface DeepAgentArtifact extends ArtifactRecord {
+  download_url: string;
+}
+
+export interface DeepAgentNativeResponse {
+  run_id: string;
+  status: "waiting_for_approval" | "succeeded";
+  question: string;
+  model_call_count: number;
+  messages: DeepAgentMessage[];
+  tool_calls: DeepAgentToolCall[];
+  tool_messages: DeepAgentToolMessage[];
+  execution_events: DeepAgentExecutionEvent[];
+  graph_path: string[];
+  node_timings: AgentNodeTiming[];
+  final_answer: string;
+  selected_collections: string[];
+  search_results: SearchHit[];
+  artifacts: DeepAgentArtifact[];
+}
+
 export interface ProductionAskResponse {
   run: RunRecord;
   agent_response: AgentResponse | null;
+  deep_agent_response?: DeepAgentNativeResponse | null;
   skill_result?: SkillAgentResult | null;
   approval?: ApprovalRecord | null;
 }
@@ -533,6 +597,7 @@ export interface ConsoleConfigResponse {
     skills?: boolean;
     sandbox?: boolean;
     hitl?: boolean;
+    deep_agents?: boolean;
   };
   endpoints: {
     ask: string;
@@ -547,6 +612,7 @@ export interface ConsoleConfigResponse {
     sandbox_artifacts?: string | null;
     approvals?: string | null;
     approval_resume?: string | null;
+    approval_resume_stream?: string | null;
   };
   default_memory_window: number;
 }

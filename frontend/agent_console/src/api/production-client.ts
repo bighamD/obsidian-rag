@@ -51,13 +51,7 @@ export function parseConsoleConfig(payload: unknown): ConsoleConfigResponse {
   if (!isRecord(features) || !isRecord(endpoints)) {
     throw new ConsoleContractError("后端 console.v1 配置缺少 features 或 endpoints。");
   }
-  const requiredFeatures = [
-    "sse",
-    "answer_delta",
-    "conversation_memory",
-    "conversation_management",
-    "collections",
-  ] as const;
+  const requiredFeatures = ["sse", "answer_delta", "collections"] as const;
   const missingFeatures = requiredFeatures.filter((key) => features[key] !== true);
   if (missingFeatures.length > 0) {
     throw new ConsoleContractError(`后端 console.v1 缺少当前页面所需能力：${missingFeatures.join(", ")}。`);
@@ -96,7 +90,27 @@ export async function streamAgent(
   payload: AgentAskPayload,
   onEvent: (event: AgentStreamEvent) => void,
 ): Promise<ProductionAskResponse> {
-  const response = await fetch(`${API_BASE}/agent/ask/stream`, {
+  return streamResponse("/agent/ask/stream", payload, onEvent);
+}
+
+export async function streamApprovalResume(
+  runId: string,
+  payload: ApprovalResumePayload,
+  onEvent: (event: AgentStreamEvent) => void,
+): Promise<ProductionAskResponse> {
+  return streamResponse(
+    `/approvals/${encodeURIComponent(runId)}/resume/stream`,
+    payload,
+    onEvent,
+  );
+}
+
+async function streamResponse(
+  path: string,
+  payload: AgentAskPayload | ApprovalResumePayload,
+  onEvent: (event: AgentStreamEvent) => void,
+): Promise<ProductionAskResponse> {
+  const response = await fetch(`${API_BASE}${path}`, {
     method: "POST",
     headers: {
       Accept: "text/event-stream",

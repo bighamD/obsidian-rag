@@ -12,9 +12,10 @@ import {
   Search,
   TriangleAlert,
 } from "lucide-vue-next";
-import { computed, ref } from "vue";
+import { computed, ref, watch } from "vue";
 
 import CollectionRoutingPanel from "@/components/CollectionRoutingPanel.vue";
+import DeepAgentPanel from "@/components/DeepAgentPanel.vue";
 import McpRuntimePanel from "@/components/McpRuntimePanel.vue";
 import PermissionPanel from "@/components/PermissionPanel.vue";
 import RetrievedChunkList from "@/components/RetrievedChunkList.vue";
@@ -43,10 +44,17 @@ const props = defineProps<{
   sandboxRuntime: SandboxRuntimeConfigResponse | null;
 }>();
 
-const activeTab = ref<"overview" | "skill" | "plan" | "collections" | "permission" | "sandbox" | "evidence" | "context" | "mcp">("overview");
+const activeTab = ref<"overview" | "deepagent" | "skill" | "plan" | "collections" | "permission" | "sandbox" | "evidence" | "context" | "mcp">("overview");
 
 const agent = computed(() => props.response?.agent_response ?? null);
 const run = computed(() => props.response?.run ?? null);
+const deepAgent = computed(() => props.response?.deep_agent_response ?? null);
+
+watch(deepAgent, (value) => {
+  if (!value && activeTab.value === "deepagent") {
+    activeTab.value = "overview";
+  }
+});
 const allStepResults = computed<StepResult[]>(() => {
   if (!agent.value) {
     return [];
@@ -60,8 +68,9 @@ const planItems = computed(() =>
   })),
 );
 const toolObservations = computed(() => agent.value?.context_bundle.tool_observations ?? []);
+const mcpObservations = computed(() => toolObservations.value.filter((item) => item.source === "mcp"));
 const showMcpTab = computed(
-  () => Boolean(props.mcpRuntime || props.liveToolEvents.length || toolObservations.value.length),
+  () => Boolean(props.mcpRuntime || props.liveToolEvents.length || mcpObservations.value.length),
 );
 const showCollectionsTab = computed(
   () => Boolean(props.collectionRuntime || agent.value?.retrieval_scope),
@@ -126,6 +135,7 @@ function json(value: unknown): string {
 
     <div class="inspector-tabs" role="tablist" aria-label="运行详情">
       <button :class="{ active: activeTab === 'overview' }" role="tab" @click="activeTab = 'overview'">概览</button>
+      <button v-if="deepAgent" :class="{ active: activeTab === 'deepagent' }" role="tab" @click="activeTab = 'deepagent'">Deep Agent</button>
       <button v-if="showSkillTab" :class="{ active: activeTab === 'skill' }" role="tab" @click="activeTab = 'skill'">Skill</button>
       <button :class="{ active: activeTab === 'plan' }" role="tab" @click="activeTab = 'plan'">计划与工具</button>
       <button v-if="showCollectionsTab" :class="{ active: activeTab === 'collections' }" role="tab" @click="activeTab = 'collections'">知识库</button>
@@ -192,6 +202,10 @@ function json(value: unknown): string {
           :loaded-skill="agent?.loaded_skill ?? null"
           :loaded-skills="agent?.loaded_skills ?? []"
         />
+      </section>
+
+      <section v-else-if="activeTab === 'deepagent' && deepAgent" class="inspector-section">
+        <DeepAgentPanel :response="deepAgent" />
       </section>
 
       <section v-else-if="activeTab === 'plan'" class="inspector-section">
@@ -290,7 +304,7 @@ function json(value: unknown): string {
         <McpRuntimePanel
           :runtime="mcpRuntime"
           :live-tool-events="liveToolEvents"
-          :observations="toolObservations"
+          :observations="mcpObservations"
         />
       </section>
     </template>

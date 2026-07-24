@@ -16,6 +16,7 @@ import {
   normalizeProductionResponse,
   resumeApproval,
   streamAgent,
+  streamApprovalResume,
 } from "@/api/production-client";
 import type {
   AgentStreamEvent,
@@ -121,7 +122,11 @@ export function useAgentConsole() {
       refreshSkillRuntime(),
       refreshSandboxRuntime(),
     ]);
-    await refreshConversationList({ initial, hydrateActive: true });
+    if (consoleConfig.value?.features.conversation_management) {
+      await refreshConversationList({ initial, hydrateActive: true });
+    } else if (initial) {
+      await hydrateConversation(activeConversationId.value);
+    }
     await refreshApprovals();
   }
 
@@ -244,6 +249,9 @@ export function useAgentConsole() {
   async function refreshConversationList(
     settings: { initial?: boolean; hydrateActive?: boolean } = {},
   ): Promise<boolean> {
+    if (!consoleConfig.value?.features.conversation_management) {
+      return false;
+    }
     try {
       const result = await fetchConversations(MAX_SESSIONS);
       const existingById = new Map(sessions.value.map((session) => [session.id, session]));
@@ -280,7 +288,7 @@ export function useAgentConsole() {
   async function hydrateConversation(conversationId: string) {
     const session = getSessionFrom(sessions.value, conversationId);
     response.value = latestSessionRun(session);
-    if (!session?.persisted) {
+    if (!session?.persisted || !consoleConfig.value?.features.conversation_memory) {
       memorySnapshot.value = null;
       return;
     }
@@ -328,7 +336,7 @@ export function useAgentConsole() {
     deletingConversationId.value = conversationId;
     requestError.value = "";
     try {
-      if (session.persisted) {
+      if (session.persisted && consoleConfig.value?.features.conversation_management) {
         await deleteConversationRequest(conversationId);
       }
       const wasActive = activeConversationId.value === conversationId;
@@ -434,10 +442,14 @@ export function useAgentConsole() {
       message.currentProgress = "正在从审批断点恢复…";
     }
     try {
-      const result = await resumeApproval(approval.request.run_id, {
-        action,
-        step_arguments: stepArguments,
-      });
+      const resumePayload = { action, step_arguments: stepArguments };
+      const result = consoleConfig.value?.endpoints.approval_resume_stream && message
+        ? await streamApprovalResume(
+          approval.request.run_id,
+          resumePayload,
+          (event) => applyStreamEvent(event, message),
+        )
+        : await resumeApproval(approval.request.run_id, resumePayload);
       response.value = result;
       if (message && result.agent_response) {
         reconcileAssistantMessage(message, result);
@@ -487,6 +499,7 @@ export function useAgentConsole() {
           ),
         },
         agent_response: response.value?.agent_response ?? null,
+        deep_agent_response: response.value?.deep_agent_response ?? null,
         skill_result: response.value?.skill_result ?? null,
         approval: response.value?.approval ?? null,
       };
