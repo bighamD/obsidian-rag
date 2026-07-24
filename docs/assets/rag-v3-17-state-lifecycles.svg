@@ -1,0 +1,63 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="820" viewBox="0 0 1400 820" role="img" aria-labelledby="title desc">
+  <title id="title">V3.17 state lifecycle comparison</title>
+  <desc id="desc">Comparison of Conversation Repository, Checkpoint, Long-term Store, Summary, Run, and Artifact by scope and lifetime.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#071426"/><stop offset="1" stop-color="#102a43"/></linearGradient>
+    <filter id="shadow"><feDropShadow dx="0" dy="5" stdDeviation="7" flood-opacity=".28"/></filter>
+    <style>
+      .title{font:700 30px system-ui;fill:#f8fafc}.sub{font:15px system-ui;fill:#bae6fd}.card{rx:14;fill:#132f4c;stroke:#38bdf8;stroke-width:2;filter:url(#shadow)}
+      .green{fill:#123d34;stroke:#34d399}.yellow{fill:#422006;stroke:#fbbf24}.purple{fill:#302052;stroke:#c084fc}.head{font:650 18px system-ui;fill:#f8fafc}.label{font:600 13px system-ui;fill:#7dd3fc}.small{font:13px system-ui;fill:#cbd5e1}.note{font:12px system-ui;fill:#94a3b8}
+    </style>
+  </defs>
+  <rect width="1400" height="820" fill="url(#bg)"/>
+  <text x="700" y="48" text-anchor="middle" class="title">六类状态，六种生命周期</text>
+  <text x="700" y="77" text-anchor="middle" class="sub">不要再把 Memory、Run、Checkpoint 和 Summary 当成同一份数据</text>
+
+  <rect x="70" y="125" width="390" height="180" class="card green"/>
+  <text x="95" y="160" class="head">Conversation Repository</text>
+  <text x="95" y="192" class="label">Scope</text><text x="180" y="192" class="small">conversation_id</text>
+  <text x="95" y="220" class="label">保存</text><text x="180" y="220" class="small">标题、状态、thread_id、时间</text>
+  <text x="95" y="248" class="label">不保存</text><text x="180" y="248" class="small">完整 Agent messages</text>
+  <text x="95" y="276" class="label">删除</text><text x="180" y="276" class="small">清理该 Thread，不碰用户长期 Memory</text>
+
+  <rect x="505" y="125" width="390" height="180" class="card"/>
+  <text x="530" y="160" class="head">PostgreSQL Checkpoint</text>
+  <text x="530" y="192" class="label">Scope</text><text x="615" y="192" class="small">thread_id</text>
+  <text x="530" y="220" class="label">保存</text><text x="615" y="220" class="small">messages、Agent State、interrupt</text>
+  <text x="530" y="248" class="label">用途</text><text x="615" y="248" class="small">同会话续聊、HITL resume</text>
+  <text x="530" y="276" class="label">边界</text><text x="615" y="276" class="small">不会自动跨 Conversation 共享</text>
+
+  <rect x="940" y="125" width="390" height="180" class="card purple"/>
+  <text x="965" y="160" class="head">Long-term Store</text>
+  <text x="965" y="192" class="label">Scope</text><text x="1050" y="192" class="small">tenant + assistant + user</text>
+  <text x="965" y="220" class="label">保存</text><text x="1050" y="220" class="small">偏好、事实、确认决策</text>
+  <text x="965" y="248" class="label">用途</text><text x="1050" y="248" class="small">新 Conversation 仍可使用</text>
+  <text x="965" y="276" class="label">禁止</text><text x="1050" y="276" class="small">完整回答、RAG chunk、Secret</text>
+
+  <rect x="70" y="390" width="390" height="180" class="card yellow"/>
+  <text x="95" y="425" class="head">Context Summary</text>
+  <text x="95" y="457" class="label">Scope</text><text x="180" y="457" class="small">thread_id</text>
+  <text x="95" y="485" class="label">触发</text><text x="180" y="485" class="small">接近模型 Context Window</text>
+  <text x="95" y="513" class="label">保存</text><text x="180" y="513" class="small">关键目标、决定、下一步</text>
+  <text x="95" y="541" class="label">原文</text><text x="180" y="541" class="small">卸载到 /context/ 可恢复文件</text>
+
+  <rect x="505" y="390" width="390" height="180" class="card"/>
+  <text x="530" y="425" class="head">Run Repository</text>
+  <text x="530" y="457" class="label">Scope</text><text x="615" y="457" class="small">run_id</text>
+  <text x="530" y="485" class="label">保存</text><text x="615" y="485" class="small">一次执行状态、耗时、响应</text>
+  <text x="530" y="513" class="label">用途</text><text x="615" y="513" class="small">SSE 终态、排错、指标</text>
+  <text x="530" y="541" class="label">关系</text><text x="615" y="541" class="small">一个 Conversation 包含多个 Runs</text>
+
+  <rect x="940" y="390" width="390" height="180" class="card green"/>
+  <text x="965" y="425" class="head">Artifact</text>
+  <text x="965" y="457" class="label">Scope</text><text x="1050" y="457" class="small">run_id Workspace</text>
+  <text x="965" y="485" class="label">保存</text><text x="1050" y="485" class="small">模型生成的可下载文件</text>
+  <text x="965" y="513" class="label">保护</text><text x="1050" y="513" class="small">路径、大小、Sandbox、审批</text>
+  <text x="965" y="541" class="label">边界</text><text x="1050" y="541" class="small">不是长期 Memory 文件</text>
+
+  <rect x="165" y="665" width="1070" height="82" class="card"/>
+  <text x="700" y="699" text-anchor="middle" class="head">删除 Conversation 时发生什么？</text>
+  <text x="700" y="728" text-anchor="middle" class="small">Conversation metadata + Thread Checkpoint 清理；Long-term Store 默认保留；Memory 必须通过显式 API 单独删除</text>
+  <text x="700" y="786" text-anchor="middle" class="note">V3.17 的学习重点不是“多存一张表”，而是为每种状态建立正确的 owner、scope 和生命周期</text>
+</svg>
+

@@ -1,0 +1,83 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="880" viewBox="0 0 1400 880" role="img" aria-labelledby="title desc">
+  <title id="title">V3.17 Durable Memory and Context main flow</title>
+  <desc id="desc">A request resolves a stable conversation thread, restores checkpoint messages, loads scoped long-term memory, runs DeepAgents, summarizes long context, and persists the result.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#071426"/><stop offset="1" stop-color="#102a43"/></linearGradient>
+    <filter id="shadow"><feDropShadow dx="0" dy="5" stdDeviation="7" flood-opacity=".28"/></filter>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#7dd3fc"/></marker>
+    <style>
+      .title{font:700 30px system-ui;fill:#f8fafc}.sub{font:15px system-ui;fill:#bae6fd}.box{rx:14;fill:#132f4c;stroke:#38bdf8;stroke-width:2;filter:url(#shadow)}
+      .green{fill:#123d34;stroke:#34d399}.yellow{fill:#422006;stroke:#fbbf24}.purple{fill:#302052;stroke:#c084fc}.text{font:650 17px system-ui;fill:#f8fafc}.small{font:13px system-ui;fill:#cbd5e1}.tiny{font:12px system-ui;fill:#94a3b8}.line{stroke:#7dd3fc;stroke-width:2.5;fill:none;marker-end:url(#arrow)}
+    </style>
+  </defs>
+  <rect width="1400" height="880" fill="url(#bg)"/>
+  <text x="700" y="48" text-anchor="middle" class="title">V3.17 Durable Memory &amp; Context</text>
+  <text x="700" y="77" text-anchor="middle" class="sub">稳定 Thread 恢复短期状态，StoreBackend 提供跨会话长期记忆</text>
+
+  <rect x="70" y="125" width="230" height="104" class="box"/>
+  <text x="185" y="160" text-anchor="middle" class="text">POST /agent/ask</text>
+  <text x="185" y="188" text-anchor="middle" class="small">conversation_id</text>
+  <text x="185" y="210" text-anchor="middle" class="small">tenant / user / assistant</text>
+
+  <rect x="380" y="125" width="250" height="104" class="box green"/>
+  <text x="505" y="160" text-anchor="middle" class="text">Conversation Repository</text>
+  <text x="505" y="188" text-anchor="middle" class="small">conversation_id → thread_id</text>
+  <text x="505" y="210" text-anchor="middle" class="small">run_id 每次重新生成</text>
+  <path d="M300 177 L380 177" class="line"/>
+
+  <rect x="720" y="125" width="260" height="104" class="box"/>
+  <text x="850" y="160" text-anchor="middle" class="text">Postgres Checkpointer</text>
+  <text x="850" y="188" text-anchor="middle" class="small">恢复同 Thread messages</text>
+  <text x="850" y="210" text-anchor="middle" class="small">Checkpoint / HITL</text>
+  <path d="M630 177 L720 177" class="line"/>
+
+  <rect x="1070" y="125" width="260" height="104" class="box purple"/>
+  <text x="1200" y="160" text-anchor="middle" class="text">Runtime Context</text>
+  <text x="1200" y="188" text-anchor="middle" class="small">可信 identity scope</text>
+  <text x="1200" y="210" text-anchor="middle" class="small">模型不能修改 namespace</text>
+  <path d="M980 177 L1070 177" class="line"/>
+
+  <rect x="110" y="355" width="310" height="156" class="box purple"/>
+  <text x="265" y="391" text-anchor="middle" class="text">CompositeBackend</text>
+  <text x="265" y="424" text-anchor="middle" class="small">/artifacts/ → Run Sandbox</text>
+  <text x="265" y="451" text-anchor="middle" class="small">/context/ → Thread Store</text>
+  <text x="265" y="478" text-anchor="middle" class="small">/memories/ → User Store</text>
+
+  <rect x="545" y="335" width="310" height="196" class="box green"/>
+  <text x="700" y="373" text-anchor="middle" class="text">DeepAgents Tool Loop</text>
+  <text x="700" y="405" text-anchor="middle" class="small">model → tools → ToolMessage → model</text>
+  <text x="700" y="435" text-anchor="middle" class="small">search_notes / remember_user_fact</text>
+  <text x="700" y="463" text-anchor="middle" class="small">write_file → interrupt_on → resume</text>
+  <text x="700" y="493" text-anchor="middle" class="small">MemoryMiddleware 注入 profile.md</text>
+  <path d="M420 433 L545 433" class="line"/>
+  <path d="M1200 229 C1200 300 855 280 855 373" class="line"/>
+  <path d="M850 229 C850 280 760 280 760 335" class="line"/>
+
+  <rect x="980" y="355" width="310" height="156" class="box yellow"/>
+  <text x="1135" y="391" text-anchor="middle" class="text">Summarization / Offloading</text>
+  <text x="1135" y="424" text-anchor="middle" class="small">85% model context profile</text>
+  <text x="1135" y="451" text-anchor="middle" class="small">旧消息 → /context/history</text>
+  <text x="1135" y="478" text-anchor="middle" class="small">Summary + 近期原始消息</text>
+  <path d="M855 433 L980 433" class="line"/>
+
+  <rect x="180" y="675" width="300" height="116" class="box"/>
+  <text x="330" y="711" text-anchor="middle" class="text">Persistence</text>
+  <text x="330" y="740" text-anchor="middle" class="small">Checkpoint · Store · Run</text>
+  <text x="330" y="766" text-anchor="middle" class="small">Conversation · Audit · Artifact</text>
+  <path d="M585 531 C585 610 430 610 430 675" class="line"/>
+
+  <rect x="550" y="675" width="300" height="116" class="box green"/>
+  <text x="700" y="711" text-anchor="middle" class="text">JSON / SSE Response</text>
+  <text x="700" y="740" text-anchor="middle" class="small">answer + DeepAgent response</text>
+  <text x="700" y="766" text-anchor="middle" class="small">thread / summary / memory</text>
+  <path d="M700 531 L700 675" class="line"/>
+
+  <rect x="920" y="675" width="300" height="116" class="box"/>
+  <text x="1070" y="711" text-anchor="middle" class="text">Agent Console</text>
+  <text x="1070" y="740" text-anchor="middle" class="small">Thread History · Current Context</text>
+  <text x="1070" y="766" text-anchor="middle" class="small">Summary · Memory · Audit</text>
+  <path d="M850 733 L920 733" class="line"/>
+
+  <text x="700" y="842" text-anchor="middle" class="tiny">关键边界：Checkpoint 延续一个 Thread；Long-term Memory 跨 Thread；Summary 只管理 Context Window</text>
+</svg>
+
