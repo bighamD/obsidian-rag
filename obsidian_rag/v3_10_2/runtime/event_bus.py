@@ -12,7 +12,7 @@ from obsidian_rag.v3_10_2.schemas import AgentStreamEvent
 
 
 # 收到终态事件后 iter_events 主动结束，SSE 连接随之关闭。
-TERMINAL_EVENTS = {"run_succeeded", "run_failed"}
+TERMINAL_EVENTS = {"run_waiting_for_approval", "run_succeeded", "run_failed"}
 
 
 class RunEventBus:

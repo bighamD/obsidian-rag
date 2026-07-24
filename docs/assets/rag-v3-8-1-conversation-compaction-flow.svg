@@ -1,91 +1,51 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1180" height="700" viewBox="0 0 1180 700" role="img" aria-labelledby="title desc">
-  <title id="title">V3.8.1 Conversation Compaction flow</title>
-  <desc id="desc">Raw turns remain in SQLite while older unsummarized turns are compacted into summary text and combined with recent turns for planner and answer context.</desc>
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="760" viewBox="0 0 1200 760" role="img" aria-labelledby="title desc">
+  <title id="title">V3.8.1 Conversation Compaction 主流程</title>
+  <desc id="desc">从加载 MySQL Memory、选择旧 Turn、判断双阈值、生成滚动摘要，到 Planner、RAG、Answer 和保存新 Turn 的完整流程。</desc>
   <defs>
-    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
-      <path d="M 0 0 L 10 5 L 0 10 z" fill="#475569"/>
-    </marker>
-    <marker id="soft-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-      <path d="M 0 0 L 10 5 L 0 10 z" fill="#94a3b8"/>
-    </marker>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#071426"/><stop offset="1" stop-color="#102a43"/></linearGradient>
+    <filter id="shadow"><feDropShadow dx="0" dy="5" stdDeviation="7" flood-opacity=".28"/></filter>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#7dd3fc"/></marker>
+    <style>.title{font:700 28px system-ui;fill:#f8fafc}.sub{font:15px system-ui;fill:#bae6fd}.box{rx:18;fill:#132f4c;stroke:#38bdf8;stroke-width:2;filter:url(#shadow)}.green{fill:#123d34;stroke:#34d399}.yellow{fill:#422f0a;stroke:#fbbf24}.purple{fill:#2c1d43;stroke:#c084fc}.head{font:700 18px system-ui;fill:#f8fafc}.text{font:14px system-ui;fill:#cbd5e1}.tag{font:650 12px ui-monospace,monospace;fill:#fbbf24}.line{stroke:#7dd3fc;stroke-width:2.5;fill:none;marker-end:url(#arrow)}.soft{stroke:#64748b;stroke-width:2;fill:none;stroke-dasharray:6 5;marker-end:url(#arrow)}</style>
   </defs>
+  <rect width="1200" height="760" fill="url(#bg)"/>
+  <text x="600" y="48" text-anchor="middle" class="title">V3.8.1 Conversation Compaction 主流程</text>
+  <text x="600" y="76" text-anchor="middle" class="sub">压缩的是 LLM 上下文，不是 MySQL 中的原始对话</text>
 
-  <rect width="1180" height="700" fill="#f8fafc"/>
-  <text x="590" y="46" text-anchor="middle" font-family="Arial, sans-serif" font-size="28" font-weight="700" fill="#0f172a">V3.8.1 Conversation Compaction</text>
-  <text x="590" y="76" text-anchor="middle" font-family="Arial, sans-serif" font-size="15" fill="#475569">原始 Turn 永久保留；旧历史压缩成滚动摘要，最近对话继续保留原文</text>
+  <rect x="55" y="125" width="210" height="115" class="box"/>
+  <text x="160" y="160" text-anchor="middle" class="head">1. load_memory</text>
+  <text x="160" y="190" text-anchor="middle" class="text">读取 summary_text</text><text x="160" y="214" text-anchor="middle" class="text">和 Recent Turns</text>
 
-  <rect x="42" y="112" width="282" height="400" rx="8" fill="#ffffff" stroke="#bfdbfe" stroke-width="2"/>
-  <rect x="42" y="112" width="282" height="54" rx="8" fill="#eff6ff" stroke="#bfdbfe" stroke-width="2"/>
-  <text x="183" y="146" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" font-weight="700" fill="#1d4ed8">SQLite Memory Store</text>
+  <rect x="310" y="125" width="230" height="115" class="box purple"/>
+  <text x="425" y="160" text-anchor="middle" class="head">2. 选择候选</text>
+  <text x="425" y="190" text-anchor="middle" class="text">摘要截止点之后</text><text x="425" y="214" text-anchor="middle" class="text">Recent Window 之前</text>
 
-  <rect x="70" y="198" width="226" height="84" rx="8" fill="#ffffff" stroke="#93c5fd" stroke-width="2"/>
-  <text x="92" y="226" font-family="Arial, sans-serif" font-size="16" font-weight="700" fill="#1e40af">Raw Turns</text>
-  <text x="92" y="252" font-family="Arial, sans-serif" font-size="13" fill="#475569">全部问答 / sources / tool calls</text>
-  <text x="92" y="272" font-family="Arial, sans-serif" font-size="12" fill="#64748b">压缩后也不会删除</text>
+  <rect x="585" y="125" width="230" height="115" class="box yellow"/>
+  <text x="700" y="160" text-anchor="middle" class="head">3. 双阈值判断</text>
+  <text x="700" y="190" text-anchor="middle" class="tag">force / turns / tokens</text><text x="700" y="214" text-anchor="middle" class="text">满足任一条件即可</text>
 
-  <rect x="70" y="312" width="226" height="92" rx="8" fill="#ffffff" stroke="#c4b5fd" stroke-width="2"/>
-  <text x="92" y="340" font-family="Arial, sans-serif" font-size="16" font-weight="700" fill="#6d28d9">Rolling Summary</text>
-  <text x="92" y="366" font-family="Arial, sans-serif" font-size="13" fill="#475569">summary_text</text>
-  <text x="92" y="388" font-family="Arial, sans-serif" font-size="13" fill="#475569">summary_through_turn_id</text>
+  <rect x="860" y="125" width="285" height="115" class="box green"/>
+  <text x="1002" y="160" text-anchor="middle" class="head">4. 更新 Rolling Summary</text>
+  <text x="1002" y="190" text-anchor="middle" class="text">旧 Summary + 新增旧 Turns</text><text x="1002" y="214" text-anchor="middle" class="text">保存新的截止 turn_id</text>
 
-  <rect x="70" y="434" width="226" height="52" rx="8" fill="#f8fafc" stroke="#cbd5e1" stroke-width="2"/>
-  <text x="183" y="466" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="700" fill="#334155">Recent window: 最近 N 个 Turns</text>
+  <path d="M265 182 L310 182" class="line"/><path d="M540 182 L585 182" class="line"/><path d="M815 182 L860 182" class="line"/>
 
-  <rect x="366" y="112" width="448" height="400" rx="8" fill="#ffffff" stroke="#bbf7d0" stroke-width="2"/>
-  <rect x="366" y="112" width="448" height="54" rx="8" fill="#f0fdf4" stroke="#bbf7d0" stroke-width="2"/>
-  <text x="590" y="146" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" font-weight="700" fill="#047857">LangGraph Memory Flow</text>
+  <rect x="145" y="335" width="190" height="100" class="box"/>
+  <text x="240" y="370" text-anchor="middle" class="head">5. planner</text><text x="240" y="400" text-anchor="middle" class="text">摘要 + 最近原文</text>
+  <rect x="390" y="335" width="190" height="100" class="box"/>
+  <text x="485" y="370" text-anchor="middle" class="head">6. RAG Steps</text><text x="485" y="400" text-anchor="middle" class="text">检索与 Evidence</text>
+  <rect x="635" y="335" width="190" height="100" class="box green"/>
+  <text x="730" y="370" text-anchor="middle" class="head">7. Answer</text><text x="730" y="400" text-anchor="middle" class="text">Memory + chunks</text>
+  <rect x="880" y="335" width="190" height="100" class="box purple"/>
+  <text x="975" y="370" text-anchor="middle" class="head">8. save_memory</text><text x="975" y="400" text-anchor="middle" class="text">追加本轮 Raw Turn</text>
 
-  <circle cx="410" cy="216" r="20" fill="#dbeafe" stroke="#3b82f6" stroke-width="2"/>
-  <text x="410" y="222" text-anchor="middle" font-family="Arial, sans-serif" font-size="15" font-weight="700" fill="#1d4ed8">1</text>
-  <rect x="446" y="188" width="310" height="56" rx="8" fill="#ffffff" stroke="#93c5fd" stroke-width="2"/>
-  <text x="468" y="212" font-family="Arial, sans-serif" font-size="16" font-weight="700" fill="#1e40af">load_memory</text>
-  <text x="468" y="232" font-family="Arial, sans-serif" font-size="13" fill="#475569">读取 summary 状态与最近 Turns</text>
+  <path d="M1002 240 C1002 285 240 280 240 335" class="line"/><path d="M335 385 L390 385" class="line"/><path d="M580 385 L635 385" class="line"/><path d="M825 385 L880 385" class="line"/>
+  <path d="M700 240 C700 290 240 285 240 335" class="soft"/>
+  <text x="540" y="296" text-anchor="middle" class="tag">未触发或失败：保留旧 Memory，继续主流程</text>
 
-  <circle cx="410" cy="294" r="20" fill="#fef9c3" stroke="#eab308" stroke-width="2"/>
-  <text x="410" y="300" text-anchor="middle" font-family="Arial, sans-serif" font-size="15" font-weight="700" fill="#854d0e">2</text>
-  <rect x="446" y="266" width="310" height="56" rx="8" fill="#ffffff" stroke="#fde047" stroke-width="2"/>
-  <text x="468" y="290" font-family="Arial, sans-serif" font-size="16" font-weight="700" fill="#854d0e">compact_memory</text>
-  <text x="468" y="310" font-family="Arial, sans-serif" font-size="13" fill="#475569">Turn 数或 token 达到阈值？</text>
-
-  <path d="M410 236 L410 272" stroke="#475569" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
-
-  <rect x="400" y="350" width="170" height="70" rx="8" fill="#fff7ed" stroke="#fdba74" stroke-width="2"/>
-  <text x="485" y="378" text-anchor="middle" font-family="Arial, sans-serif" font-size="15" font-weight="700" fill="#9a3412">达到阈值</text>
-  <text x="485" y="402" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" fill="#475569">LLM 滚动摘要并保存</text>
-
-  <rect x="610" y="350" width="170" height="70" rx="8" fill="#f8fafc" stroke="#cbd5e1" stroke-width="2"/>
-  <text x="695" y="378" text-anchor="middle" font-family="Arial, sans-serif" font-size="15" font-weight="700" fill="#334155">未达到阈值</text>
-  <text x="695" y="402" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" fill="#475569">保留现有 Memory</text>
-
-  <path d="M520 322 C510 334 498 338 488 350" stroke="#fb923c" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
-  <path d="M650 322 C666 334 680 340 692 350" stroke="#94a3b8" stroke-width="2" fill="none" marker-end="url(#soft-arrow)"/>
-
-  <rect x="446" y="446" width="310" height="46" rx="8" fill="#ecfdf5" stroke="#86efac" stroke-width="2"/>
-  <text x="601" y="475" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="700" fill="#166534">继续 planner -> RAG -> answer -> save_memory</text>
-  <path d="M485 420 C490 438 522 442 550 446" stroke="#475569" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
-  <path d="M695 420 C688 438 658 442 632 446" stroke="#475569" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
-
-  <rect x="856" y="112" width="282" height="400" rx="8" fill="#ffffff" stroke="#cbd5e1" stroke-width="2"/>
-  <rect x="856" y="112" width="282" height="54" rx="8" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="2"/>
-  <text x="997" y="146" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" font-weight="700" fill="#334155">LLM Context</text>
-
-  <rect x="884" y="200" width="226" height="60" rx="8" fill="#f5f3ff" stroke="#c4b5fd" stroke-width="2"/>
-  <text x="997" y="226" text-anchor="middle" font-family="Arial, sans-serif" font-size="15" font-weight="700" fill="#6d28d9">conversation_summary</text>
-  <text x="997" y="248" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#64748b">窗口之外的重要历史</text>
-
-  <rect x="884" y="282" width="226" height="60" rx="8" fill="#eff6ff" stroke="#93c5fd" stroke-width="2"/>
-  <text x="997" y="308" text-anchor="middle" font-family="Arial, sans-serif" font-size="15" font-weight="700" fill="#1d4ed8">recent_turns</text>
-  <text x="997" y="330" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#64748b">最近对话保持原文</text>
-
-  <rect x="884" y="364" width="226" height="60" rx="8" fill="#f0fdf4" stroke="#86efac" stroke-width="2"/>
-  <text x="997" y="390" text-anchor="middle" font-family="Arial, sans-serif" font-size="15" font-weight="700" fill="#047857">retrieval_chunks</text>
-  <text x="997" y="412" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#64748b">当前问题的知识库证据</text>
-
-  <path d="M324 310 L366 310" stroke="#475569" stroke-width="2.5" fill="none" marker-end="url(#arrow)"/>
-  <path d="M814 310 L856 310" stroke="#475569" stroke-width="2.5" fill="none" marker-end="url(#arrow)"/>
-
-  <rect x="118" y="558" width="944" height="94" rx="8" fill="#fff1f2" stroke="#fda4af" stroke-width="2" stroke-dasharray="7 6"/>
-  <text x="590" y="590" text-anchor="middle" font-family="Arial, sans-serif" font-size="17" font-weight="700" fill="#be123c">压缩上下文，不删除记忆</text>
-  <text x="590" y="618" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#475569">Raw Turns 是事实来源；summary_text 是可重建的派生状态；Recent Turns 保留当前交流细节</text>
-  <text x="590" y="640" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" fill="#64748b">本版只做会话内 Compaction，不做跨会话用户画像、向量 Memory 或事实置信度</text>
+  <rect x="85" y="535" width="1030" height="145" rx="22" fill="#0c2138" stroke="#64748b" stroke-width="2"/>
+  <text x="600" y="574" text-anchor="middle" class="head">持久化边界</text>
+  <rect x="130" y="600" width="270" height="50" rx="14" fill="#132f4c" stroke="#38bdf8"/><text x="265" y="631" text-anchor="middle" class="text">Raw Turns：完整事实来源</text>
+  <rect x="465" y="600" width="270" height="50" rx="14" fill="#2c1d43" stroke="#c084fc"/><text x="600" y="631" text-anchor="middle" class="text">Summary：可重建派生状态</text>
+  <rect x="800" y="600" width="270" height="50" rx="14" fill="#123d34" stroke="#34d399"/><text x="935" y="631" text-anchor="middle" class="text">Recent Turns：最近原文窗口</text>
+  <text x="600" y="714" text-anchor="middle" class="sub">Compaction 失败采用 fail-open：不能让摘要优化阻断正常问答</text>
 </svg>

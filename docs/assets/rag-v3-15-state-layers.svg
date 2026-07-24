@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="820" viewBox="0 0 1440 820" role="img" aria-labelledby="title desc">
+  <title id="title">V3.15 三类状态的职责区别</title>
+  <desc id="desc">对比 Conversation Memory、Run Store 和 LangGraph Checkpoint 保存的数据、生命周期与用途。</desc>
+  <defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#07162f"/><stop offset="1" stop-color="#132a50"/></linearGradient><filter id="s"><feDropShadow dx="0" dy="8" stdDeviation="10" flood-opacity=".35"/></filter><style>.t{font:700 34px system-ui;fill:#f6f9ff}.sub{font:16px system-ui;fill:#a9bddb}.c{rx:14;filter:url(#s);stroke-width:2}.h{font:700 22px system-ui;fill:#fff}.k{font:700 13px system-ui;fill:#8fd5ff}.p{font:15px system-ui;fill:#c4d4ea}.no{font:14px system-ui;fill:#ffcf72}.foot{font:700 17px system-ui;fill:#fff}</style></defs>
+  <rect width="1440" height="820" fill="url(#bg)"/>
+  <text class="t" x="70" y="72">不要把 Memory、RunStore、Checkpoint 混成一个概念</text><text class="sub" x="70" y="104">它们可能都使用数据库，但回答的是三个不同问题</text>
+  <rect class="c" x="70" y="170" width="390" height="430" fill="#12364a" stroke="#39bfa0"/>
+  <text class="h" x="104" y="220">Conversation Memory</text><text class="k" x="104" y="252">回答：以前聊过什么？</text>
+  <text class="p" x="104" y="306">• 原始 user / assistant Turns</text><text class="p" x="104" y="340">• 滚动摘要 summary_text</text><text class="p" x="104" y="374">• conversation_id 跨多个 Run</text><text class="p" x="104" y="408">• Planner / Answer Context 使用</text>
+  <text class="no" x="104" y="478">不负责记录 Graph 停在哪个节点</text><text class="no" x="104" y="512">不负责 Tool 是否已经执行</text>
+  <rect class="c" x="525" y="170" width="390" height="430" fill="#182d50" stroke="#5ba6ff"/>
+  <text class="h" x="559" y="220">Run Store</text><text class="k" x="559" y="252">回答：这次运行现在怎样？</text>
+  <text class="p" x="559" y="306">• queued / running / waiting</text><text class="p" x="559" y="340">• succeeded / failed</text><text class="p" x="559" y="374">• timing、metrics、error</text><text class="p" x="559" y="408">• 前端运行列表与状态展示</text>
+  <text class="no" x="559" y="478">不保存完整 AgentState channel</text><text class="no" x="559" y="512">不能单独驱动 Command(resume)</text>
+  <rect class="c" x="980" y="170" width="390" height="430" fill="#3a2e52" stroke="#a98cf7"/>
+  <text class="h" x="1014" y="220">LangGraph Checkpoint</text><text class="k" x="1014" y="252">回答：Graph 从哪里继续？</text>
+  <text class="p" x="1014" y="306">• AgentState channel values</text><text class="p" x="1014" y="340">• next nodes / interrupt payload</text><text class="p" x="1014" y="374">• thread_id 与 checkpoint_id</text><text class="p" x="1014" y="408">• 服务重启后的执行恢复</text>
+  <text class="no" x="1014" y="478">不等于长期用户记忆</text><text class="no" x="1014" y="512">不直接等于前端 Run 状态</text>
+  <rect x="70" y="660" width="1300" height="88" rx="12" fill="#0d203b" stroke="#284c75"/>
+  <text class="foot" x="104" y="700">V3.15 的组合：</text><text class="p" x="258" y="700">Memory 延续对话，RunStore 呈现生命周期，Checkpoint 让执行真正可恢复。</text><text class="p" x="104" y="730">三者通过 run_id、conversation_id、thread_id 建立关联，但保持独立职责。</text>
+</svg>

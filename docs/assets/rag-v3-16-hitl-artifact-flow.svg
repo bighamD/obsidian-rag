@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="820" viewBox="0 0 1200 820" role="img" aria-labelledby="title desc">
+  <title id="title">V3.16 DeepAgents HITL 到 Artifact 的恢复流程</title>
+  <desc id="desc">展示 write_file 被 HumanInTheLoopMiddleware 暂停，API 持久化审批，用户允许或编辑后通过 Command resume 恢复，并在受控 Workspace 生成 Artifact。</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#071426"/><stop offset="1" stop-color="#102a43"/></linearGradient>
+    <filter id="shadow"><feDropShadow dx="0" dy="5" stdDeviation="7" flood-opacity=".28"/></filter>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#7dd3fc"/></marker>
+    <style>
+      .title{font:700 28px system-ui;fill:#f8fafc}.sub{font:15px system-ui;fill:#bae6fd}.actor{rx:13;fill:#132f4c;stroke:#38bdf8;stroke-width:2;filter:url(#shadow)}
+      .good{fill:#123d34;stroke:#34d399}.warn{fill:#422006;stroke:#fbbf24}.purple{fill:#2b2146;stroke:#c084fc}.text{font:650 16px system-ui;fill:#f8fafc}.small{font:13px system-ui;fill:#cbd5e1}.ok{font:13px system-ui;fill:#a7f3d0}.danger{font:13px system-ui;fill:#fde68a}
+      .life{stroke:#50677d;stroke-width:1.5;stroke-dasharray:6 6}.line{stroke:#7dd3fc;stroke-width:2.2;fill:none;marker-end:url(#arrow)}.return{stroke:#6ee7b7;stroke-width:2.2;fill:none;marker-end:url(#arrow)}
+    </style>
+  </defs>
+  <rect width="1200" height="820" fill="url(#bg)"/>
+  <text x="600" y="48" text-anchor="middle" class="title">interrupt_on 暂停，Command(resume) 从 Checkpoint 继续</text>
+  <text x="600" y="77" text-anchor="middle" class="sub">审批前不写文件；允许或编辑后只执行被暂停的写入 Tool，再返回 Artifact</text>
+
+  <rect x="45" y="112" width="180" height="64" class="actor"/><text x="135" y="151" text-anchor="middle" class="text">Deep Agent Model</text>
+  <rect x="275" y="112" width="205" height="64" class="actor purple"/><text x="377" y="151" text-anchor="middle" class="text">HITL Middleware</text>
+  <rect x="530" y="112" width="180" height="64" class="actor"/><text x="620" y="151" text-anchor="middle" class="text">FastAPI / Store</text>
+  <rect x="760" y="112" width="180" height="64" class="actor warn"/><text x="850" y="151" text-anchor="middle" class="text">用户审批</text>
+  <rect x="990" y="112" width="165" height="64" class="actor good"/><text x="1072" y="151" text-anchor="middle" class="text">Workspace</text>
+
+  <path d="M135 176 L135 755" class="life"/><path d="M377 176 L377 755" class="life"/><path d="M620 176 L620 755" class="life"/><path d="M850 176 L850 755" class="life"/><path d="M1072 176 L1072 755" class="life"/>
+
+  <path d="M135 220 L377 220" class="line"/><text x="256" y="210" text-anchor="middle" class="small">AIMessage: write_file(arguments)</text>
+  <rect x="292" y="244" width="170" height="70" class="actor warn"/><text x="377" y="272" text-anchor="middle" class="text">interrupt()</text><text x="377" y="296" text-anchor="middle" class="small">Graph 暂停</text>
+  <path d="M377 330 L620 330" class="line"/><text x="498" y="320" text-anchor="middle" class="small">保存 Checkpoint + Approval</text>
+  <path d="M620 382 L850 382" class="line"/><text x="735" y="372" text-anchor="middle" class="small">waiting_for_approval</text>
+
+  <rect x="755" y="408" width="190" height="88" class="actor warn"/>
+  <text x="850" y="438" text-anchor="middle" class="text">allow / edit / deny</text>
+  <text x="850" y="464" text-anchor="middle" class="small">审批参数可查看和修改</text>
+  <text x="850" y="484" text-anchor="middle" class="danger">deny 不执行写入</text>
+
+  <path d="M850 520 L620 520" class="return"/><text x="735" y="510" text-anchor="middle" class="small">POST /approvals/{run_id}/resume</text>
+  <path d="M620 568 L377 568" class="return"/><text x="498" y="558" text-anchor="middle" class="small">Command(resume={decisions})</text>
+  <path d="M377 616 L1072 616" class="return"/><text x="724" y="606" text-anchor="middle" class="small">approve/edit：调用 Backend.write(file_path, content)</text>
+
+  <rect x="972" y="642" width="200" height="86" class="actor good"/>
+  <text x="1072" y="672" text-anchor="middle" class="text">受控 Artifact</text>
+  <text x="1072" y="697" text-anchor="middle" class="small">path guard · size · hash</text>
+  <text x="1072" y="718" text-anchor="middle" class="small">/artifacts/mapo-tofu.md</text>
+  <path d="M1072 744 L620 744" class="return"/><text x="846" y="734" text-anchor="middle" class="small">登记 artifact_id + download_url</text>
+  <path d="M620 780 L135 780" class="return"/><text x="377" y="770" text-anchor="middle" class="ok">最终 AIMessage：文件已生成，可下载</text>
+</svg>

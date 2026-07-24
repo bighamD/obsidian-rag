@@ -2,6 +2,10 @@
 
 本项目是一个本地运行的 RAG v0 学习项目，面向 Obsidian Markdown 和 PDF 文档。
 
+不知道各版本分别做什么时，先看：[版本能力矩阵](docs/version-capability-matrix.md)。
+
+当前主线版本 V3.12.4：[Unified Knowledge Routing Guide](docs/v3-12-4-unified-knowledge-routing-guide.md)。
+
 学习路线和 v0-v4 计划见：[docs/rag-roadmap.md](docs/rag-roadmap.md)。
 
 源码职责、架构图和时序图见：[docs/obsidian-rag-code-guide.md](docs/obsidian-rag-code-guide.md)。
@@ -21,6 +25,12 @@ V3.3 LangGraph、节点编排、`graph_path` 和每个 V3.3 文件职责见：[d
 V3.4 Planner、LangGraph planner nodes、结构化 `Plan JSON`、Swagger 和每个 V3.4 文件职责见：[docs/v3-4-planner-guide.md](docs/v3-4-planner-guide.md)。
 
 V3.5 Planner Executor、`ToolRegistry`、`StepResult`、Swagger 和每个 V3.5 文件职责见：[docs/v3-5-planner-executor-guide.md](docs/v3-5-planner-executor-guide.md)。
+
+V3.11.3 Knowledge Base Registry、Collection Router、多库 Hybrid Retrieval 和跨库 RRF 见：[docs/v3-11-3-collection-router-guide.md](docs/v3-11-3-collection-router-guide.md)。
+
+V3.12 MCP Client/Server、`tools/list`、`tools/call`、Tool Schema Adapter 和 RAG MCP Server 见：[docs/v3-12-mcp-integration-guide.md](docs/v3-12-mcp-integration-guide.md)。
+
+V3.12.1 公共 Agent Core、统一 Tool Registry、`answer_delta` SSE 和前端增量答案见：[docs/v3-12-1-agent-core-streaming-guide.md](docs/v3-12-1-agent-core-streaming-guide.md)。
 
 VSCode/Cursor 调试 RAG 流程见：[docs/debugging-rag-flow.md](docs/debugging-rag-flow.md)。
 
@@ -57,6 +67,7 @@ RAG_EMBED_PROVIDER=ollama
 OLLAMA_BASE_URL=http://127.0.0.1:11434
 RAG_VAULT_PATH=/你的/ObsidianVault/路径
 QDRANT_URL=http://127.0.0.1:6333
+RAG_COLLECTION=obsidian_notes
 RAG_MIN_SCORE=0.35
 ```
 
@@ -87,6 +98,31 @@ docker start rag-qdrant
 ```
 
 `ingest` 不传路径时会读取 `.env` 里的 `RAG_VAULT_PATH`。
+
+### 多知识库 Collection
+
+`RAG_COLLECTION` 是默认知识库。单次 ingest、search 或 ask 可以用 `--collection` 覆盖它；`collection` 是物理检索边界，`category` / `tags` 仍是库内 metadata。名称必须匹配 `^[a-z0-9][a-z0-9_-]{0,62}$`，例如 `food_safety`、`recipes`。
+
+```bash
+# 食品安全资料
+.venv/bin/obsidian-rag ingest /path/to/food-safety --collection food_safety --recreate
+
+# 菜谱资料
+.venv/bin/obsidian-rag ingest /path/to/recipes --collection recipes --recreate
+
+# 仅在指定知识库中检索
+.venv/bin/obsidian-rag search "生鸡肉需要清洗吗？" --collection food_safety
+.venv/bin/obsidian-rag ask "番茄意面怎么做？" --collection recipes
+```
+
+每个 collection 有独立的 Qdrant collection 和 keyword index（默认 `RAG_DB_PATH=.rag/qdrant` 时）：
+
+```text
+.rag/keyword_indexes/food_safety.json
+.rag/keyword_indexes/recipes.json
+```
+
+旧 `.rag/keyword_index.json` 不会自动迁移；首次切换到多 collection 后，需要对每个知识库执行一次 `ingest --collection ... --recreate`。`--recreate` 只会全量重建指定 collection；省略它时，新 chunks 会增量写入当前 collection 并合并 keyword index。当前一个 `conversation_id` 应只用于一个 collection，避免 Memory 带入另一知识库的历史上下文；这是调用约定，尚未做运行时隔离校验。
 
 也可以用命令行路径临时覆盖配置：
 
@@ -150,7 +186,8 @@ http://127.0.0.1:8000/docs
 {
   "query": "生鸡肉要不要洗",
   "top_k": 5,
-  "mode": "hybrid"
+  "mode": "hybrid",
+  "collection": "food_safety"
 }
 ```
 
@@ -162,11 +199,12 @@ http://127.0.0.1:8000/docs
 {
   "question": "生鸡肉还需要清洗下锅吗",
   "top_k": 5,
-  "mode": "hybrid"
+  "mode": "hybrid",
+  "collection": "food_safety"
 }
 ```
 
-注意：`keyword` 和 `hybrid` 依赖 `.rag/keyword_index.json`。运行 `obsidian-rag ingest --recreate` 或调用 `POST /ingest` 后会自动生成。
+注意：`keyword` 和 `hybrid` 依赖当前 collection 对应的 keyword index（默认路径为 `.rag/keyword_indexes/<collection>.json`）。运行 `obsidian-rag ingest --collection <collection> --recreate` 或调用 `POST /ingest` 后会自动生成。
 
 ## V2 Evaluation
 

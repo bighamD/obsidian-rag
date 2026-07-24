@@ -6,6 +6,7 @@ from uuid import uuid4
 
 from obsidian_rag.v3_10.runtime.store import InMemoryRunStore
 from obsidian_rag.v3_10.schemas import (
+    AgentAskResponse,
     ProductionAskRequest,
     ProductionAskResponse,
     RunError,
@@ -69,6 +70,9 @@ class AgentRuntimeService:
             self.run_store.save(record)
             return ProductionAskResponse(run=record, agent_response=None)
 
+        agent_response = AgentAskResponse.model_validate(
+            agent_response.model_dump(mode="python") if hasattr(agent_response, "model_dump") else agent_response
+        )
         finished_at = _now()
         timing = RunTiming(
             started_at=started_at,

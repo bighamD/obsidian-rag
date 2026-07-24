@@ -48,7 +48,7 @@ V1 的查询链路变成 hybrid search：
 
 ### keyword
 
-`keyword` 使用本地 `.rag/keyword_index.json`。这个索引由 `ingest` 阶段同步写入，内容来自 chunk text 和 metadata。
+`keyword` 使用与 Qdrant collection 同名的本地索引（默认 `RAG_DB_PATH=.rag/qdrant` 时为 `.rag/keyword_indexes/<collection>.json`）。这个索引由同一 collection 的 `ingest` 阶段同步写入，内容来自 chunk text 和 metadata；增量 ingest 会合并新 chunks，`recreate=true` 才会覆盖该 collection 的索引。
 
 适合：
 
@@ -78,9 +78,9 @@ V1 的查询链路变成 hybrid search：
 `POST /search` 使用 `mode=hybrid` 时，内部流程是：
 
 1. FastAPI 校验 JSON 请求。
-2. `RetrievalService.search()` 收到 query、top_k、mode、filters。
+2. `RetrievalService.search()` 收到 query、top_k、mode、filters、collection。
 3. Dense 路径调用 V0 的 `pipeline.search()`，继续使用 Ollama embedding 和 Qdrant。
-4. Keyword 路径读取 `.rag/keyword_index.json`，做关键词/BM25 风格检索。
+4. Keyword 路径读取当前 collection 对应的 keyword index，做关键词/BM25 风格检索。
 5. `reciprocal_rank_fusion()` 把两组结果融合。
 6. API 返回统一的 `SearchHit` JSON。
 
@@ -124,7 +124,8 @@ http://127.0.0.1:8000/docs
 {
   "query": "生鸡肉要不要洗",
   "top_k": 5,
-  "mode": "hybrid"
+  "mode": "hybrid",
+  "collection": "food_safety"
 }
 ```
 
@@ -140,7 +141,8 @@ http://127.0.0.1:8000/docs
 {
   "question": "生鸡肉要清洗吗",
   "top_k": 5,
-  "mode": "hybrid"
+  "mode": "hybrid",
+  "collection": "food_safety"
 }
 ```
 
@@ -193,7 +195,7 @@ http://127.0.0.1:8000/docs
 | --- | --- |
 | `obsidian_rag/v1/retrieval/__init__.py` | 标识 retrieval package。 |
 | `obsidian_rag/v1/retrieval/models.py` | 定义 V1 内部排名结果 `RankedSearchResult`，用于携带 dense_rank、keyword_rank、hybrid_score。 |
-| `obsidian_rag/v1/retrieval/keyword.py` | 本地关键词索引。负责 build/load/save/search `.rag/keyword_index.json`。 |
+| `obsidian_rag/v1/retrieval/keyword.py` | 本地关键词索引。负责 build/load/save/upsert/search collection-scoped index（默认路径 `.rag/keyword_indexes/<collection>.json`）。 |
 | `obsidian_rag/v1/retrieval/hybrid.py` | RRF 融合逻辑。把 dense results 和 keyword results 合并成 hybrid 排名。 |
 
 ### Tests
@@ -207,7 +209,7 @@ http://127.0.0.1:8000/docs
 ## 常见排查顺序
 
 1. `/health` 不通：先确认 `uvicorn obsidian_rag.v1.app:app --reload` 是否启动。
-2. `/search` 的 `keyword` 为空：确认已经运行 `obsidian-rag ingest --recreate` 或 `POST /ingest`，并检查 `.rag/keyword_index.json` 是否存在。
+2. `/search` 的 `keyword` 为空：确认已对同一个 `collection` 运行 `obsidian-rag ingest --collection <collection> --recreate` 或 `POST /ingest`，并检查该 collection 的 keyword index（默认 `.rag/keyword_indexes/<collection>.json`）是否存在。
 3. `/ask` 返回“资料不足”：先删掉 Swagger 自动生成的 `filters`，再用 `/compare-search` 看三组结果。
 4. `chunk_id` 返回 `null`：说明当前 chunk metadata 里没有单独保存 `chunk_id`。如果 `KB-072` 只写在正文 YAML 块中，后续需要增加 chunk-level metadata 解析。
 5. hybrid 排名不理想：先看 `/compare-search`，判断是 dense 漏召回、keyword 漏召回，还是 RRF 融合权重需要调整。

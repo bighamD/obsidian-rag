@@ -3,10 +3,10 @@ from __future__ import annotations
 from functools import lru_cache
 
 from obsidian_rag.config import RagConfig, load_config
+from obsidian_rag.core.agent.service import AgentService
 from obsidian_rag.llm import OpenAIChatClient
 from obsidian_rag.v1.services.retrieval_service import RetrievalService
 from obsidian_rag.v3_10.dependencies import get_memory_store, get_run_store
-from obsidian_rag.v3_8_1.agent.service import AgentService
 from obsidian_rag.v3_10_2.runtime.event_bus import RunEventBus
 from obsidian_rag.v3_10_2.runtime.lifecycle import StreamingAgentRuntimeService
 
@@ -23,6 +23,8 @@ def build_agent() -> AgentService:
             api_key=config.api_key,
             base_url=config.base_url,
             model=config.chat_model,
+            reasoning_stream_enabled=config.reasoning_stream_enabled,
+            reasoning_effort=config.reasoning_effort,
         ),
         memory_store=get_memory_store(),
     )

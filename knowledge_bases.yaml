@@ -1,0 +1,18 @@
+knowledge_bases:
+  - id: food_safety
+    collection: food_safety
+    description: 家庭食品安全、烹饪温度、剩菜保存、解冻和交叉污染知识。
+    triggers: [食品安全, 生鸡肉, 剩菜, 解冻, 中心温度, 交叉污染]
+    enabled: true
+
+  - id: recipes
+    collection: recipes
+    description: 菜谱、食材搭配、烹饪步骤、口味、厨具和失败补救知识。
+    triggers: [菜谱, 怎么做, 食材, 烹饪, 早餐, 晚餐, 调味]
+    enabled: true
+
+  - id: vueuse_core
+    collection: vueuse_core_kb
+    description: VueUse Core API、Vue 3 Composition API 工具函数、配置和工程实践。
+    triggers: [VueUse, useMouse, useFetch, useStorage, Composition API, Vue 3]
+    enabled: true

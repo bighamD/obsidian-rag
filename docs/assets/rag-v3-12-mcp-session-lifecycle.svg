@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="700" viewBox="0 0 1200 700" role="img" aria-labelledby="title desc">
+  <title id="title">V3.12 MCP 短生命周期 Session 时序</title>
+  <desc id="desc">展示 Host、Client、stdio Server 在一次 tools/call 中的启动、initialize、tools/list、tools/call 和关闭时序。</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#071426"/><stop offset="1" stop-color="#102a43"/></linearGradient>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#7dd3fc"/></marker>
+    <style>.title{font:700 28px system-ui;fill:#f8fafc}.sub{font:15px system-ui;fill:#bae6fd}.head{font:700 18px system-ui;fill:#f8fafc}.text{font:14px system-ui;fill:#cbd5e1}.time{stroke:#64748b;stroke-width:2;stroke-dasharray:7 7}.call{stroke:#7dd3fc;stroke-width:2.5;fill:none;marker-end:url(#arrow)}.return{stroke:#34d399;stroke-width:2.5;fill:none;marker-end:url(#arrow)}.box{rx:12;fill:#132f4c;stroke:#38bdf8}.warn{fill:#422006;stroke:#fbbf24}</style>
+  </defs>
+  <rect width="1200" height="700" fill="url(#bg)"/>
+  <text x="600" y="48" text-anchor="middle" class="title">一次 tools/call 为什么会重复 initialize 和 tools/list</text>
+  <text x="600" y="76" text-anchor="middle" class="sub">V3.12 每次调用创建独立 Session，优先可观察性而不是连接复用</text>
+
+  <text x="170" y="125" text-anchor="middle" class="head">Host</text><text x="560" y="125" text-anchor="middle" class="head">McpClientManager</text><text x="1010" y="125" text-anchor="middle" class="head">stdio MCP Server</text>
+  <line x1="170" y1="145" x2="170" y2="620" class="time"/><line x1="560" y1="145" x2="560" y2="620" class="time"/><line x1="1010" y1="145" x2="1010" y2="620" class="time"/>
+
+  <path d="M170 185 L560 185" class="call"/><text x="365" y="174" text-anchor="middle" class="text">call_tool(server, tool, arguments)</text>
+  <path d="M560 235 L1010 235" class="call"/><text x="785" y="224" text-anchor="middle" class="text">spawn stdio child process</text>
+  <path d="M560 285 L1010 285" class="call"/><text x="785" y="274" text-anchor="middle" class="text">initialize(client_info)</text>
+  <path d="M1010 325 L560 325" class="return"/><text x="785" y="314" text-anchor="middle" class="text">protocolVersion</text>
+  <path d="M560 375 L1010 375" class="call"/><text x="785" y="364" text-anchor="middle" class="text">tools/list</text>
+  <path d="M1010 415 L560 415" class="return"/><text x="785" y="404" text-anchor="middle" class="text">Tool Schema + annotations</text>
+  <path d="M560 465 L1010 465" class="call"/><text x="785" y="454" text-anchor="middle" class="text">tools/call(name, arguments)</text>
+  <path d="M1010 505 L560 505" class="return"/><text x="785" y="494" text-anchor="middle" class="text">CallToolResult</text>
+  <path d="M560 555 L1010 555" class="call"/><text x="785" y="544" text-anchor="middle" class="text">close Session / terminate child</text>
+  <path d="M560 605 L170 605" class="return"/><text x="365" y="594" text-anchor="middle" class="text">McpToolCallResponse</text>
+
+  <rect x="245" y="640" width="710" height="42" class="box warn"/>
+  <text x="600" y="667" text-anchor="middle" class="text">生产 Session Pool 会减少启动延迟，但必须补充重连、并发、健康检查与资源回收</text>
+</svg>

@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="680" viewBox="0 0 1200 680" role="img" aria-labelledby="title desc">
+  <title id="title">V3.8.1 三层 Memory</title>
+  <desc id="desc">Raw Turns、Rolling Summary 和 Recent Turns 的职责，以及它们如何组成 Planner 和 Answer 的上下文。</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#071426"/><stop offset="1" stop-color="#102a43"/></linearGradient>
+    <filter id="shadow"><feDropShadow dx="0" dy="5" stdDeviation="7" flood-opacity=".28"/></filter>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#7dd3fc"/></marker>
+    <style>.title{font:700 28px system-ui;fill:#f8fafc}.sub{font:15px system-ui;fill:#bae6fd}.box{rx:22;filter:url(#shadow);stroke-width:2}.head{font:700 21px system-ui;fill:#f8fafc}.text{font:14px system-ui;fill:#cbd5e1}.tag{font:650 13px ui-monospace,monospace;fill:#fbbf24}.line{stroke:#7dd3fc;stroke-width:2.5;fill:none;marker-end:url(#arrow)}</style>
+  </defs>
+  <rect width="1200" height="680" fill="url(#bg)"/>
+  <text x="600" y="48" text-anchor="middle" class="title">三层 Memory：存储事实与模型上下文分离</text>
+  <text x="600" y="76" text-anchor="middle" class="sub">Raw Turns 永久保存；Summary 与 Recent Turns 共同服务当前推理</text>
+
+  <rect x="55" y="130" width="300" height="355" class="box" fill="#132f4c" stroke="#38bdf8"/>
+  <text x="205" y="174" text-anchor="middle" class="head">Raw Turns</text><text x="205" y="202" text-anchor="middle" class="tag">MySQL turns</text>
+  <text x="205" y="255" text-anchor="middle" class="text">全部 user / assistant 原文</text><text x="205" y="283" text-anchor="middle" class="text">sources 与 tool calls</text><text x="205" y="311" text-anchor="middle" class="text">用于审计和历史展示</text>
+  <rect x="90" y="355" width="230" height="68" rx="16" fill="#0c2138" stroke="#38bdf8"/>
+  <text x="205" y="382" text-anchor="middle" class="text">压缩成功后仍然保留</text><text x="205" y="406" text-anchor="middle" class="tag">Source of Truth</text>
+
+  <rect x="450" y="130" width="300" height="355" class="box" fill="#2c1d43" stroke="#c084fc"/>
+  <text x="600" y="174" text-anchor="middle" class="head">Rolling Summary</text><text x="600" y="202" text-anchor="middle" class="tag">summary_text</text>
+  <text x="600" y="255" text-anchor="middle" class="text">窗口之外的重要历史</text><text x="600" y="283" text-anchor="middle" class="text">用户目标、事实与约束</text><text x="600" y="311" text-anchor="middle" class="text">持续滚动合并更新</text>
+  <rect x="485" y="355" width="230" height="68" rx="16" fill="#211632" stroke="#c084fc"/>
+  <text x="600" y="382" text-anchor="middle" class="text">通过截止 turn_id 去重</text><text x="600" y="406" text-anchor="middle" class="tag">Derived State</text>
+
+  <rect x="845" y="130" width="300" height="355" class="box" fill="#123d34" stroke="#34d399"/>
+  <text x="995" y="174" text-anchor="middle" class="head">Recent Turns</text><text x="995" y="202" text-anchor="middle" class="tag">memory_window</text>
+  <text x="995" y="255" text-anchor="middle" class="text">最近 N 轮准确原文</text><text x="995" y="283" text-anchor="middle" class="text">保留指代与交流细节</text><text x="995" y="311" text-anchor="middle" class="text">不先经过摘要改写</text>
+  <rect x="880" y="355" width="230" height="68" rx="16" fill="#0c2e27" stroke="#34d399"/>
+  <text x="995" y="382" text-anchor="middle" class="text">随对话窗口向前滚动</text><text x="995" y="406" text-anchor="middle" class="tag">Exact Context</text>
+
+  <path d="M355 305 L450 305" class="line"/><path d="M750 305 L845 305" class="line"/>
+  <rect x="265" y="545" width="670" height="78" rx="20" fill="#422006" stroke="#fbbf24" stroke-width="2"/>
+  <text x="600" y="577" text-anchor="middle" class="head">Planner / Answer Context</text>
+  <text x="600" y="604" text-anchor="middle" class="text">Rolling Summary + Recent Turns + Current Question + Retrieval Chunks</text>
+  <path d="M600 485 L600 545" class="line"/><path d="M995 485 C995 525 880 535 860 545" class="line"/>
+</svg>

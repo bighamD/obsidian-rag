@@ -15,12 +15,10 @@ class AnswerService:
         self.retrieval_service = retrieval_service
 
     def answer(self, request: AskRequest) -> tuple[str, list[SearchResult]]:
-        results = self.retrieval_service.search(
-            request.question,
-            top_k=request.top_k,
-            mode=request.mode,
-            filters=request.filters,
-        )
+        search_kwargs = {"top_k": request.top_k, "mode": request.mode, "filters": request.filters}
+        if request.collection is not None:
+            search_kwargs["collection"] = request.collection
+        results = self.retrieval_service.search(request.question, **search_kwargs)
         search_results = [_as_search_result(result) for result in results]
         if not search_results:
             return "本地知识库没有足够相关资料来回答这个问题。", []
@@ -31,6 +29,13 @@ class AnswerService:
 
     def sources(self, results: list[SearchResult]) -> list[str]:
         return format_sources(results)
+
+    def collection_name(self, collection: str | None = None) -> str:
+        resolver = getattr(self.retrieval_service, "collection_name", None)
+        if callable(resolver):
+            return str(resolver(collection))
+        config = getattr(self.retrieval_service, "config", None)
+        return collection or str(getattr(config, "collection_name", "obsidian_notes"))
 
 
 def _as_search_result(result: SearchResult | RankedSearchResult) -> SearchResult:

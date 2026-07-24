@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="720" viewBox="0 0 1200 720" role="img" aria-labelledby="title desc">
+  <title id="title">V3.13 Permission Policy 端到端流程</title>
+  <desc id="desc">展示 Core Skill Router、Planner、Collection Router、authorize_steps 和 Tool Executor 的执行顺序。</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#071b34"/><stop offset="1" stop-color="#102f4d"/></linearGradient>
+    <filter id="shadow"><feDropShadow dx="0" dy="7" stdDeviation="8" flood-color="#020b17" flood-opacity=".38"/></filter>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#69b7ff"/></marker>
+  </defs>
+  <rect width="1200" height="720" fill="url(#bg)"/>
+  <text x="64" y="66" fill="#f4f8fc" font-family="system-ui,sans-serif" font-size="30" font-weight="700">V3.13：执行前先问“系统允许吗？”</text>
+  <text x="64" y="98" fill="#9fb6cc" font-family="system-ui,sans-serif" font-size="15">Core Skill 提供方法，Planner 生成动作，Permission 在 Executor 前统一授权</text>
+
+  <g filter="url(#shadow)" font-family="system-ui,sans-serif">
+    <rect x="64" y="150" width="205" height="105" rx="10" fill="#143d60" stroke="#55a9ef"/>
+    <text x="84" y="181" fill="#7fc3ff" font-size="13" font-weight="700">01 METHOD + PLAN</text>
+    <text x="84" y="211" fill="#fff" font-size="21" font-weight="700">Skill → Planner</text>
+    <text x="84" y="235" fill="#b8cadd" font-size="13">注入方法并生成 PlanStep</text>
+
+    <rect x="335" y="150" width="205" height="105" rx="10" fill="#173f50" stroke="#3fc6ad"/>
+    <text x="355" y="181" fill="#64dcc5" font-size="13" font-weight="700">02 SCOPE</text>
+    <text x="355" y="211" fill="#fff" font-size="21" font-weight="700">Collection Router</text>
+    <text x="355" y="235" fill="#b8cadd" font-size="13">确定 RetrievalScope</text>
+
+    <rect x="606" y="136" width="250" height="133" rx="10" fill="#3d315e" stroke="#ad8cff" stroke-width="2"/>
+    <text x="628" y="170" fill="#c6adff" font-size="13" font-weight="700">03 POLICY</text>
+    <text x="628" y="201" fill="#fff" font-size="22" font-weight="700">authorize_steps</text>
+    <text x="628" y="226" fill="#d5c9ed" font-size="13">allowlist · permission · scope</text>
+    <text x="628" y="247" fill="#d5c9ed" font-size="13">JSON Schema · risk level</text>
+
+    <rect x="922" y="150" width="214" height="105" rx="10" fill="#173f50" stroke="#3fc6ad"/>
+    <text x="942" y="181" fill="#64dcc5" font-size="13" font-weight="700">04 EXECUTE</text>
+    <text x="942" y="211" fill="#fff" font-size="21" font-weight="700">Tool Executor</text>
+    <text x="942" y="235" fill="#b8cadd" font-size="13">只执行 allow steps</text>
+  </g>
+
+  <g stroke="#69b7ff" stroke-width="3" fill="none" marker-end="url(#arrow)">
+    <path d="M269 202 H325"/><path d="M540 202 H596"/><path d="M856 202 H912"/>
+  </g>
+
+  <g font-family="system-ui,sans-serif" filter="url(#shadow)">
+    <rect x="150" y="345" width="260" height="120" rx="10" fill="#143d60" stroke="#55a9ef"/>
+    <text x="174" y="380" fill="#7fc3ff" font-size="14" font-weight="700">ALLOW</text>
+    <text x="174" y="410" fill="#fff" font-size="20" font-weight="700">执行 Tool</text>
+    <text x="174" y="437" fill="#b8cadd" font-size="13">search_notes / read-only MCP</text>
+
+    <rect x="470" y="345" width="260" height="120" rx="10" fill="#4a3b1e" stroke="#e6b84c"/>
+    <text x="494" y="380" fill="#ffd36f" font-size="14" font-weight="700">CONFIRM</text>
+    <text x="494" y="410" fill="#fff" font-size="20" font-weight="700">结构化阻止</text>
+    <text x="494" y="437" fill="#dfd0ae" font-size="13">等待后续版本 interrupt/resume</text>
+
+    <rect x="790" y="345" width="260" height="120" rx="10" fill="#512c38" stroke="#ff7e9d"/>
+    <text x="814" y="380" fill="#ff9db4" font-size="14" font-weight="700">DENY</text>
+    <text x="814" y="410" fill="#fff" font-size="20" font-weight="700">拒绝执行</text>
+    <text x="814" y="437" fill="#e4c0ca" font-size="13">缺权限 / 越 scope / 参数非法</text>
+  </g>
+
+  <path d="M731 269 V310 H280 V335" stroke="#69b7ff" stroke-width="3" fill="none" marker-end="url(#arrow)"/>
+  <path d="M731 269 V310 H600 V335" stroke="#e6b84c" stroke-width="3" fill="none" marker-end="url(#arrow)"/>
+  <path d="M731 269 V310 H920 V335" stroke="#ff7e9d" stroke-width="3" fill="none" marker-end="url(#arrow)"/>
+
+  <rect x="64" y="545" width="1072" height="112" rx="10" fill="#0c263e" stroke="#315a7a"/>
+  <text x="90" y="579" fill="#9fc7e8" font-family="system-ui,sans-serif" font-size="13" font-weight="700">OBSERVABILITY</text>
+  <text x="90" y="611" fill="#fff" font-family="system-ui,sans-serif" font-size="18" font-weight="700">PermissionReport → Trace → Audit Store → Agent Console</text>
+  <text x="90" y="638" fill="#aebfd0" font-family="system-ui,sans-serif" font-size="13">展示风险等级、所需权限、缺失权限、Collection scope、参数校验和最终决定，不展示模型隐藏推理。</text>
+</svg>

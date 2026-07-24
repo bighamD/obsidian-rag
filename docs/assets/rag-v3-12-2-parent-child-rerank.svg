@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="650" viewBox="0 0 1200 650" role="img" aria-labelledby="title desc">
+  <title id="title">Parent-Child Reranking 评分与返回关系</title>
+  <desc id="desc">Reranker 使用命中的 Child 评分，最终把对应 Parent 交给 ContextBuilder。</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#071426"/><stop offset="1" stop-color="#102a43"/></linearGradient>
+    <filter id="shadow"><feDropShadow dx="0" dy="5" stdDeviation="7" flood-opacity=".28"/></filter>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#7dd3fc"/></marker>
+    <style>.title{font:700 28px system-ui;fill:#f8fafc}.sub{font:15px system-ui;fill:#bae6fd}.box{rx:18;fill:#132f4c;stroke:#38bdf8;stroke-width:2;filter:url(#shadow)}.child{fill:#123d34;stroke:#34d399}.parent{fill:#2c1d43;stroke:#c084fc}.head{font:700 18px system-ui;fill:#f8fafc}.text{font:14px system-ui;fill:#e2e8f0}.muted{font:13px system-ui;fill:#94a3b8}.line{stroke:#7dd3fc;stroke-width:2.5;fill:none;marker-end:url(#arrow)}.score{font:700 17px ui-monospace,monospace;fill:#fbbf24}</style>
+  </defs>
+  <rect width="1200" height="650" fill="url(#bg)"/>
+  <text x="600" y="48" text-anchor="middle" class="title">小块负责判断，大块负责回答</text>
+  <text x="600" y="76" text-anchor="middle" class="sub">Parent-Child Retrieval + CrossEncoder Reranking</text>
+
+  <rect x="60" y="145" width="270" height="105" class="box"/>
+  <text x="195" y="180" text-anchor="middle" class="head">用户 Query</text>
+  <text x="195" y="213" text-anchor="middle" class="text">剩牛肉能冷藏 2～3 天吗？</text>
+
+  <rect x="445" y="115" width="310" height="150" class="box child"/>
+  <text x="600" y="150" text-anchor="middle" class="head">matched_child_text</text>
+  <text x="600" y="183" text-anchor="middle" class="text">熟剩菜通常建议冷藏 3～4 天</text>
+  <text x="600" y="208" text-anchor="middle" class="muted">短、聚焦、适合相关性判断</text>
+  <text x="600" y="239" text-anchor="middle" class="score">rerank_score = 8.72</text>
+
+  <path d="M330 198 L445 198" class="line"/>
+  <text x="387" y="183" text-anchor="middle" class="muted">Query + Child</text>
+
+  <rect x="870" y="145" width="270" height="105" class="box"/>
+  <text x="1005" y="180" text-anchor="middle" class="head">CrossEncoder</text>
+  <text x="1005" y="208" text-anchor="middle" class="text">语义相关性复审</text>
+  <text x="1005" y="231" text-anchor="middle" class="muted">只决定排序</text>
+  <path d="M755 198 L870 198" class="line"/>
+
+  <rect x="445" y="365" width="310" height="165" class="box parent"/>
+  <text x="600" y="402" text-anchor="middle" class="head">returned_parent_text</text>
+  <text x="600" y="437" text-anchor="middle" class="text">剩菜保存章节完整内容</text>
+  <text x="600" y="465" text-anchor="middle" class="text">保存前提、3～4 天建议、风险说明</text>
+  <text x="600" y="493" text-anchor="middle" class="muted">长、完整、适合 Answer LLM</text>
+  <path d="M600 265 L600 365" class="line"/>
+  <text x="620" y="322" class="muted">parent_id 关联</text>
+
+  <rect x="870" y="395" width="270" height="105" class="box child"/>
+  <text x="1005" y="430" text-anchor="middle" class="head">ContextBuilder</text>
+  <text x="1005" y="458" text-anchor="middle" class="text">按 rerank_rank 选择 Parent</text>
+  <text x="1005" y="481" text-anchor="middle" class="muted">再交给 Answer LLM</text>
+  <path d="M755 447 L870 447" class="line"/>
+</svg>

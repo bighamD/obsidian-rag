@@ -2,6 +2,24 @@
 	"version": "0.2.0",
 	"configurations": [
 		{
+			"name": "V3.10.3 API server: LangGraph Advanced Patterns",
+			"type": "debugpy",
+			"request": "launch",
+			"module": "uvicorn",
+			"console": "integratedTerminal",
+			"cwd": "${workspaceFolder}",
+			"python": "${workspaceFolder}/.venv/bin/python",
+			"envFile": "${workspaceFolder}/.env",
+			"args": [
+				"obsidian_rag.v3_10_3.app:app",
+				"--host",
+				"127.0.0.1",
+				"--port",
+				"8015"
+			],
+			"justMyCode": true
+		},
+		{
 			"name": "V3.10.2 API server: SSE event streaming",
 			"type": "debugpy",
 			"request": "launch",
@@ -33,91 +51,7 @@
 				"--host",
 				"127.0.0.1",
 				"--port",
-				"8016"
-			],
-			"justMyCode": true
-		},
-		{
-			"name": "V3.11 CLI: selected Skill",
-			"type": "debugpy",
-			"request": "launch",
-			"module": "obsidian_rag.cli",
-			"console": "integratedTerminal",
-			"cwd": "${workspaceFolder}",
-			"python": "${workspaceFolder}/.venv/bin/python",
-			"envFile": "${workspaceFolder}/.env",
-			"args": [
-				"agent-v3-11",
-				"ask",
-				"生鸡肉要不要洗？",
-				"--conversation-id",
-				"conv_v311_skill",
-				"--skill-name",
-				"food-safety",
-				"--mode",
-				"hybrid"
-			],
-			"justMyCode": true
-		},
-		{
-			"name": "V3.11 CLI: no Skill branch",
-			"type": "debugpy",
-			"request": "launch",
-			"module": "obsidian_rag.cli",
-			"console": "integratedTerminal",
-			"cwd": "${workspaceFolder}",
-			"python": "${workspaceFolder}/.venv/bin/python",
-			"envFile": "${workspaceFolder}/.env",
-			"args": [
-				"agent-v3-11",
-				"ask",
-				"帮我写一个两数之和函数",
-				"--conversation-id",
-				"conv_v311_no_skill",
-				"--disable-skill-router"
-			],
-			"justMyCode": true
-		},
-		{
-			"name": "V3.11 CLI: list Skills",
-			"type": "debugpy",
-			"request": "launch",
-			"module": "obsidian_rag.cli",
-			"console": "integratedTerminal",
-			"cwd": "${workspaceFolder}",
-			"python": "${workspaceFolder}/.venv/bin/python",
-			"envFile": "${workspaceFolder}/.env",
-			"args": [
-				"agent-v3-11",
-				"skills",
-				"list"
-			],
-			"justMyCode": true
-		},
-		{
-			"name": "V3.10.2 UI: Vite Agent Console SSE",
-			"type": "node-terminal",
-			"request": "launch",
-			"command": "VITE_API_TARGET=http://127.0.0.1:8014 npm run dev",
-			"cwd": "${workspaceFolder}/frontend/v3_10_1_agent_console"
-		},
-		{
-			"name": "V3.10.2 CLI: SSE event flow",
-			"type": "debugpy",
-			"request": "launch",
-			"module": "obsidian_rag.cli",
-			"console": "integratedTerminal",
-			"cwd": "${workspaceFolder}",
-			"python": "${workspaceFolder}/.venv/bin/python",
-			"envFile": "${workspaceFolder}/.env",
-			"args": [
-				"agent-v3-10-2",
-				"ask",
-				"生鸡肉要不要洗？",
-				"--conversation-id",
-				"conv_v3102_debug",
-				"--api-base",
-				"http://127.0.0.1:8014"
+				"8001"
 			],
 			"justMyCode": true
 		},
@@ -140,53 +74,6 @@
 			"justMyCode": true
 		},
 		{
-			"name": "V3.10.1 UI: Vite Agent Console",
-			"type": "node-terminal",
-			"request": "launch",
-			"command": "VITE_API_TARGET=http://127.0.0.1:8013 npm run dev",
-			"cwd": "${workspaceFolder}/frontend/v3_10_1_agent_console"
-		},
-		{
-			"name": "V3.10.1 Console: first turn",
-			"type": "debugpy",
-			"request": "launch",
-			"module": "obsidian_rag.cli",
-			"console": "integratedTerminal",
-			"cwd": "${workspaceFolder}",
-			"python": "${workspaceFolder}/.venv/bin/python",
-			"envFile": "${workspaceFolder}/.env",
-			"args": [
-				"agent-v3-10-1",
-				"ask",
-				"生鸡肉要不要洗？",
-				"--conversation-id",
-				"conv_v3101_debug",
-				"--mode",
-				"hybrid"
-			],
-			"justMyCode": true
-		},
-		{
-			"name": "V3.10.1 Console: follow-up turn",
-			"type": "debugpy",
-			"request": "launch",
-			"module": "obsidian_rag.cli",
-			"console": "integratedTerminal",
-			"cwd": "${workspaceFolder}",
-			"python": "${workspaceFolder}/.venv/bin/python",
-			"envFile": "${workspaceFolder}/.env",
-			"args": [
-				"agent-v3-10-1",
-				"ask",
-				"那处理完厨房怎么清洁？",
-				"--conversation-id",
-				"conv_v3101_debug",
-				"--mode",
-				"hybrid"
-			],
-			"justMyCode": true
-		},
-		{
 			"name": "V3.10 API server: production core",
 			"type": "debugpy",
 			"request": "launch",
@@ -201,50 +88,6 @@
 				"127.0.0.1",
 				"--port",
 				"8012"
-			],
-			"justMyCode": true
-		},
-		{
-			"name": "V3.10 production: first turn",
-			"type": "debugpy",
-			"request": "launch",
-			"module": "obsidian_rag.cli",
-			"console": "integratedTerminal",
-			"cwd": "${workspaceFolder}",
-			"python": "${workspaceFolder}/.venv/bin/python",
-			"envFile": "${workspaceFolder}/.env",
-			"args": [
-				"agent-v3-10",
-				"ask",
-				"生鸡肉要不要洗？",
-				"--conversation-id",
-				"conv_v310_debug",
-				"--memory-window",
-				"3",
-				"--mode",
-				"hybrid"
-			],
-			"justMyCode": true
-		},
-		{
-			"name": "V3.10 production: follow-up turn",
-			"type": "debugpy",
-			"request": "launch",
-			"module": "obsidian_rag.cli",
-			"console": "integratedTerminal",
-			"cwd": "${workspaceFolder}",
-			"python": "${workspaceFolder}/.venv/bin/python",
-			"envFile": "${workspaceFolder}/.env",
-			"args": [
-				"agent-v3-10",
-				"ask",
-				"那处理完厨房怎么清洁？",
-				"--conversation-id",
-				"conv_v310_debug",
-				"--memory-window",
-				"3",
-				"--mode",
-				"hybrid"
 			],
 			"justMyCode": true
 		},
@@ -267,23 +110,6 @@
 			"justMyCode": true
 		},
 		{
-			"name": "V3.9 eval: food safety dataset",
-			"type": "debugpy",
-			"request": "launch",
-			"module": "obsidian_rag.cli",
-			"console": "integratedTerminal",
-			"cwd": "${workspaceFolder}",
-			"python": "${workspaceFolder}/.venv/bin/python",
-			"envFile": "${workspaceFolder}/.env",
-			"args": [
-				"agent-v3-9",
-				"eval",
-				"eval_sets/agent-food-safety.yaml",
-				"--no-save"
-			],
-			"justMyCode": true
-		},
-		{
 			"name": "V3.8.1 API server: context compaction",
 			"type": "debugpy",
 			"request": "launch",
@@ -302,145 +128,171 @@
 			"justMyCode": true
 		},
 		{
-			"name": "V3.8.1 compaction: first turn",
+			"name": "V3.11.2 Swagger: Chunking Framework Comparison",
 			"type": "debugpy",
 			"request": "launch",
-			"module": "obsidian_rag.cli",
+			"module": "uvicorn",
 			"console": "integratedTerminal",
 			"cwd": "${workspaceFolder}",
 			"python": "${workspaceFolder}/.venv/bin/python",
 			"envFile": "${workspaceFolder}/.env",
 			"args": [
-				"agent-v3-8-1",
-				"ask",
-				"生鸡肉要不要洗？",
-				"--conversation-id",
-				"conv_compaction_demo",
-				"--memory-window",
-				"1",
-				"--memory-compaction-trigger-turns",
-				"99"
+				"obsidian_rag.v3_11_2.app:app",
+				"--host",
+				"127.0.0.1",
+				"--port",
+				"8000"
 			],
 			"justMyCode": true
 		},
 		{
-			"name": "V3.8.1 compaction: follow-up turn",
+			"name": "V3.11.3 API server: Collection Router",
 			"type": "debugpy",
 			"request": "launch",
-			"module": "obsidian_rag.cli",
-			"console": "integratedTerminal",
-			"cwd": "${workspaceFolder}",
-			"python": "${workspaceFolder}/.venv/bin/python",
-			"envFile": "${workspaceFolder}/.env",
-			"args": [
-				"agent-v3-8-1",
-				"ask",
-				"那处理完厨房怎么清洁？",
-				"--conversation-id",
-				"conv_compaction_demo",
-				"--memory-window",
-				"1",
-				"--memory-compaction-trigger-turns",
-				"99"
-			],
-			"justMyCode": true
-		},
-		{
-			"name": "V3.8.1 compaction: force compact",
-			"type": "debugpy",
-			"request": "launch",
-			"module": "obsidian_rag.cli",
-			"console": "integratedTerminal",
-			"cwd": "${workspaceFolder}",
-			"python": "${workspaceFolder}/.venv/bin/python",
-			"envFile": "${workspaceFolder}/.env",
-			"args": [
-				"agent-v3-8-1",
-				"compact",
-				"conv_compaction_demo",
-				"--keep-recent-turns",
-				"1"
-			],
-			"justMyCode": true
-		},
-		{
-			"name": "V3.8 memory: first turn",
-			"type": "debugpy",
-			"request": "launch",
-			"module": "obsidian_rag.cli",
-			"console": "integratedTerminal",
-			"cwd": "${workspaceFolder}",
-			"python": "${workspaceFolder}/.venv/bin/python",
-			"envFile": "${workspaceFolder}/.env",
-			"args": [
-				"agent-v3-8",
-				"ask",
-				"熟肉跟生肉能放一起吗",
-				"--conversation-id",
-				"conv_food_demo",
-				"--memory-window",
-				"3",
-				"--mode",
-				"hybrid"
-			],
-			"justMyCode": true
-		},
-		{
-			"name": "V3.8 memory: follow-up turn",
-			"type": "debugpy",
-			"request": "launch",
-			"module": "obsidian_rag.cli",
-			"console": "integratedTerminal",
-			"cwd": "${workspaceFolder}",
-			"python": "${workspaceFolder}/.venv/bin/python",
-			"envFile": "${workspaceFolder}/.env",
-			"args": [
-				"agent-v3-8",
-				"ask",
-				"那处理完厨房怎么清洁？",
-				"--conversation-id",
-				"conv_food_demo",
-				"--memory-window",
-				"3",
-				"--mode",
-				"hybrid"
-			],
-			"justMyCode": true
-		},
-		{
-			"name": "V3.7 agent ask: context builder",
-			"type": "debugpy",
-			"request": "launch",
-			"module": "obsidian_rag.cli",
+			"module": "uvicorn",
 			"console": "integratedTerminal",
 			"cwd": "${workspaceFolder}",
 			"python": "${workspaceFolder}/.venv/bin/python",
 			"envFile": "${workspaceFolder}/.env",
 			"env": {
-				"RAG_DEBUG_BREAKPOINTS": "search.after_query_embedding,qdrant.after_search,search.after_retrieval,prompting.messages_built"
+				"RAG_KNOWLEDGE_BASE_REGISTRY": "${workspaceFolder}/knowledge_bases.yaml",
+				"RAG_DEBUG_BREAKPOINTS": "v3_11_3.registry.loaded,v3_11_3.router.selected,v3_11_3.search.completed"
 			},
 			"args": [
-				"agent-v3-7",
+				"obsidian_rag.v3_11_3.app:app",
+				"--host",
+				"127.0.0.1",
+				"--port",
+				"8018"
+			],
+			"justMyCode": true
+		},
+		{
+			"name": "V3.12 API server: MCP Integration",
+			"type": "debugpy",
+			"request": "launch",
+			"module": "uvicorn",
+			"console": "integratedTerminal",
+			"cwd": "${workspaceFolder}",
+			"python": "${workspaceFolder}/.venv/bin/python",
+			"envFile": "${workspaceFolder}/.env",
+			"args": [
+				"obsidian_rag.v3_12.app:app",
+				"--host",
+				"127.0.0.1",
+				"--port",
+				"8020"
+			],
+			"subProcess": false,
+			"justMyCode": true
+		},
+		{
+			"name": "V3.12 API server: MCP Integration (debug MCP subprocess)",
+			"type": "debugpy",
+			"request": "launch",
+			"module": "uvicorn",
+			"console": "integratedTerminal",
+			"cwd": "${workspaceFolder}",
+			"python": "${workspaceFolder}/.venv/bin/python",
+			"envFile": "${workspaceFolder}/.env",
+			"args": [
+				"obsidian_rag.v3_12.app:app",
+				"--host",
+				"127.0.0.1",
+				"--port",
+				"8020"
+			],
+			"subProcess": true,
+			"justMyCode": true
+		},
+		{
+			"name": "V3.12.1 API server: Agent Core Streaming",
+			"type": "debugpy",
+			"request": "launch",
+			"module": "uvicorn",
+			"console": "integratedTerminal",
+			"cwd": "${workspaceFolder}",
+			"python": "${workspaceFolder}/.venv/bin/python",
+			"envFile": "${workspaceFolder}/.env",
+			"args": [
+				"obsidian_rag.v3_12_1.app:app",
+				"--host",
+				"127.0.0.1",
+				"--port",
+				"8020"
+			],
+			"subProcess": true,
+			"justMyCode": true
+		},
+		{
+			"name": "V3.12.2 API server: Retrieval Reranking",
+			"type": "debugpy",
+			"request": "launch",
+			"module": "uvicorn",
+			"console": "integratedTerminal",
+			"cwd": "${workspaceFolder}",
+			"python": "${workspaceFolder}/.venv/bin/python",
+			"envFile": "${workspaceFolder}/.env",
+			"args": [
+				"obsidian_rag.v3_12_2.app:app",
+				"--host",
+				"127.0.0.1",
+				"--port",
+				"8020"
+			],
+			"subProcess": true,
+			"justMyCode": true
+		},
+		{
+			"name": "Agent Console UI: console.v1 (V3.12.2)",
+			"type": "node-terminal",
+			"request": "launch",
+			"command": "VITE_API_TARGET=http://127.0.0.1:8020 npm run dev",
+			"cwd": "${workspaceFolder}/frontend/agent_console"
+		},
+		{
+			"name": "V3.12.3 API server: MCP Agent Integration",
+			"type": "debugpy",
+			"request": "launch",
+			"module": "uvicorn",
+			"console": "integratedTerminal",
+			"cwd": "${workspaceFolder}",
+			"python": "${workspaceFolder}/.venv/bin/python",
+			"envFile": "${workspaceFolder}/.env",
+			"args": [
+				"obsidian_rag.v3_12_3.app:app",
+				"--host",
+				"127.0.0.1",
+				"--port",
+				"8020"
+			],
+			"subProcess": false,
+			"justMyCode": true
+		},
+		{
+			"name": "V3.12.3 CLI: automatic MCP tool",
+			"type": "debugpy",
+			"request": "launch",
+			"module": "obsidian_rag.cli",
+			"console": "integratedTerminal",
+			"cwd": "${workspaceFolder}",
+			"python": "${workspaceFolder}/.venv/bin/python",
+			"envFile": "${workspaceFolder}/.env",
+			"args": [
+				"agent-v3-12-3",
 				"ask",
-				// "帮我总结生鸡肉处理、厨房清洁、剩菜保存三类食品安全建议",
-				"剩菜可以保存多少天？",
-				"--top-k",
-				"5",
-				"--mode",
-				"hybrid",
+				"现在上海时间是多少？",
+				"--conversation-id",
+				"conv_v3123_mcp",
+				"--mcp-tool-name",
+				"demo::get_server_time",
 				"--max-steps",
-				"4",
-				"--max-retries",
-				"1",
-				"--context-max-chunks",
-				"4",
-				"--context-token-budget",
-				"4000"
+				"3"
 			],
 			"justMyCode": true
 		},
 		{
-			"name": "V3.6 agent ask: evidence checker",
+			"name": "V3.12.3 CLI: local RAG + MCP tool",
 			"type": "debugpy",
 			"request": "launch",
 			"module": "obsidian_rag.cli",
@@ -448,80 +300,61 @@
 			"cwd": "${workspaceFolder}",
 			"python": "${workspaceFolder}/.venv/bin/python",
 			"envFile": "${workspaceFolder}/.env",
-			"env": {
-				"RAG_DEBUG_BREAKPOINTS": "search.after_query_embedding,qdrant.after_search,search.after_retrieval,prompting.messages_built"
-			},
 			"args": [
-				"agent-v3-6",
+				"agent-v3-12-3",
 				"ask",
-				"帮我总结生鸡肉处理、厨房清洁、剩菜保存三类食品安全建议",
-				"--top-k",
-				"5",
-				"--mode",
-				"hybrid",
-				"--max-steps",
-				"4",
-				"--max-retries",
-				"1"
-			],
-			"justMyCode": true
-		},
-		{
-			"name": "V3.6 agent ask: evidence insufficient",
-			"type": "debugpy",
-			"request": "launch",
-			"module": "obsidian_rag.cli",
-			"console": "integratedTerminal",
-			"cwd": "${workspaceFolder}",
-			"python": "${workspaceFolder}/.venv/bin/python",
-			"envFile": "${workspaceFolder}/.env",
-			"env": {
-				"RAG_DEBUG_BREAKPOINTS": "search.after_query_embedding,qdrant.after_search,search.after_retrieval,prompting.messages_built"
-			},
-			"args": [
-				"agent-v3-6",
-				"ask",
-				"请从我的知识库里总结生鸡肉清洗的食品安全建议",
-				"--top-k",
-				"5",
-				"--mode",
-				"hybrid",
-				"--max-steps",
-				"4",
-				"--max-retries",
-				"1",
-				"--filter-path",
-				"__not_exists__.md"
-			],
-			"justMyCode": true
-		},
-		{
-			"name": "V3.5 agent ask: planner executor",
-			"type": "debugpy",
-			"request": "launch",
-			"module": "obsidian_rag.cli",
-			"console": "integratedTerminal",
-			"cwd": "${workspaceFolder}",
-			"python": "${workspaceFolder}/.venv/bin/python",
-			"envFile": "${workspaceFolder}/.env",
-			"env": {
-				"RAG_DEBUG_BREAKPOINTS": "search.after_query_embedding,qdrant.after_search,search.after_retrieval,prompting.messages_built"
-			},
-			"args": [
-				"agent-v3-5",
-				"ask",
-				"帮我总结生鸡肉处理、厨房清洁、剩菜保存三类食品安全建议",
-				"--top-k",
-				"5",
-				"--mode",
-				"hybrid",
+				"结合知识库说明生鸡肉是否要洗，并查询 chicken 的安全中心温度。",
+				"--conversation-id",
+				"conv_v3123_mixed",
+				"--collection",
+				"food_safety",
+				"--mcp-tool-name",
+				"demo::lookup_food_temperature",
 				"--max-steps",
 				"4"
 			],
 			"justMyCode": true
 		},
 		{
-			"name": "V3.4 planner: structured plan",
+			"name": "V3.12.3 CLI: MCP runtime status",
+			"type": "debugpy",
+			"request": "launch",
+			"module": "obsidian_rag.cli",
+			"console": "integratedTerminal",
+			"cwd": "${workspaceFolder}",
+			"python": "${workspaceFolder}/.venv/bin/python",
+			"envFile": "${workspaceFolder}/.env",
+			"args": ["agent-v3-12-3", "mcp-status"],
+			"justMyCode": true
+		},
+		{
+			"name": "Agent Console UI: console.v1 (V3.12.3 MCP)",
+			"type": "node-terminal",
+			"request": "launch",
+			"command": "VITE_API_TARGET=http://127.0.0.1:8020 npm run dev",
+			"cwd": "${workspaceFolder}/frontend/agent_console"
+		},
+		{
+			"name": "V3.12.4 API server: Unified Knowledge Routing",
+			"type": "debugpy",
+			"request": "launch",
+			"module": "uvicorn",
+			"console": "integratedTerminal",
+			"cwd": "${workspaceFolder}",
+			"python": "${workspaceFolder}/.venv/bin/python",
+			"envFile": "${workspaceFolder}/.env",
+			"args": [
+				"obsidian_rag.v3_12_4.app:app",
+				"--host",
+				"127.0.0.1",
+				"--port",
+				"8020"
+			],
+			"subProcess": false,
+			"justMyCode": true
+		},
+		{
+			"name": "V3.12.4 CLI: automatic multi-collection routing",
 			"type": "debugpy",
 			"request": "launch",
 			"module": "obsidian_rag.cli",
@@ -530,20 +363,20 @@
 			"python": "${workspaceFolder}/.venv/bin/python",
 			"envFile": "${workspaceFolder}/.env",
 			"args": [
-				"agent-v3-4",
-				"plan",
-				"帮我总结生鸡肉处理、厨房清洁、剩菜保存三类食品安全建议",
-				"--top-k",
-				"5",
-				"--mode",
-				"hybrid",
+				"agent-v3-12-4",
+				"ask",
+				"做鸡肉时怎样保证安全，同时给我一个简单做法？",
+				"--conversation-id",
+				"conv_v3124_auto",
+				"--max-collections",
+				"2",
 				"--max-steps",
-				"7"
+				"4"
 			],
 			"justMyCode": true
 		},
 		{
-			"name": "V3.3 agent ask: LangGraph loop",
+			"name": "V3.12.4 CLI: explicit collection bypass router",
 			"type": "debugpy",
 			"request": "launch",
 			"module": "obsidian_rag.cli",
@@ -551,24 +384,19 @@
 			"cwd": "${workspaceFolder}",
 			"python": "${workspaceFolder}/.venv/bin/python",
 			"envFile": "${workspaceFolder}/.env",
-			"env": {
-				"RAG_DEBUG_BREAKPOINTS": "search.after_query_embedding,qdrant.after_search,search.after_retrieval,prompting.messages_built"
-			},
 			"args": [
-				"agent-v3-3",
+				"agent-v3-12-4",
 				"ask",
-				"然后呢？",
-				"--top-k",
-				"5",
-				"--mode",
-				"hybrid",
-				"--max-steps",
-				"1"
+				"useMouse 怎么使用？",
+				"--collection",
+				"vueuse_core_kb",
+				"--conversation-id",
+				"conv_v3124_explicit"
 			],
 			"justMyCode": true
 		},
 		{
-			"name": "V3.2 agent ask: tool calling loop",
+			"name": "V3.12.4 CLI: route only",
 			"type": "debugpy",
 			"request": "launch",
 			"module": "obsidian_rag.cli",
@@ -576,49 +404,35 @@
 			"cwd": "${workspaceFolder}",
 			"python": "${workspaceFolder}/.venv/bin/python",
 			"envFile": "${workspaceFolder}/.env",
-			"env": {
-				"RAG_DEBUG_BREAKPOINTS": "search.after_query_embedding,qdrant.after_search,search.after_retrieval,prompting.messages_built"
-			},
 			"args": [
-				"agent-v3-2",
-				"ask",
-				"who are you",
-				"--top-k",
-				"5",
-				"--mode",
-				"hybrid",
-				"--max-steps",
-				"1"
+				"agent-v3-12-4",
+				"route",
+				"做鸡肉时怎样保证安全，同时给我一个简单做法？"
 			],
 			"justMyCode": true
 		},
 		{
-			"name": "V3.1 agent ask: LLM router loop",
+			"name": "Agent Console UI: console.v1 (V3.12.4 Routing)",
+			"type": "node-terminal",
+			"request": "launch",
+			"command": "VITE_API_TARGET=http://127.0.0.1:8020 npm run dev",
+			"cwd": "${workspaceFolder}/frontend/agent_console"
+		},
+		{
+			"name": "V3.13 API server: Permission Policy",
 			"type": "debugpy",
 			"request": "launch",
-			"module": "obsidian_rag.cli",
+			"module": "uvicorn",
 			"console": "integratedTerminal",
 			"cwd": "${workspaceFolder}",
 			"python": "${workspaceFolder}/.venv/bin/python",
 			"envFile": "${workspaceFolder}/.env",
-			"env": {
-				"RAG_DEBUG_BREAKPOINTS": "search.after_query_embedding,qdrant.after_search,search.after_retrieval,prompting.messages_built"
-			},
-			"args": [
-				"agent-v3-1",
-				"ask",
-				"生鸡肉需要清洗吗",
-				"--top-k",
-				"5",
-				"--mode",
-				"hybrid",
-				"--max-steps",
-				"1"
-			],
+			"args": ["obsidian_rag.v3_13.app:app", "--host", "127.0.0.1", "--port", "8022"],
+			"subProcess": false,
 			"justMyCode": true
 		},
 		{
-			"name": "V3 agent ask: lightweight agent loop",
+			"name": "V3.13 CLI: allow knowledge search",
 			"type": "debugpy",
 			"request": "launch",
 			"module": "obsidian_rag.cli",
@@ -626,24 +440,21 @@
 			"cwd": "${workspaceFolder}",
 			"python": "${workspaceFolder}/.venv/bin/python",
 			"envFile": "${workspaceFolder}/.env",
-			"env": {
-				"RAG_DEBUG_BREAKPOINTS": "search.after_query_embedding,qdrant.after_search,search.after_retrieval,prompting.messages_built"
-			},
 			"args": [
-				"agent",
+				"agent-v3-13",
 				"ask",
-				"生鸡肉还需要清洗下锅吗？处理完后厨房怎么清洁？",
-				"--top-k",
-				"5",
-				"--mode",
-				"hybrid",
-				"--max-steps",
+				"我想做香煎鸡胸肉，请给出做法并说明食品安全要求。",
+				"--conversation-id",
+				"conv_v313_allow",
+				"--principal-profile",
+				"standard",
+				"--max-collections",
 				"2"
 			],
 			"justMyCode": true
 		},
 		{
-			"name": "RAG ask: harness architecture",
+			"name": "V3.13 CLI: deny restricted principal",
 			"type": "debugpy",
 			"request": "launch",
 			"module": "obsidian_rag.cli",
@@ -651,14 +462,19 @@
 			"cwd": "${workspaceFolder}",
 			"python": "${workspaceFolder}/.venv/bin/python",
 			"envFile": "${workspaceFolder}/.env",
-			"env": {
-				"RAG_DEBUG_BREAKPOINTS": "ask.after_retrieval,prompting.messages_built,ask.before_llm,ask.after_llm"
-			},
-			"args": ["ask", "剩菜需要加热到100°再吃吗？", "--top-k", "5"],
+			"args": [
+				"agent-v3-13",
+				"ask",
+				"番茄炒鸡蛋怎么做？",
+				"--conversation-id",
+				"conv_v313_deny",
+				"--principal-profile",
+				"restricted"
+			],
 			"justMyCode": true
 		},
 		{
-			"name": "RAG search: harness architecture",
+			"name": "V3.13 CLI: confirm simulated write",
 			"type": "debugpy",
 			"request": "launch",
 			"module": "obsidian_rag.cli",
@@ -666,14 +482,39 @@
 			"cwd": "${workspaceFolder}",
 			"python": "${workspaceFolder}/.venv/bin/python",
 			"envFile": "${workspaceFolder}/.env",
-			"env": {
-				"RAG_DEBUG_BREAKPOINTS": "search.after_query_embedding,qdrant.after_search,search.after_retrieval"
-			},
-			"args": ["search", "今天深圳天气怎么样", "--top-k", "5"],
+			"args": [
+				"agent-v3-13",
+				"policy",
+				"local::simulate_workspace_write",
+				"--arguments",
+				"{\"path\":\"notes/demo.md\",\"content\":\"hello\"}",
+				"--principal-profile",
+				"writer"
+			],
 			"justMyCode": true
 		},
 		{
-			"name": "RAG ingest current vault",
+			"name": "Agent Console UI: console.v1 (V3.13 Permission)",
+			"type": "node-terminal",
+			"request": "launch",
+			"command": "VITE_API_TARGET=http://127.0.0.1:8022 npm run dev",
+			"cwd": "${workspaceFolder}/frontend/agent_console"
+		},
+		{
+			"name": "V3.14 API server: Docker Sandbox",
+			"type": "debugpy",
+			"request": "launch",
+			"module": "uvicorn",
+			"console": "integratedTerminal",
+			"cwd": "${workspaceFolder}",
+			"python": "${workspaceFolder}/.venv/bin/python",
+			"envFile": "${workspaceFolder}/.env",
+			"args": ["obsidian_rag.v3_14.app:app", "--host", "127.0.0.1", "--port", "8023"],
+			"subProcess": false,
+			"justMyCode": true
+		},
+		{
+			"name": "V3.14 CLI: explicit sandbox write",
 			"type": "debugpy",
 			"request": "launch",
 			"module": "obsidian_rag.cli",
@@ -681,11 +522,286 @@
 			"cwd": "${workspaceFolder}",
 			"python": "${workspaceFolder}/.venv/bin/python",
 			"envFile": "${workspaceFolder}/.env",
-			"env": {
-				"RAG_DEBUG_BREAKPOINTS": "ingest.after_load,ingest.after_chunks,ingest.after_embeddings,qdrant.before_upsert,ingest.after_upsert"
-			},
-			"args": ["ingest", "--recreate"],
+			"args": [
+				"agent-v3-14", "sandbox", "write_file",
+				"--run-id", "sandbox_launch_demo",
+				"--arguments", "{\"path\":\"hello.py\",\"content\":\"print('hello from sandbox')\"}"
+			],
 			"justMyCode": true
+		},
+		{
+			"name": "V3.14 CLI: explicit sandbox command",
+			"type": "debugpy",
+			"request": "launch",
+			"module": "obsidian_rag.cli",
+			"console": "integratedTerminal",
+			"cwd": "${workspaceFolder}",
+			"python": "${workspaceFolder}/.venv/bin/python",
+			"envFile": "${workspaceFolder}/.env",
+			"args": [
+				"agent-v3-14", "sandbox", "run_command",
+				"--run-id", "sandbox_launch_demo",
+				"--arguments", "{\"command\":\"python\",\"args\":[\"hello.py\"]}"
+			],
+			"justMyCode": true
+		},
+		{
+			"name": "V3.14 CLI: Agent creates artifact",
+			"type": "debugpy",
+			"request": "launch",
+			"module": "obsidian_rag.cli",
+			"console": "integratedTerminal",
+			"cwd": "${workspaceFolder}",
+			"python": "${workspaceFolder}/.venv/bin/python",
+			"envFile": "${workspaceFolder}/.env",
+			"args": [
+				"agent-v3-14", "ask",
+				"请在隔离工作区创建 result.txt，内容为 Sandbox 学习完成。",
+				"--conversation-id", "conv_v314_artifact",
+				"--principal-profile", "sandbox"
+			],
+			"justMyCode": true
+		},
+		{
+			"name": "Agent Console UI: console.v1 (V3.14 Sandbox)",
+			"type": "node-terminal",
+			"request": "launch",
+			"command": "VITE_API_TARGET=http://127.0.0.1:8023 npm run dev",
+			"cwd": "${workspaceFolder}/frontend/agent_console"
+		},
+		{
+			"name": "V3.15 API server: Recovery & HITL",
+			"type": "debugpy",
+			"request": "launch",
+			"module": "uvicorn",
+			"console": "integratedTerminal",
+			"cwd": "${workspaceFolder}",
+			"python": "${workspaceFolder}/.venv/bin/python",
+			"envFile": "${workspaceFolder}/.env",
+			"args": ["obsidian_rag.v3_15.app:app", "--host", "127.0.0.1", "--port", "8024"],
+			"subProcess": false,
+			"justMyCode": true
+		},
+		{
+			"name": "V3.15 CLI: trigger Sandbox approval",
+			"type": "debugpy",
+			"request": "launch",
+			"module": "obsidian_rag.cli",
+			"console": "integratedTerminal",
+			"cwd": "${workspaceFolder}",
+			"python": "${workspaceFolder}/.venv/bin/python",
+			"envFile": "${workspaceFolder}/.env",
+			"args": [
+				"agent-v3-15", "ask",
+				"请在隔离工作区创建 approval-demo.txt，内容为 V3.15 HITL 学习完成。",
+				"--conversation-id", "conv_v315_hitl",
+				"--principal-profile", "sandbox",
+				"--json"
+			],
+			"justMyCode": true
+		},
+		{
+			"name": "Agent Console UI: console.v1 (V3.15 HITL)",
+			"type": "node-terminal",
+			"request": "launch",
+			"command": "VITE_API_TARGET=http://127.0.0.1:8024 npm run dev",
+			"cwd": "${workspaceFolder}/frontend/agent_console"
+		},
+		{
+			"name": "V3.16 API server: DeepAgents Tool Loop",
+			"type": "debugpy",
+			"request": "launch",
+			"module": "uvicorn",
+			"console": "integratedTerminal",
+			"cwd": "${workspaceFolder}",
+			"python": "${workspaceFolder}/.venv/bin/python",
+			"envFile": "${workspaceFolder}/.env",
+			"args": ["obsidian_rag.v3_16.app:app", "--host", "127.0.0.1", "--port", "8025"],
+			"subProcess": false,
+			"justMyCode": false
+		},
+		{
+			"name": "V3.16 CLI: minimal Deep Agent",
+			"type": "debugpy",
+			"request": "launch",
+			"module": "obsidian_rag.cli",
+			"console": "integratedTerminal",
+			"cwd": "${workspaceFolder}",
+			"python": "${workspaceFolder}/.venv/bin/python",
+			"envFile": "${workspaceFolder}/.env",
+			"args": ["agent-v3-16", "ask", "用一句话说明你能做什么", "--json"],
+			"justMyCode": true
+		},
+		{
+			"name": "V3.16 CLI: search_notes Tool Loop",
+			"type": "debugpy",
+			"request": "launch",
+			"module": "obsidian_rag.cli",
+			"console": "integratedTerminal",
+			"cwd": "${workspaceFolder}",
+			"python": "${workspaceFolder}/.venv/bin/python",
+			"envFile": "${workspaceFolder}/.env",
+			"args": ["agent-v3-16", "ask", "生鸡肉需要清洗吗？", "--collection", "food_safety", "--json"],
+			"justMyCode": true
+		},
+		{
+			"name": "V3.16 CLI: recipe Markdown + approval",
+			"type": "debugpy",
+			"request": "launch",
+			"module": "obsidian_rag.cli",
+			"console": "integratedTerminal",
+			"cwd": "${workspaceFolder}",
+			"python": "${workspaceFolder}/.venv/bin/python",
+			"envFile": "${workspaceFolder}/.env",
+			"args": [
+				"agent-v3-16", "ask",
+				"麻婆豆腐的做法总结成 .md 文档发给我",
+				"--conversation-id", "conv_v316_mapo",
+				"--collection", "recipes"
+			],
+			"justMyCode": true
+		},
+		{
+			"name": "V3.16 CLI: resume approved artifact",
+			"type": "debugpy",
+			"request": "launch",
+			"module": "obsidian_rag.cli",
+			"console": "integratedTerminal",
+			"cwd": "${workspaceFolder}",
+			"python": "${workspaceFolder}/.venv/bin/python",
+			"envFile": "${workspaceFolder}/.env",
+			"args": ["agent-v3-16", "resume", "${input:v316RunId}", "--action", "allow"],
+			"justMyCode": true
+		},
+		{
+			"name": "Agent Console UI: console.v1 (V3.16 DeepAgents)",
+			"type": "node-terminal",
+			"request": "launch",
+			"command": "VITE_API_TARGET=http://127.0.0.1:8025 npm run dev",
+			"cwd": "${workspaceFolder}/frontend/agent_console"
+		},
+		{
+			"name": "V3.17 API server: Durable Memory & Context",
+			"type": "debugpy",
+			"request": "launch",
+			"module": "uvicorn",
+			"console": "integratedTerminal",
+			"cwd": "${workspaceFolder}",
+			"python": "${workspaceFolder}/.venv/bin/python",
+			"envFile": "${workspaceFolder}/.env",
+			"args": ["obsidian_rag.v3_17.app:app", "--host", "127.0.0.1", "--port", "8026"],
+			"subProcess": false,
+			"justMyCode": false
+		},
+		{
+			"name": "V3.17 API server: low Context threshold",
+			"type": "debugpy",
+			"request": "launch",
+			"module": "uvicorn",
+			"console": "integratedTerminal",
+			"cwd": "${workspaceFolder}",
+			"python": "${workspaceFolder}/.venv/bin/python",
+			"envFile": "${workspaceFolder}/.env",
+			"env": { "RAG_V317_MODEL_CONTEXT_TOKENS": "4000" },
+			"args": ["obsidian_rag.v3_17.app:app", "--host", "127.0.0.1", "--port", "8026"],
+			"subProcess": false,
+			"justMyCode": false
+		},
+		{
+			"name": "V3.17 CLI: first durable turn",
+			"type": "debugpy",
+			"request": "launch",
+			"module": "obsidian_rag.cli",
+			"console": "integratedTerminal",
+			"cwd": "${workspaceFolder}",
+			"python": "${workspaceFolder}/.venv/bin/python",
+			"envFile": "${workspaceFolder}/.env",
+			"args": ["agent-v3-17", "ask", "请记住：以后回答尽量控制在100字以内。", "--conversation-id", "conv_v317_memory", "--json"],
+			"justMyCode": true
+		},
+		{
+			"name": "V3.17 CLI: same Thread follow-up",
+			"type": "debugpy",
+			"request": "launch",
+			"module": "obsidian_rag.cli",
+			"console": "integratedTerminal",
+			"cwd": "${workspaceFolder}",
+			"python": "${workspaceFolder}/.venv/bin/python",
+			"envFile": "${workspaceFolder}/.env",
+			"args": ["agent-v3-17", "ask", "我刚才要求你以后怎么回答？", "--conversation-id", "conv_v317_memory", "--json"],
+			"justMyCode": true
+		},
+		{
+			"name": "V3.17 CLI: new Thread reads long-term Memory",
+			"type": "debugpy",
+			"request": "launch",
+			"module": "obsidian_rag.cli",
+			"console": "integratedTerminal",
+			"cwd": "${workspaceFolder}",
+			"python": "${workspaceFolder}/.venv/bin/python",
+			"envFile": "${workspaceFolder}/.env",
+			"args": ["agent-v3-17", "ask", "用我的默认偏好介绍一下食品温度计。", "--conversation-id", "conv_v317_new_thread", "--json"],
+			"justMyCode": true
+		},
+		{
+			"name": "V3.17 CLI: inspect Memory Store",
+			"type": "debugpy",
+			"request": "launch",
+			"module": "obsidian_rag.cli",
+			"console": "integratedTerminal",
+			"cwd": "${workspaceFolder}",
+			"python": "${workspaceFolder}/.venv/bin/python",
+			"envFile": "${workspaceFolder}/.env",
+			"args": ["agent-v3-17", "memory", "list"],
+			"justMyCode": true
+		},
+		{
+			"name": "V3.17 CLI: resume approved artifact",
+			"type": "debugpy",
+			"request": "launch",
+			"module": "obsidian_rag.cli",
+			"console": "integratedTerminal",
+			"cwd": "${workspaceFolder}",
+			"python": "${workspaceFolder}/.venv/bin/python",
+			"envFile": "${workspaceFolder}/.env",
+			"args": ["agent-v3-17", "resume", "${input:v317RunId}", "--action", "allow"],
+			"justMyCode": true
+		},
+		{
+			"name": "V3.17 CLI: recover failed Run",
+			"type": "debugpy",
+			"request": "launch",
+			"module": "obsidian_rag.cli",
+			"console": "integratedTerminal",
+			"cwd": "${workspaceFolder}",
+			"python": "${workspaceFolder}/.venv/bin/python",
+			"envFile": "${workspaceFolder}/.env",
+			"args": ["agent-v3-17", "recover", "${input:v317RecoverRunId}"],
+			"justMyCode": true
+		},
+		{
+			"name": "Agent Console UI: console.v1 (V3.17 Durable Memory)",
+			"type": "node-terminal",
+			"request": "launch",
+			"command": "VITE_API_TARGET=http://127.0.0.1:8026 npm run dev",
+			"cwd": "${workspaceFolder}/frontend/agent_console"
+		}
+	],
+	"inputs": [
+		{
+			"id": "v316RunId",
+			"type": "promptString",
+			"description": "输入 waiting_for_approval 的 V3.16 run_id"
+		},
+		{
+			"id": "v317RunId",
+			"type": "promptString",
+			"description": "输入 waiting_for_approval 的 V3.17 run_id"
+		},
+		{
+			"id": "v317RecoverRunId",
+			"type": "promptString",
+			"description": "输入 failed 且 Checkpoint 仍有 next node 的 V3.17 run_id"
 		}
 	]
 }

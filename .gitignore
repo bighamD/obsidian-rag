@@ -1,6 +1,8 @@
 .venv/
 .env
 .rag/
+.rag-sandbox/
+.rag-state/
 __pycache__/
 .pytest_cache/
 *.pyc

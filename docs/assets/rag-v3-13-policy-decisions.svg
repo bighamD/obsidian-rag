@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="700" viewBox="0 0 1200 700" role="img" aria-labelledby="title desc">
+  <title id="title">V3.13 allow confirm deny 决策矩阵</title>
+  <desc id="desc">比较 safe、confirm、restricted 三种风险等级和最终执行行为。</desc>
+  <defs>
+    <linearGradient id="bg2" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#071b34"/><stop offset="1" stop-color="#132b48"/></linearGradient>
+    <filter id="s2"><feDropShadow dx="0" dy="8" stdDeviation="9" flood-color="#000" flood-opacity=".32"/></filter>
+  </defs>
+  <rect width="1200" height="700" fill="url(#bg2)"/>
+  <text x="62" y="66" fill="#f5f8fc" font-family="system-ui,sans-serif" font-size="30" font-weight="700">同一个 Tool Call，为什么会得到三种决定？</text>
+  <text x="62" y="98" fill="#a5b9cd" font-family="system-ui,sans-serif" font-size="15">Policy 不是只看 risk，还同时检查 allowlist、permission、scope 和 JSON Schema</text>
+
+  <g font-family="system-ui,sans-serif" filter="url(#s2)">
+    <rect x="62" y="150" width="330" height="390" rx="11" fill="#123b48" stroke="#42c9a8"/>
+    <text x="88" y="188" fill="#61dfc1" font-size="14" font-weight="700">SAFE → ALLOW</text>
+    <text x="88" y="224" fill="#fff" font-size="23" font-weight="700">自动执行</text>
+    <text x="88" y="258" fill="#b8d0d0" font-size="14">示例：search_notes</text>
+    <line x1="88" y1="282" x2="366" y2="282" stroke="#2d6170"/>
+    <text x="88" y="318" fill="#d8e8ea" font-size="13">✓ Tool 在 allowlist</text>
+    <text x="88" y="349" fill="#d8e8ea" font-size="13">✓ 拥有 knowledge.read</text>
+    <text x="88" y="380" fill="#d8e8ea" font-size="13">✓ Collection 在 scope</text>
+    <text x="88" y="411" fill="#d8e8ea" font-size="13">✓ 参数通过 Schema</text>
+    <rect x="88" y="458" width="104" height="38" rx="6" fill="#1f745f"/>
+    <text x="113" y="483" fill="#fff" font-size="14" font-weight="700">allow</text>
+
+    <rect x="435" y="150" width="330" height="390" rx="11" fill="#493b21" stroke="#efbd4c"/>
+    <text x="461" y="188" fill="#ffd36f" font-size="14" font-weight="700">CONFIRM → WAIT</text>
+    <text x="461" y="224" fill="#fff" font-size="23" font-weight="700">不自动执行</text>
+    <text x="461" y="258" fill="#ddcfaf" font-size="14">示例：文件写入请求</text>
+    <line x1="461" y1="282" x2="739" y2="282" stroke="#6e5a30"/>
+    <text x="461" y="318" fill="#eee3cb" font-size="13">✓ allowlist / permission 合法</text>
+    <text x="461" y="349" fill="#eee3cb" font-size="13">✓ 参数通过 Schema</text>
+    <text x="461" y="380" fill="#eee3cb" font-size="13">! 可能产生外部副作用</text>
+    <text x="461" y="411" fill="#eee3cb" font-size="13">! V3.13 尚未支持 resume</text>
+    <rect x="461" y="458" width="116" height="38" rx="6" fill="#9a6c13"/>
+    <text x="482" y="483" fill="#fff" font-size="14" font-weight="700">confirm</text>
+
+    <rect x="808" y="150" width="330" height="390" rx="11" fill="#4b2935" stroke="#ff7998"/>
+    <text x="834" y="188" fill="#ff9bb2" font-size="14" font-weight="700">RESTRICTED → DENY</text>
+    <text x="834" y="224" fill="#fff" font-size="23" font-weight="700">直接拒绝</text>
+    <text x="834" y="258" fill="#dfbdc7" font-size="14">示例：未知 Tool / Shell</text>
+    <line x1="834" y1="282" x2="1112" y2="282" stroke="#754151"/>
+    <text x="834" y="318" fill="#edd8de" font-size="13">✕ Tool 不存在或不在 allowlist</text>
+    <text x="834" y="349" fill="#edd8de" font-size="13">✕ 缺少 required permission</text>
+    <text x="834" y="380" fill="#edd8de" font-size="13">✕ Collection 越过 scope</text>
+    <text x="834" y="411" fill="#edd8de" font-size="13">✕ arguments 不符合 Schema</text>
+    <rect x="834" y="458" width="104" height="38" rx="6" fill="#9c3b52"/>
+    <text x="866" y="483" fill="#fff" font-size="14" font-weight="700">deny</text>
+  </g>
+
+  <rect x="62" y="584" width="1076" height="68" rx="9" fill="#0d2740" stroke="#315b7b"/>
+  <text x="87" y="612" fill="#7fc3ff" font-family="system-ui,sans-serif" font-size="13" font-weight="700">关键结论</text>
+  <text x="87" y="638" fill="#d8e4ee" font-family="system-ui,sans-serif" font-size="14">Planner 只表达“想调用什么”；Policy Engine 才拥有“是否允许进入 Executor”的最终决定权。</text>
+</svg>

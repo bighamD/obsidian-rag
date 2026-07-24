@@ -1,10 +1,15 @@
 from __future__ import annotations
 
 import os
-from dataclasses import dataclass
+import re
+from dataclasses import dataclass, replace
 from pathlib import Path
 
 from dotenv import load_dotenv
+
+
+COLLECTION_NAME_PATTERN = r"^[a-z0-9][a-z0-9_-]{0,62}$"
+COLLECTION_NAME_RE = re.compile(COLLECTION_NAME_PATTERN)
 
 
 @dataclass(frozen=True)
@@ -19,15 +24,29 @@ class RagConfig:
     qdrant_url: str | None
     db_path: Path
     collection_name: str
-    chunk_size: int
-    chunk_overlap: int
     min_score: float
     vault_path: Path | None
+    docling_tokenizer_model: str = "sentence-transformers/all-MiniLM-L6-v2"
+    chunk_token_size: int = 512
+    chunk_strategy: str = "adaptive_parent_child"
+    parent_chunk_tokens: int = 1000
+    child_chunk_tokens: int = 400
+    child_chunk_overlap: int = 40
+    reasoning_stream_enabled: bool = False
+    reasoning_effort: str = "medium"
+    rerank_enabled: bool = False
+    rerank_provider: str = "sentence_transformers"
+    rerank_model: str = "BAAI/bge-reranker-v2-m3"
+    rerank_candidates: int = 20
+    rerank_top_k: int = 5
+    rerank_timeout_seconds: float = 10.0
+    rerank_device: str = "auto"
+    rerank_batch_size: int = 8
 
 
 def load_config() -> RagConfig:
     load_dotenv()
-    return RagConfig(
+    config = RagConfig(
         api_key=os.getenv("OPENAI_API_KEY", ""),
         base_url=os.getenv("OPENAI_BASE_URL", "http://127.0.0.1:8317/v1"),
         chat_model=os.getenv("RAG_CHAT_MODEL", "gpt-4o-mini"),
@@ -37,12 +56,51 @@ def load_config() -> RagConfig:
         ollama_base_url=os.getenv("OLLAMA_BASE_URL", "http://127.0.0.1:11434"),
         qdrant_url=_optional_str(os.getenv("QDRANT_URL")),
         db_path=Path(os.getenv("RAG_DB_PATH", ".rag/qdrant")),
-        collection_name=os.getenv("RAG_COLLECTION", "obsidian_notes"),
-        chunk_size=int(os.getenv("RAG_CHUNK_SIZE", "1200")),
-        chunk_overlap=int(os.getenv("RAG_CHUNK_OVERLAP", "150")),
+        collection_name=validate_collection_name(os.getenv("RAG_COLLECTION", "obsidian_notes")),
         min_score=float(os.getenv("RAG_MIN_SCORE", "0.35")),
         vault_path=_optional_path(os.getenv("RAG_VAULT_PATH")),
+        docling_tokenizer_model=os.getenv(
+            "RAG_DOCLING_TOKENIZER_MODEL",
+            "sentence-transformers/all-MiniLM-L6-v2",
+        ),
+        chunk_token_size=int(os.getenv("RAG_CHUNK_TOKENS", "512")),
+        chunk_strategy=os.getenv("RAG_CHUNK_STRATEGY", "adaptive_parent_child").strip().lower(),
+        parent_chunk_tokens=int(os.getenv("RAG_PARENT_CHUNK_TOKENS", "1000")),
+        child_chunk_tokens=int(os.getenv("RAG_CHILD_CHUNK_TOKENS", "400")),
+        child_chunk_overlap=int(os.getenv("RAG_CHILD_CHUNK_OVERLAP", "40")),
+        reasoning_stream_enabled=_env_bool("RAG_REASONING_STREAM_ENABLED", False),
+        reasoning_effort=os.getenv("RAG_REASONING_EFFORT", "medium").strip() or "medium",
+        rerank_enabled=_env_bool("RAG_RERANK_ENABLED", False),
+        rerank_provider=os.getenv("RAG_RERANK_PROVIDER", "sentence_transformers").strip().lower(),
+        rerank_model=os.getenv("RAG_RERANK_MODEL", "BAAI/bge-reranker-v2-m3").strip(),
+        rerank_candidates=int(os.getenv("RAG_RERANK_CANDIDATES", "20")),
+        rerank_top_k=int(os.getenv("RAG_RERANK_TOP_K", "5")),
+        rerank_timeout_seconds=float(os.getenv("RAG_RERANK_TIMEOUT_SECONDS", "10")),
+        rerank_device=os.getenv("RAG_RERANK_DEVICE", "auto").strip().lower(),
+        rerank_batch_size=int(os.getenv("RAG_RERANK_BATCH_SIZE", "8")),
     )
+    _validate_rerank_config(config)
+    return config
+
+
+def _validate_rerank_config(config: RagConfig) -> None:
+    if config.rerank_provider not in {"none", "sentence_transformers", "fake"}:
+        raise ValueError("RAG_RERANK_PROVIDER must be none, sentence_transformers, or fake")
+    if config.rerank_candidates < 1:
+        raise ValueError("RAG_RERANK_CANDIDATES must be at least 1")
+    if config.rerank_top_k < 1 or config.rerank_top_k > config.rerank_candidates:
+        raise ValueError("RAG_RERANK_TOP_K must be between 1 and RAG_RERANK_CANDIDATES")
+    if config.rerank_timeout_seconds <= 0:
+        raise ValueError("RAG_RERANK_TIMEOUT_SECONDS must be greater than 0")
+    if config.rerank_batch_size < 1:
+        raise ValueError("RAG_RERANK_BATCH_SIZE must be at least 1")
+
+
+def _env_bool(name: str, default: bool) -> bool:
+    value = os.getenv(name)
+    if value is None:
+        return default
+    return value.strip().lower() in {"1", "true", "yes", "on"}
 
 
 def require_api_key(config: RagConfig) -> None:
@@ -56,6 +114,24 @@ def resolve_ingest_path(cli_path: Path | None, config: RagConfig) -> Path:
     if config.vault_path is not None:
         return config.vault_path
     raise RuntimeError("Provide an ingest path or set RAG_VAULT_PATH in .env")
+
+
+def with_collection(config: RagConfig, collection: str | None = None) -> RagConfig:
+    """返回本次请求的 collection 配置副本，不修改共享全局 config。"""
+
+    selected = config.collection_name if collection is None else collection
+    return replace(config, collection_name=validate_collection_name(selected))
+
+
+def validate_collection_name(value: str) -> str:
+    """校验用户可读且可安全映射到 Qdrant / 本地索引文件的 collection 名称。"""
+
+    if not isinstance(value, str) or not COLLECTION_NAME_RE.fullmatch(value):
+        raise ValueError(
+            "collection 必须匹配 "
+            f"{COLLECTION_NAME_PATTERN}，例如 food_safety 或 recipes。"
+        )
+    return value
 
 
 def _optional_path(value: str | None) -> Path | None:

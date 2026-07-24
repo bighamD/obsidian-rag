@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="760" viewBox="0 0 1200 760" role="img" aria-labelledby="title desc">
+  <title id="title">V3.12.3 MCP Session 生命周期</title>
+  <desc id="desc">FastAPI lifespan 启动 Connection Manager，每个 MCP Server 由长期 Worker Task 管理连接、工具缓存、调用、重连和关闭。</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#071426"/><stop offset="1" stop-color="#102a43"/></linearGradient>
+    <filter id="shadow"><feDropShadow dx="0" dy="5" stdDeviation="7" flood-opacity=".28"/></filter>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#7dd3fc"/></marker>
+    <style>.title{font:700 28px system-ui;fill:#f8fafc}.sub{font:15px system-ui;fill:#bae6fd}.box{rx:16;fill:#132f4c;stroke:#38bdf8;stroke-width:2;filter:url(#shadow)}.green{fill:#123d34;stroke:#34d399}.yellow{fill:#422006;stroke:#fbbf24}.purple{fill:#312e5f;stroke:#a78bfa}.text{font:650 17px system-ui;fill:#f8fafc}.small{font:13px system-ui;fill:#cbd5e1}.line{stroke:#7dd3fc;stroke-width:2.5;fill:none;marker-end:url(#arrow)}.soft{stroke:#a78bfa;stroke-width:2;fill:none;stroke-dasharray:7 6;marker-end:url(#arrow)}</style>
+  </defs>
+  <rect width="1200" height="760" fill="url(#bg)"/>
+  <text x="600" y="48" text-anchor="middle" class="title">MCP Session 如何跨请求复用</text>
+  <text x="600" y="76" text-anchor="middle" class="sub">每个 Server 一个 Worker Task；同一 Task 打开、使用并关闭 Transport Context</text>
+
+  <rect x="70" y="125" width="250" height="100" class="box"/><text x="195" y="161" text-anchor="middle" class="text">FastAPI lifespan</text><text x="195" y="190" text-anchor="middle" class="small">startup / shutdown</text>
+  <rect x="395" y="125" width="310" height="100" class="box purple"/><text x="550" y="161" text-anchor="middle" class="text">McpConnectionManager</text><text x="550" y="190" text-anchor="middle" class="small">专用 event loop thread</text>
+  <rect x="785" y="125" width="330" height="100" class="box green"/><text x="950" y="161" text-anchor="middle" class="text">mcp_servers.yaml</text><text x="950" y="190" text-anchor="middle" class="small">transport · allowlist · TTL · auth env</text>
+  <path d="M320 175 L395 175" class="line"/><path d="M785 175 L705 175" class="line"/>
+
+  <rect x="135" y="330" width="360" height="184" class="box green"/><text x="315" y="366" text-anchor="middle" class="text">Server Worker: demo</text><text x="315" y="397" text-anchor="middle" class="small">1. initialize</text><text x="315" y="423" text-anchor="middle" class="small">2. tools/list + allowlist cache</text><text x="315" y="449" text-anchor="middle" class="small">3. command queue → tools/call</text><text x="315" y="475" text-anchor="middle" class="small">4. reconnect once on transport error</text><text x="315" y="501" text-anchor="middle" class="small">5. shutdown in same Task</text>
+  <rect x="705" y="330" width="360" height="184" class="box"/><text x="885" y="366" text-anchor="middle" class="text">Server Worker: remote</text><text x="885" y="397" text-anchor="middle" class="small">Streamable HTTP Session</text><text x="885" y="423" text-anchor="middle" class="small">headers_from_env</text><text x="885" y="449" text-anchor="middle" class="small">Tool Cache TTL</text><text x="885" y="475" text-anchor="middle" class="small">partial failure / degraded</text>
+  <path d="M500 225 C500 275 315 275 315 330" class="line"/><path d="M600 225 C600 275 885 275 885 330" class="line"/>
+
+  <rect x="250" y="610" width="300" height="88" class="box yellow"/><text x="400" y="644" text-anchor="middle" class="text">旧方式</text><text x="400" y="672" text-anchor="middle" class="small">每次请求启动并关闭子进程</text>
+  <rect x="650" y="610" width="300" height="88" class="box green"/><text x="800" y="644" text-anchor="middle" class="text">V3.12.3</text><text x="800" y="672" text-anchor="middle" class="small">跨请求复用 Session 与 Tool Cache</text>
+  <path d="M550 654 L650 654" class="soft"/>
+  <text x="600" y="738" text-anchor="middle" class="sub">stdio 适合本地受管进程；Streamable HTTP 适合独立部署的远程 MCP Server</text>
+</svg>

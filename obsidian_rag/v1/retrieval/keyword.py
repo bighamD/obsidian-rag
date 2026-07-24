@@ -28,6 +28,16 @@ class KeywordIndex:
         self._items = [KeywordIndexItem(text=chunk.text, metadata=chunk.metadata) for chunk in chunks]
         self._rebuild_stats()
 
+    def upsert(self, chunks: list[TextChunk]) -> None:
+        """合并本批 chunks，使增量 ingest 与 Qdrant 的 upsert 语义一致。"""
+
+        items_by_key = {_item_key(item): item for item in self._items}
+        for chunk in chunks:
+            item = KeywordIndexItem(text=chunk.text, metadata=chunk.metadata)
+            items_by_key[_item_key(item)] = item
+        self._items = list(items_by_key.values())
+        self._rebuild_stats()
+
     def load(self) -> None:
         if not self.path.exists():
             self._items = []
@@ -96,13 +106,27 @@ class KeywordIndex:
         return score
 
 
-def keyword_index_path(db_path: Path) -> Path:
-    return db_path.parent / "keyword_index.json"
+def keyword_index_path(db_path: Path, collection_name: str) -> Path:
+    """返回与 Qdrant collection 一一对应的本地 keyword index 路径。"""
+
+    return db_path.parent / "keyword_indexes" / f"{collection_name}.json"
 
 
 def _searchable_text(item: KeywordIndexItem) -> str:
-    metadata_values = " ".join(str(value) for value in item.metadata.values() if value is not None)
+    hidden_keys = {"docling", "raw_chunk_text", "parent_text", "matched_child_text", "pages"}
+    metadata_values = " ".join(
+        str(value) for key, value in item.metadata.items() if key not in hidden_keys and value is not None
+    )
     return f"{metadata_values}\n{item.text}"
+
+
+def _item_key(item: KeywordIndexItem) -> str:
+    node_id = item.metadata.get("node_id")
+    if node_id:
+        return str(node_id)
+    source = item.metadata.get("source", "")
+    chunk_index = item.metadata.get("chunk_index", "")
+    return f"{source}:{chunk_index}:{item.text[:80]}"
 
 
 def _tokens(text: str) -> list[str]:

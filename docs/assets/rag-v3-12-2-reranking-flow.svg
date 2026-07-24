@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="760" viewBox="0 0 1200 760" role="img" aria-labelledby="title desc">
+  <title id="title">V3.12.2 Retrieval Reranking Flow</title>
+  <desc id="desc">Dense and keyword recall are fused with RRF, parent candidates are reranked, and final parents enter the LLM context.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#071426"/><stop offset="1" stop-color="#102a43"/></linearGradient>
+    <filter id="shadow"><feDropShadow dx="0" dy="5" stdDeviation="7" flood-opacity=".28"/></filter>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#7dd3fc"/></marker>
+    <style>
+      .title{font:700 28px system-ui;fill:#f8fafc}.sub{font:15px system-ui;fill:#bae6fd}.box{rx:16;fill:#132f4c;stroke:#38bdf8;stroke-width:2;filter:url(#shadow)}
+      .accent{fill:#123d34;stroke:#34d399}.warn{fill:#422006;stroke:#fbbf24}.text{font:650 17px system-ui;fill:#f8fafc}.small{font:13px system-ui;fill:#cbd5e1}.line{stroke:#7dd3fc;stroke-width:2.5;fill:none;marker-end:url(#arrow)}
+    </style>
+  </defs>
+  <rect width="1200" height="760" fill="url(#bg)"/>
+  <text x="600" y="48" text-anchor="middle" class="title">V3.12.2 Retrieval Reranking</text>
+  <text x="600" y="76" text-anchor="middle" class="sub">扩大召回 → 排名融合 → Child 评分 → Parent Context</text>
+
+  <rect x="80" y="120" width="230" height="94" class="box"/><text x="195" y="154" text-anchor="middle" class="text">Dense Recall</text><text x="195" y="181" text-anchor="middle" class="small">vector candidates</text>
+  <rect x="80" y="260" width="230" height="94" class="box"/><text x="195" y="294" text-anchor="middle" class="text">Keyword Recall</text><text x="195" y="321" text-anchor="middle" class="small">BM25 candidates</text>
+  <rect x="390" y="190" width="220" height="104" class="box"/><text x="500" y="226" text-anchor="middle" class="text">RRF Fusion</text><text x="500" y="253" text-anchor="middle" class="small">fusion_top_k = 60</text><text x="500" y="274" text-anchor="middle" class="small">多库可再执行 cross RRF</text>
+  <path d="M310 167 C350 167 350 220 390 220" class="line"/><path d="M310 307 C350 307 350 264 390 264" class="line"/>
+
+  <rect x="690" y="190" width="230" height="104" class="box"/><text x="805" y="226" text-anchor="middle" class="text">Parent Collapse</text><text x="805" y="253" text-anchor="middle" class="small">parent_id 去重至 20</text><text x="805" y="274" text-anchor="middle" class="small">保留 matched child</text>
+  <path d="M610 242 L690 242" class="line"/>
+
+  <rect x="390" y="390" width="330" height="126" class="box accent"/><text x="555" y="428" text-anchor="middle" class="text">CrossEncoder Reranker</text><text x="555" y="457" text-anchor="middle" class="small">query + heading + matched_child_text</text><text x="555" y="481" text-anchor="middle" class="small">sentence-transformers / BGE</text><text x="555" y="503" text-anchor="middle" class="small">rerank_top_k = 5</text>
+  <path d="M805 294 C805 350 700 350 700 390" class="line"/>
+
+  <rect x="80" y="410" width="230" height="92" class="box warn"/><text x="195" y="444" text-anchor="middle" class="text">Fail-open</text><text x="195" y="471" text-anchor="middle" class="small">timeout / dependency / error</text><text x="195" y="491" text-anchor="middle" class="small">回退 RRF 顺序</text>
+  <path d="M390 456 L310 456" class="line"/>
+
+  <rect x="810" y="390" width="280" height="126" class="box"/><text x="950" y="428" text-anchor="middle" class="text">ContextBuilder</text><text x="950" y="457" text-anchor="middle" class="small">按 rerank_rank 选择</text><text x="950" y="481" text-anchor="middle" class="small">使用 returned_parent_text</text><text x="950" y="503" text-anchor="middle" class="small">token budget / max chunks</text>
+  <path d="M720 453 L810 453" class="line"/>
+
+  <rect x="810" y="610" width="280" height="92" class="box accent"/><text x="950" y="646" text-anchor="middle" class="text">Answer LLM</text><text x="950" y="674" text-anchor="middle" class="small">JSON / answer_delta SSE</text>
+  <path d="M950 516 L950 610" class="line"/>
+
+  <rect x="390" y="610" width="330" height="92" class="box"/><text x="555" y="646" text-anchor="middle" class="text">Trace / Evaluation</text><text x="555" y="674" text-anchor="middle" class="small">RRF rank · rerank rank · MRR · NDCG · latency</text>
+  <path d="M555 516 L555 610" class="line"/>
+</svg>

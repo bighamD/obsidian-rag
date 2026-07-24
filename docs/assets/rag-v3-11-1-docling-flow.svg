@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1180" height="680" viewBox="0 0 1180 680" role="img" aria-labelledby="title desc">
+  <title id="title">V3.11.1 Docling Structured Ingestion flow</title>
+  <desc id="desc">Multiple document formats are parsed by Docling, grouped into adaptive parent-child chunks, indexed as children and expanded to complete parents after retrieval.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#475569"/></marker>
+  </defs>
+  <rect width="1180" height="680" fill="#f8fafc"/>
+  <text x="590" y="46" text-anchor="middle" font-family="Arial, sans-serif" font-size="27" font-weight="700" fill="#0f172a">V3.11.1 Docling Structured Ingestion</text>
+  <text x="590" y="76" text-anchor="middle" font-family="Arial, sans-serif" font-size="15" fill="#475569">Docling 负责解析，结构策略合并小块；Child 召回，Parent 返回</text>
+
+  <rect x="40" y="120" width="240" height="390" rx="9" fill="#ffffff" stroke="#bfdbfe" stroke-width="2"/>
+  <rect x="40" y="120" width="240" height="54" rx="9" fill="#eff6ff" stroke="#bfdbfe" stroke-width="2"/>
+  <text x="160" y="154" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" font-weight="700" fill="#1d4ed8">多格式输入</text>
+  <text x="76" y="220" font-family="Arial, sans-serif" font-size="15" fill="#334155">PDF / Markdown</text>
+  <text x="76" y="254" font-family="Arial, sans-serif" font-size="15" fill="#334155">DOCX / PPTX</text>
+  <text x="76" y="288" font-family="Arial, sans-serif" font-size="15" fill="#334155">XLSX / CSV</text>
+  <text x="76" y="322" font-family="Arial, sans-serif" font-size="15" fill="#334155">HTML / Images</text>
+  <text x="76" y="382" font-family="Arial, sans-serif" font-size="13" fill="#64748b">固定解析链路</text>
+  <text x="76" y="408" font-family="Arial, sans-serif" font-size="14" font-weight="700" fill="#1d4ed8">Docling only</text>
+
+  <rect x="350" y="120" width="480" height="390" rx="9" fill="#ffffff" stroke="#bbf7d0" stroke-width="2"/>
+  <rect x="350" y="120" width="480" height="54" rx="9" fill="#f0fdf4" stroke="#bbf7d0" stroke-width="2"/>
+  <text x="590" y="154" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" font-weight="700" fill="#047857">Parser + Adaptive Chunk Strategy</text>
+  <rect x="410" y="210" width="360" height="68" rx="8" fill="#ffffff" stroke="#86efac" stroke-width="2"/>
+  <text x="590" y="238" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="700" fill="#166534">DocumentConverter</text>
+  <text x="590" y="261" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" fill="#475569">layout / OCR / table / provenance</text>
+  <path d="M590 278 L590 314" stroke="#475569" stroke-width="2" marker-end="url(#arrow)"/>
+  <rect x="410" y="320" width="360" height="68" rx="8" fill="#ffffff" stroke="#fde047" stroke-width="2"/>
+  <text x="590" y="348" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="700" fill="#854d0e">HybridChunker Atomic Blocks</text>
+  <text x="590" y="371" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" fill="#475569">heading_path / page / provenance / metadata</text>
+  <path d="M590 388 L590 424" stroke="#475569" stroke-width="2" marker-end="url(#arrow)"/>
+  <rect x="410" y="430" width="360" height="68" rx="8" fill="#ffffff" stroke="#fdba74" stroke-width="2"/>
+  <text x="590" y="458" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="700" fill="#9a3412">Adaptive Parent-Child</text>
+  <text x="590" y="481" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" fill="#475569">merge siblings / recursive split / parent_id</text>
+
+  <rect x="900" y="120" width="240" height="390" rx="9" fill="#ffffff" stroke="#cbd5e1" stroke-width="2"/>
+  <rect x="900" y="120" width="240" height="54" rx="9" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="2"/>
+  <text x="1020" y="154" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" font-weight="700" fill="#334155">共享 RAG 数据面</text>
+  <text x="938" y="224" font-family="Arial, sans-serif" font-size="15" font-weight="700" fill="#0f172a">Child TextChunk</text>
+  <text x="938" y="252" font-family="Arial, sans-serif" font-size="13" fill="#475569">matched_child_text</text>
+  <text x="938" y="280" font-family="Arial, sans-serif" font-size="13" fill="#475569">parent_id + parent_text</text>
+  <text x="938" y="322" font-family="Arial, sans-serif" font-size="15" font-weight="700" fill="#0f172a">Child Embedding</text>
+  <text x="938" y="364" font-family="Arial, sans-serif" font-size="15" font-weight="700" fill="#0f172a">Qdrant</text>
+  <text x="938" y="398" font-family="Arial, sans-serif" font-size="15" font-weight="700" fill="#0f172a">KeywordIndex</text>
+  <text x="938" y="436" font-family="Arial, sans-serif" font-size="14" font-weight="700" fill="#0f172a">Parent Expansion</text>
+  <text x="938" y="466" font-family="Arial, sans-serif" font-size="13" fill="#64748b">V0～V3.11 共用</text>
+
+  <path d="M280 315 L350 315" stroke="#475569" stroke-width="2.5" marker-end="url(#arrow)"/>
+  <path d="M830 315 L900 315" stroke="#475569" stroke-width="2.5" marker-end="url(#arrow)"/>
+
+  <rect x="160" y="560" width="860" height="76" rx="9" fill="#fff1f2" stroke="#fda4af" stroke-width="2" stroke-dasharray="7 6"/>
+  <text x="590" y="592" text-anchor="middle" font-family="Arial, sans-serif" font-size="17" font-weight="700" fill="#be123c">版本边界</text>
+  <text x="590" y="620" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#475569">迁移 LangChain Parent 模式；LlamaIndex AutoMerging / SemanticSplitter 仍留在 V3.11.2 实验</text>
+</svg>
