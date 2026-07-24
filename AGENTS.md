@@ -101,7 +101,7 @@ docs/assets/rag-v3-4-planner-flow.svg
 已完成到：
 
 ```text
-V3.15 Recovery & HITL
+V3.16 DeepAgents Tool Loop & Artifact
 ```
 
 V3.12 在 V3.11 Skill System 之后增加标准化外部工具协议：
@@ -206,11 +206,11 @@ V3.14 仍然不做：
 - 不执行 Skill `scripts/`，不实现 Container Pool、多租户调度或持久 Artifact 元数据数据库。
 - 不实现 `confirm → interrupt → resume`，该能力进入 V3.15。
 
-V3.10.3 和 V3.11.1-V3.11.3 是已完成的扩展学习版本，不改变当前主线。V3.15 完成后，下一阶段切换到官方 DeepAgents 生产迁移：
+V3.10.3 和 V3.11.1-V3.11.3 是已完成的扩展学习版本，不改变当前主线。V3.15 之后已切换到官方 DeepAgents 生产迁移，当前下一主线是 V3.17：
 
 ```text
-V3.16 DeepAgents Tool Loop & Artifact（计划中）
-V3.17 DeepAgents Durable Memory & Context（计划中）
+V3.16 DeepAgents Tool Loop & Artifact（已完成）
+V3.17 DeepAgents Durable Memory & Context（下一主线，计划中）
 V3.18 DeepAgents Production Customization（计划中）
 V3.19 Production Hardening & Takeover Drill（计划中）
 ```
@@ -230,13 +230,19 @@ V3.15 仍然不做：
 - 不实现分布式队列、多人会签、复杂 RBAC、审批超时或生产级灾备。
 - 不保证跨 Run 的业务幂等，不把 Conversation Memory、Run Store 与 Checkpoint 合并。
 
-V3.16 计划边界：
+V3.16 已完成：
 
-- 使用官方 `deepagents.create_deep_agent`，不继续扩展自研 Planner/Executor 作为新生产主线。
-- 核心验收链为 `search_notes -> ToolMessage -> write_file -> approval -> Sandbox -> Artifact download`。
-- 必须验证 `write_file.arguments.content` 基于检索 ToolMessage 动态生成，而不是 Planner 预制。
-- 实施按 Anatomy、Read-only Search、Observation-driven Write、HITL/Sandbox/Artifact、FastAPI/SSE/Console 五个阶段展开。
-- V3.16 不接入持久多轮 Memory、Skills、MCP、Sub-agent 或复杂 Runtime Context；Checkpointer 仅服务 HITL/Recovery。
+- 使用官方 `deepagents.create_deep_agent`，由迭代式 Tool Loop 接管后续 Tool 参数生成。
+- 跑通 `search_notes -> ToolMessage -> write_file -> interrupt_on -> resume -> Workspace -> Artifact download`。
+- `search_notes` ToolMessage 显式保留 `chunk_id`、`source`、`content`、`score` 和 `collection`。
+- 通过官方 `HarnessProfile` 排除 `execute`、`write_todos` 并关闭默认通用 Sub-agent，保持版本边界。
+- DeepAgents Backend 复用 Core Sandbox 的 Run Workspace、路径保护、文件大小限制和 Artifact Registry。
+- 提供 FastAPI JSON/SSE、审批恢复、CLI、`launch.json`、共享 Console、Guide 和三张 SVG。
+
+V3.16 仍然不做：
+
+- 不接入持久多轮 Memory、Skills、MCP、Sub-agent、Shell 或复杂 Runtime Context。
+- Checkpointer 仅服务当前 Run 的 HITL/恢复，不等同于 Conversation Memory。
 - 现有 `obsidian_rag/core/` 保留为原理对照和 Adapter 来源，不在迁移时删除或大规模重写。
 
 V3.17 计划边界：

@@ -1,0 +1,194 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1180" viewBox="0 0 1600 1180" role="img" aria-labelledby="title desc">
+  <title id="title">V3.16 DeepAgents 版本依赖与 Core 复用关系图</title>
+  <desc id="desc">展示 V3.16 以 DeepAgents 为编排核心，直接复用 V3.10 Runtime、V3.12.4 Retrieval、V3.14 Sandbox、V3.15 Checkpoint 与 core 稳定契约，同时说明 V1 检索是传递依赖，以及 Skills、MCP、长期 Memory 等能力尚未接入。</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#061426"/>
+      <stop offset="0.55" stop-color="#0b2139"/>
+      <stop offset="1" stop-color="#12334c"/>
+    </linearGradient>
+    <linearGradient id="center" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#193a5a"/>
+      <stop offset="1" stop-color="#102a43"/>
+    </linearGradient>
+    <filter id="shadow">
+      <feDropShadow dx="0" dy="6" stdDeviation="8" flood-color="#020617" flood-opacity="0.38"/>
+    </filter>
+    <marker id="arrowBlue" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L9,3 z" fill="#7dd3fc"/>
+    </marker>
+    <marker id="arrowGreen" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L9,3 z" fill="#6ee7b7"/>
+    </marker>
+    <marker id="arrowYellow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L9,3 z" fill="#fbbf24"/>
+    </marker>
+    <style>
+      .title{font:700 30px system-ui,-apple-system,sans-serif;fill:#f8fafc}
+      .subtitle{font:15px system-ui,-apple-system,sans-serif;fill:#bae6fd}
+      .section{font:700 16px system-ui,-apple-system,sans-serif;fill:#fbbf24}
+      .card{fill:#132f4c;stroke:#38bdf8;stroke-width:2;filter:url(#shadow)}
+      .green{fill:#123d34;stroke:#34d399}
+      .purple{fill:#2b2146;stroke:#c084fc}
+      .yellow{fill:#422006;stroke:#fbbf24}
+      .muted{fill:#17283a;stroke:#64748b;stroke-dasharray:7 5}
+      .center{fill:url(#center);stroke:#7dd3fc;stroke-width:2.5;filter:url(#shadow)}
+      .heading{font:700 17px system-ui,-apple-system,sans-serif;fill:#f8fafc}
+      .center-title{font:700 22px system-ui,-apple-system,sans-serif;fill:#f8fafc}
+      .text{font:13px system-ui,-apple-system,sans-serif;fill:#cbd5e1}
+      .strong{font:700 13px system-ui,-apple-system,sans-serif;fill:#e0f2fe}
+      .small{font:12px system-ui,-apple-system,sans-serif;fill:#94a3b8}
+      .line{stroke:#7dd3fc;stroke-width:2.2;fill:none;marker-end:url(#arrowBlue)}
+      .reuse{stroke:#6ee7b7;stroke-width:2.2;fill:none;marker-end:url(#arrowGreen)}
+      .transitive{stroke:#fbbf24;stroke-width:2;fill:none;stroke-dasharray:8 6;marker-end:url(#arrowYellow)}
+      .label{font:12px system-ui,-apple-system,sans-serif;fill:#bae6fd}
+      .label-green{font:12px system-ui,-apple-system,sans-serif;fill:#a7f3d0}
+      .label-yellow{font:12px system-ui,-apple-system,sans-serif;fill:#fde68a}
+      .inner{fill:#0c2238;stroke:#52718d;stroke-width:1.2}
+    </style>
+  </defs>
+
+  <rect width="1600" height="1180" fill="url(#bg)"/>
+  <text x="800" y="47" text-anchor="middle" class="title">V3.16 依赖图谱：新编排核心 + 旧能力 Adapter 复用</text>
+  <text x="800" y="77" text-anchor="middle" class="subtitle">V3.16 不继承旧 AgentService；DeepAgents 接管 Tool Loop，检索、Runtime、Sandbox、HITL 与稳定 Schema 继续复用</text>
+
+  <!-- External framework -->
+  <text x="800" y="118" text-anchor="middle" class="section">外部 Agent Harness</text>
+  <rect x="435" y="138" width="730" height="120" rx="16" class="card purple"/>
+  <text x="800" y="171" text-anchor="middle" class="heading">DeepAgents + LangChain Agent Middleware + LangGraph</text>
+  <text x="800" y="200" text-anchor="middle" class="text">create_deep_agent · model/tools 循环 · FilesystemMiddleware · HumanInTheLoopMiddleware</text>
+  <text x="800" y="225" text-anchor="middle" class="text">CompiledStateGraph · graph.stream · Checkpoint · interrupt · Command(resume)</text>
+  <path d="M800 258 L800 318" class="line"/>
+  <text x="820" y="294" class="label">自动组装 Graph</text>
+
+  <!-- Left: version reuse -->
+  <text x="217" y="310" text-anchor="middle" class="section">直接复用的学习版本</text>
+
+  <rect x="42" y="334" width="350" height="106" rx="14" class="card"/>
+  <text x="217" y="364" text-anchor="middle" class="heading">V3.10 + V3.10.2</text>
+  <text x="217" y="390" text-anchor="middle" class="strong">Run 生命周期、Metrics、SSE EventBus</text>
+  <text x="217" y="416" text-anchor="middle" class="small">RunRecord · RunTiming · RunEventBus · Console stream</text>
+
+  <rect x="42" y="463" width="350" height="120" rx="14" class="card green"/>
+  <text x="217" y="493" text-anchor="middle" class="heading">V3.12.4 Retrieval 装配</text>
+  <text x="217" y="519" text-anchor="middle" class="strong">Config、KnowledgeBaseRegistry、多库检索</text>
+  <text x="217" y="545" text-anchor="middle" class="small">RerankingRetrievalService · Collection Policy</text>
+  <text x="217" y="566" text-anchor="middle" class="small">只复用 Retrieval，不复用 RoutedMcpAgentService</text>
+
+  <rect x="42" y="606" width="350" height="106" rx="14" class="card green"/>
+  <text x="217" y="636" text-anchor="middle" class="heading">V3.14 Sandbox</text>
+  <text x="217" y="662" text-anchor="middle" class="strong">SandboxRuntime、Workspace、Artifact</text>
+  <text x="217" y="688" text-anchor="middle" class="small">路径保护 · 文件限制 · 下载投影</text>
+
+  <rect x="42" y="735" width="350" height="120" rx="14" class="card yellow"/>
+  <text x="217" y="765" text-anchor="middle" class="heading">V3.15 Recovery / HITL</text>
+  <text x="217" y="791" text-anchor="middle" class="strong">Postgres Pool、PostgresSaver、审批契约</text>
+  <text x="217" y="817" text-anchor="middle" class="small">ApprovalRecord · DecisionInput · HitlStore 基表</text>
+  <text x="217" y="838" text-anchor="middle" class="small">控制流改用 DeepAgents interrupt_on</text>
+
+  <!-- Center: V3.16 -->
+  <rect x="465" y="318" width="670" height="550" rx="20" class="center"/>
+  <text x="800" y="354" text-anchor="middle" class="center-title">obsidian_rag/v3_16</text>
+  <text x="800" y="379" text-anchor="middle" class="text">迁移桥接层：把已有业务能力适配到官方 DeepAgents Harness</text>
+
+  <rect x="495" y="405" width="285" height="112" rx="12" class="inner"/>
+  <text x="637" y="434" text-anchor="middle" class="heading">DeepAgentService</text>
+  <text x="637" y="459" text-anchor="middle" class="text">create_deep_agent · begin/resume</text>
+  <text x="637" y="483" text-anchor="middle" class="text">messages / Tool Call / ToolMessage</text>
+  <text x="637" y="505" text-anchor="middle" class="small">不再使用旧 Planner / execute_steps</text>
+
+  <rect x="820" y="405" width="285" height="112" rx="12" class="inner"/>
+  <text x="962" y="434" text-anchor="middle" class="heading">SearchNotesToolAdapter</text>
+  <text x="962" y="459" text-anchor="middle" class="text">Core ToolRegistry → StructuredTool</text>
+  <text x="962" y="483" text-anchor="middle" class="text">结果 → 标准 JSON ToolMessage</text>
+  <text x="962" y="505" text-anchor="middle" class="small">保留 chunk_id / score / collection</text>
+
+  <rect x="495" y="543" width="285" height="112" rx="12" class="inner"/>
+  <text x="637" y="572" text-anchor="middle" class="heading">DeepAgentsSandboxBackend</text>
+  <text x="637" y="597" text-anchor="middle" class="text">Filesystem Tool → Core Sandbox</text>
+  <text x="637" y="621" text-anchor="middle" class="text">/artifacts → Run Workspace</text>
+  <text x="637" y="643" text-anchor="middle" class="small">BackendProtocol Adapter</text>
+
+  <rect x="820" y="543" width="285" height="112" rx="12" class="inner"/>
+  <text x="962" y="572" text-anchor="middle" class="heading">Runtime / API / SSE</text>
+  <text x="962" y="597" text-anchor="middle" class="text">Run 状态、事件收集、响应投影</text>
+  <text x="962" y="621" text-anchor="middle" class="text">JSON / stream / approval resume</text>
+  <text x="962" y="643" text-anchor="middle" class="small">兼容共享 Agent Console</text>
+
+  <rect x="495" y="681" width="285" height="112" rx="12" class="inner"/>
+  <text x="637" y="710" text-anchor="middle" class="heading">PostgresDeepAgentStore</text>
+  <text x="637" y="735" text-anchor="middle" class="text">继承 PostgresHitlStore</text>
+  <text x="637" y="759" text-anchor="middle" class="text">扩展 Request / Response / Artifact</text>
+  <text x="637" y="781" text-anchor="middle" class="small">与 Graph Checkpoint 分层保存</text>
+
+  <rect x="820" y="681" width="285" height="112" rx="12" class="inner"/>
+  <text x="962" y="710" text-anchor="middle" class="heading">Schemas / Compatibility</text>
+  <text x="962" y="735" text-anchor="middle" class="text">原生 DeepAgents 观察面</text>
+  <text x="962" y="759" text-anchor="middle" class="text">投影到 AgentAskResponse</text>
+  <text x="962" y="781" text-anchor="middle" class="small">复用 Run、Approval、SearchHit</text>
+
+  <rect x="613" y="815" width="374" height="38" rx="10" class="green"/>
+  <text x="800" y="839" text-anchor="middle" class="strong">V3.16 新增的是 Adapter 与迁移边界，不是重写底层能力</text>
+
+  <!-- Reuse arrows -->
+  <path d="M392 387 L465 430" class="reuse"/><text x="402" y="402" class="label-green">Runtime</text>
+  <path d="M392 523 L465 484" class="reuse"/><text x="400" y="517" class="label-green">Retrieval</text>
+  <path d="M392 659 L465 607" class="reuse"/><text x="400" y="650" class="label-green">Backend</text>
+  <path d="M392 795 L465 747" class="reuse"/><text x="400" y="786" class="label-green">HITL/DB</text>
+
+  <!-- Right: core -->
+  <text x="1382" y="310" text-anchor="middle" class="section">稳定公共 Core</text>
+  <rect x="1205" y="334" width="355" height="378" rx="16" class="card"/>
+  <text x="1382" y="368" text-anchor="middle" class="heading">obsidian_rag/core</text>
+
+  <rect x="1230" y="391" width="305" height="58" rx="10" class="inner"/>
+  <text x="1382" y="415" text-anchor="middle" class="strong">core.tools</text>
+  <text x="1382" y="437" text-anchor="middle" class="small">ToolRegistry · build_search_tool_registry</text>
+
+  <rect x="1230" y="466" width="305" height="58" rx="10" class="inner"/>
+  <text x="1382" y="490" text-anchor="middle" class="strong">core.collections</text>
+  <text x="1382" y="512" text-anchor="middle" class="small">KnowledgeBaseManifest · Registry contracts</text>
+
+  <rect x="1230" y="541" width="305" height="58" rx="10" class="inner"/>
+  <text x="1382" y="565" text-anchor="middle" class="strong">core.sandbox</text>
+  <text x="1382" y="587" text-anchor="middle" class="small">SandboxRuntime · ArtifactRecord · Status</text>
+
+  <rect x="1230" y="616" width="305" height="70" rx="10" class="inner"/>
+  <text x="1382" y="640" text-anchor="middle" class="strong">core.schemas / permissions</text>
+  <text x="1382" y="662" text-anchor="middle" class="small">AgentAskResponse · Timing · PermissionReport</text>
+  <text x="1382" y="680" text-anchor="middle" class="small">Permission 仅用于兼容投影，不执行 V3.13 Policy Graph</text>
+
+  <path d="M1205 475 L1135 475" class="reuse"/><text x="1145" y="463" class="label-green">稳定契约</text>
+  <path d="M1205 579 L1135 608" class="reuse"/>
+  <path d="M1205 651 L1135 747" class="reuse"/>
+
+  <!-- Transitive dependency -->
+  <rect x="42" y="899" width="510" height="118" rx="14" class="card yellow"/>
+  <text x="297" y="929" text-anchor="middle" class="heading">传递依赖：V1 Hybrid Retrieval + Reranking 模块</text>
+  <text x="297" y="955" text-anchor="middle" class="text">V3.12.4 Retrieval Service 内部继续复用 V1 Dense / Keyword / RRF</text>
+  <text x="297" y="980" text-anchor="middle" class="text">再叠加 V3.12.2 学习阶段形成的 Parent-Child 与 CrossEncoder Reranking</text>
+  <text x="297" y="1002" text-anchor="middle" class="small">V3.16 不直接 import V3.12.2 Agent，只使用共享 reranking 包</text>
+  <path d="M217 899 L217 583" class="transitive"/>
+  <text x="230" y="885" class="label-yellow">由 V3.12.4 间接装配</text>
+
+  <!-- Not included -->
+  <rect x="590" y="899" width="970" height="118" rx="14" class="muted"/>
+  <text x="1075" y="929" text-anchor="middle" class="heading">V3.16 明确未接入的能力</text>
+  <text x="1075" y="957" text-anchor="middle" class="text">V3.8/V3.8.1 Conversation Memory · V3.11 Skills · V3.12 MCP · V3.13 Policy Graph</text>
+  <text x="1075" y="983" text-anchor="middle" class="text">旧 Planner / Task Graph · Sub-agent · Shell execute · 跨线程长期 Store</text>
+  <text x="1075" y="1005" text-anchor="middle" class="small">这些不是“自动继承”；需要在 V3.17/V3.18 中显式接入 DeepAgents Middleware、Store、Backend 或 Tool</text>
+
+  <!-- Infrastructure -->
+  <text x="800" y="1061" text-anchor="middle" class="section">运行基础设施</text>
+  <rect x="160" y="1081" width="350" height="64" rx="12" class="card green"/>
+  <text x="335" y="1108" text-anchor="middle" class="heading">Qdrant + Keyword Index</text>
+  <text x="335" y="1132" text-anchor="middle" class="small">Dense / Hybrid 检索数据</text>
+
+  <rect x="625" y="1081" width="350" height="64" rx="12" class="card yellow"/>
+  <text x="800" y="1108" text-anchor="middle" class="heading">PostgreSQL</text>
+  <text x="800" y="1132" text-anchor="middle" class="small">Checkpoint · Run · Approval · DeepAgent Store</text>
+
+  <rect x="1090" y="1081" width="350" height="64" rx="12" class="card green"/>
+  <text x="1265" y="1108" text-anchor="middle" class="heading">Run Workspace + Agent Console</text>
+  <text x="1265" y="1132" text-anchor="middle" class="small">Artifact 文件与共享前端观察面</text>
+</svg>

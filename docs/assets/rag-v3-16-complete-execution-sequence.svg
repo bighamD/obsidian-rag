@@ -1,0 +1,198 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1480" viewBox="0 0 1600 1480" role="img" aria-labelledby="title desc">
+  <title id="title">V3.16 DeepAgents 完整执行时序图</title>
+  <desc id="desc">展示用户首次请求、DeepAgents 模型与工具循环、知识库检索、写文件审批暂停、Command resume 恢复、Sandbox Artifact 生成以及前端下载的完整时序。</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#061426"/>
+      <stop offset="0.55" stop-color="#0b2139"/>
+      <stop offset="1" stop-color="#12334c"/>
+    </linearGradient>
+    <linearGradient id="phase" x1="0" y1="0" x2="1" y2="0">
+      <stop stop-color="#102b46" stop-opacity="0.82"/>
+      <stop offset="1" stop-color="#153954" stop-opacity="0.38"/>
+    </linearGradient>
+    <filter id="shadow">
+      <feDropShadow dx="0" dy="5" stdDeviation="7" flood-color="#020617" flood-opacity="0.35"/>
+    </filter>
+    <marker id="arrowBlue" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L9,3 z" fill="#7dd3fc"/>
+    </marker>
+    <marker id="arrowGreen" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L9,3 z" fill="#6ee7b7"/>
+    </marker>
+    <marker id="arrowYellow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L9,3 z" fill="#fbbf24"/>
+    </marker>
+    <style>
+      .title{font:700 30px system-ui,-apple-system,sans-serif;fill:#f8fafc}
+      .subtitle{font:15px system-ui,-apple-system,sans-serif;fill:#bae6fd}
+      .actor{fill:#132f4c;stroke:#38bdf8;stroke-width:2;filter:url(#shadow)}
+      .actor-green{fill:#123d34;stroke:#34d399}
+      .actor-purple{fill:#2b2146;stroke:#c084fc}
+      .actor-yellow{fill:#422006;stroke:#fbbf24}
+      .actor-text{font:700 15px system-ui,-apple-system,sans-serif;fill:#f8fafc}
+      .actor-sub{font:12px system-ui,-apple-system,sans-serif;fill:#cbd5e1}
+      .phase-title{font:700 15px system-ui,-apple-system,sans-serif;fill:#fbbf24}
+      .life{stroke:#5b7187;stroke-width:1.5;stroke-dasharray:7 7}
+      .call{stroke:#7dd3fc;stroke-width:2.2;fill:none;marker-end:url(#arrowBlue)}
+      .return{stroke:#6ee7b7;stroke-width:2.2;fill:none;stroke-dasharray:7 5;marker-end:url(#arrowGreen)}
+      .approval{stroke:#fbbf24;stroke-width:2.3;fill:none;marker-end:url(#arrowYellow)}
+      .label{font:13px system-ui,-apple-system,sans-serif;fill:#e2e8f0}
+      .label-blue{font:13px system-ui,-apple-system,sans-serif;fill:#bae6fd}
+      .label-green{font:13px system-ui,-apple-system,sans-serif;fill:#a7f3d0}
+      .label-yellow{font:13px system-ui,-apple-system,sans-serif;fill:#fde68a}
+      .note{fill:#102a43;stroke:#52718d;stroke-width:1.4;filter:url(#shadow)}
+      .note-green{fill:#12382f;stroke:#34d399}
+      .note-purple{fill:#2b2146;stroke:#c084fc}
+      .note-yellow{fill:#402408;stroke:#fbbf24}
+      .note-title{font:700 14px system-ui,-apple-system,sans-serif;fill:#f8fafc}
+      .note-text{font:12px system-ui,-apple-system,sans-serif;fill:#cbd5e1}
+      .step{fill:#38bdf8}
+      .step-text{font:700 12px system-ui,-apple-system,sans-serif;fill:#071426}
+    </style>
+  </defs>
+
+  <rect width="1600" height="1480" fill="url(#bg)"/>
+  <text x="800" y="46" text-anchor="middle" class="title">V3.16 完整时序：两段 HTTP 请求，一条可恢复的 DeepAgents Graph</text>
+  <text x="800" y="76" text-anchor="middle" class="subtitle">首次 /ask 在 write_file 前 interrupt；/resume 使用同一 run_id 与 Checkpoint 继续，最终生成 Artifact 下载链接</text>
+
+  <!-- Participants -->
+  <g>
+    <rect x="30" y="108" width="200" height="72" rx="12" class="actor"/>
+    <text x="130" y="137" text-anchor="middle" class="actor-text">用户 / Agent Console</text>
+    <text x="130" y="160" text-anchor="middle" class="actor-sub">请求、审批、下载</text>
+
+    <rect x="250" y="108" width="200" height="72" rx="12" class="actor"/>
+    <text x="350" y="137" text-anchor="middle" class="actor-text">FastAPI / Runtime</text>
+    <text x="350" y="160" text-anchor="middle" class="actor-sub">Run、SSE、响应投影</text>
+
+    <rect x="470" y="108" width="200" height="72" rx="12" class="actor actor-purple"/>
+    <text x="570" y="137" text-anchor="middle" class="actor-text">DeepAgents Graph</text>
+    <text x="570" y="160" text-anchor="middle" class="actor-sub">model ↔ tools + Middleware</text>
+
+    <rect x="690" y="108" width="200" height="72" rx="12" class="actor"/>
+    <text x="790" y="137" text-anchor="middle" class="actor-text">LLM</text>
+    <text x="790" y="160" text-anchor="middle" class="actor-sub">每轮决定下一步</text>
+
+    <rect x="910" y="108" width="200" height="72" rx="12" class="actor actor-green"/>
+    <text x="1010" y="137" text-anchor="middle" class="actor-text">search_notes / RAG</text>
+    <text x="1010" y="160" text-anchor="middle" class="actor-sub">Hybrid、RRF、Reranking</text>
+
+    <rect x="1130" y="108" width="200" height="72" rx="12" class="actor actor-yellow"/>
+    <text x="1230" y="137" text-anchor="middle" class="actor-text">HITL / Checkpoint</text>
+    <text x="1230" y="160" text-anchor="middle" class="actor-sub">interrupt、PostgreSQL</text>
+
+    <rect x="1350" y="108" width="200" height="72" rx="12" class="actor actor-green"/>
+    <text x="1450" y="137" text-anchor="middle" class="actor-text">Sandbox / Artifact</text>
+    <text x="1450" y="160" text-anchor="middle" class="actor-sub">Workspace、文件、下载</text>
+  </g>
+
+  <!-- Lifelines -->
+  <path d="M130 180 L130 1422" class="life"/>
+  <path d="M350 180 L350 1422" class="life"/>
+  <path d="M570 180 L570 1422" class="life"/>
+  <path d="M790 180 L790 1422" class="life"/>
+  <path d="M1010 180 L1010 1422" class="life"/>
+  <path d="M1230 180 L1230 1422" class="life"/>
+  <path d="M1450 180 L1450 1422" class="life"/>
+
+  <!-- Phase 1 -->
+  <rect x="22" y="205" width="1556" height="310" rx="16" fill="url(#phase)" stroke="#274c6b"/>
+  <text x="42" y="232" class="phase-title">阶段 1 · 首次请求与知识库 Observation</text>
+
+  <circle cx="42" cy="267" r="13" class="step"/><text x="42" y="271" text-anchor="middle" class="step-text">1</text>
+  <path d="M130 265 L350 265" class="call"/>
+  <text x="240" y="254" text-anchor="middle" class="label-blue">POST /agent/ask 或 /ask/stream</text>
+
+  <circle cx="262" cy="309" r="13" class="step"/><text x="262" y="313" text-anchor="middle" class="step-text">2</text>
+  <path d="M350 307 L570 307" class="call"/>
+  <text x="460" y="296" text-anchor="middle" class="label-blue">创建 run_id，_build_graph()</text>
+
+  <rect x="477" y="327" width="186" height="58" rx="10" class="note note-purple"/>
+  <text x="570" y="350" text-anchor="middle" class="note-title">create_deep_agent()</text>
+  <text x="570" y="370" text-anchor="middle" class="note-text">编译 CompiledStateGraph</text>
+
+  <circle cx="482" cy="413" r="13" class="step"/><text x="482" y="417" text-anchor="middle" class="step-text">3</text>
+  <path d="M570 411 L790 411" class="call"/>
+  <text x="680" y="400" text-anchor="middle" class="label-blue">Model Call #1：HumanMessage</text>
+  <path d="M790 454 L570 454" class="return"/>
+  <text x="680" y="443" text-anchor="middle" class="label-green">AIMessage.tool_calls = search_notes</text>
+
+  <circle cx="702" cy="493" r="13" class="step"/><text x="702" y="497" text-anchor="middle" class="step-text">4</text>
+  <path d="M570 491 L1010 491" class="call"/>
+  <text x="790" y="480" text-anchor="middle" class="label-blue">tools 节点执行 search_notes(query, collections, top_k, mode)</text>
+
+  <!-- Phase 2 -->
+  <rect x="22" y="530" width="1556" height="304" rx="16" fill="url(#phase)" stroke="#274c6b"/>
+  <text x="42" y="557" class="phase-title">阶段 2 · 模型读取 ToolMessage，动态生成写文件参数</text>
+
+  <rect x="918" y="578" width="184" height="78" rx="10" class="note note-green"/>
+  <text x="1010" y="602" text-anchor="middle" class="note-title">Hybrid Retrieval</text>
+  <text x="1010" y="623" text-anchor="middle" class="note-text">Dense + Keyword + RRF</text>
+  <text x="1010" y="642" text-anchor="middle" class="note-text">可选跨库融合 + Reranking</text>
+
+  <circle cx="922" cy="687" r="13" class="step"/><text x="922" y="691" text-anchor="middle" class="step-text">5</text>
+  <path d="M1010 685 L570 685" class="return"/>
+  <text x="790" y="674" text-anchor="middle" class="label-green">ToolMessage：chunk_id、source、content、score、collection</text>
+
+  <circle cx="482" cy="731" r="13" class="step"/><text x="482" y="735" text-anchor="middle" class="step-text">6</text>
+  <path d="M570 729 L790 729" class="call"/>
+  <text x="680" y="718" text-anchor="middle" class="label-blue">Model Call #2：读取真实 ToolMessage</text>
+  <path d="M790 774 L570 774" class="return"/>
+  <text x="680" y="763" text-anchor="middle" class="label-green">AIMessage.tool_calls = write_file</text>
+  <text x="680" y="793" text-anchor="middle" class="label">arguments.content 此时才包含基于知识块生成的 Markdown</text>
+
+  <!-- Phase 3 -->
+  <rect x="22" y="849" width="1556" height="292" rx="16" fill="url(#phase)" stroke="#274c6b"/>
+  <text x="42" y="876" class="phase-title">阶段 3 · HITL 暂停，首次 HTTP 请求结束</text>
+
+  <circle cx="702" cy="915" r="13" class="step"/><text x="702" y="919" text-anchor="middle" class="step-text">7</text>
+  <path d="M570 913 L1230 913" class="approval"/>
+  <text x="900" y="902" text-anchor="middle" class="label-yellow">HumanInTheLoopMiddleware.after_model：write_file 命中 interrupt_on</text>
+
+  <rect x="1138" y="938" width="184" height="72" rx="10" class="note note-yellow"/>
+  <text x="1230" y="962" text-anchor="middle" class="note-title">interrupt()</text>
+  <text x="1230" y="983" text-anchor="middle" class="note-text">同步保存 messages、Tool Call</text>
+  <text x="1230" y="1001" text-anchor="middle" class="note-text">和暂停位置到 Checkpoint</text>
+
+  <circle cx="482" cy="1043" r="13" class="step"/><text x="482" y="1047" text-anchor="middle" class="step-text">8</text>
+  <path d="M1230 1041 L350 1041" class="return"/>
+  <text x="790" y="1030" text-anchor="middle" class="label-green">Graph stream 暂停；Runtime 保存 Approval 并投影响应</text>
+  <path d="M350 1090 L130 1090" class="return"/>
+  <text x="240" y="1079" text-anchor="middle" class="label-green">waiting_for_approval + SSE approval_requested</text>
+  <text x="790" y="1122" text-anchor="middle" class="label-yellow">此时 artifacts = []，write_file 尚未执行</text>
+
+  <!-- Phase 4 -->
+  <rect x="22" y="1156" width="1556" height="274" rx="16" fill="url(#phase)" stroke="#274c6b"/>
+  <text x="42" y="1183" class="phase-title">阶段 4 · 用户审批后从 Checkpoint 恢复，生成并下载 Artifact</text>
+
+  <circle cx="42" cy="1222" r="13" class="step"/><text x="42" y="1226" text-anchor="middle" class="step-text">9</text>
+  <path d="M130 1220 L350 1220" class="approval"/>
+  <text x="240" y="1209" text-anchor="middle" class="label-yellow">POST /approvals/{run_id}/resume</text>
+  <path d="M350 1260 L570 1260" class="approval"/>
+  <text x="460" y="1249" text-anchor="middle" class="label-yellow">Command(resume={decisions})</text>
+
+  <circle cx="702" cy="1302" r="13" class="step"/><text x="702" y="1306" text-anchor="middle" class="step-text">10</text>
+  <path d="M570 1300 L1450 1300" class="call"/>
+  <text x="1010" y="1289" text-anchor="middle" class="label-blue">approve/edit：tools 节点调用 Backend.write → Run Workspace</text>
+  <path d="M1450 1339 L570 1339" class="return"/>
+  <text x="1010" y="1328" text-anchor="middle" class="label-green">ToolMessage：写入结果 + Artifact 元数据</text>
+
+  <circle cx="482" cy="1378" r="13" class="step"/><text x="482" y="1382" text-anchor="middle" class="step-text">11</text>
+  <path d="M570 1376 L790 1376" class="call"/>
+  <text x="680" y="1365" text-anchor="middle" class="label-blue">Model Call #3</text>
+  <path d="M790 1415 L350 1415" class="return"/>
+  <text x="570" y="1404" text-anchor="middle" class="label-green">最终 AIMessage → run_succeeded + download_url</text>
+  <path d="M350 1452 L130 1452" class="return"/>
+  <text x="240" y="1441" text-anchor="middle" class="label-green">最终答案与 Artifact 卡片</text>
+
+  <!-- Branch and footer -->
+  <rect x="1138" y="1188" width="184" height="80" rx="10" class="note note-yellow"/>
+  <text x="1230" y="1212" text-anchor="middle" class="note-title">deny 分支</text>
+  <text x="1230" y="1233" text-anchor="middle" class="note-text">生成拒绝 ToolMessage</text>
+  <text x="1230" y="1252" text-anchor="middle" class="note-text">不进入 Backend，不产生文件</text>
+
+  <rect x="1358" y="1361" width="184" height="62" rx="10" class="note note-green"/>
+  <text x="1450" y="1385" text-anchor="middle" class="note-title">GET /artifacts/{id}</text>
+  <text x="1450" y="1406" text-anchor="middle" class="note-text">校验 run_id 后下载文件</text>
+</svg>

@@ -36,9 +36,9 @@ V3.14         Docker Sandbox Execution（已完成）
    ↓
 V3.15         Recovery/HITL（已完成）
    ↓
-V3.16         DeepAgents Tool Loop & Artifact（下一主线，计划中）
+V3.16         DeepAgents Tool Loop & Artifact（已完成）
    ↓
-V3.17         DeepAgents Durable Memory & Context（计划中）
+V3.17         DeepAgents Durable Memory & Context（下一主线，计划中）
    ↓
 V3.18         DeepAgents Production Customization（计划中）
    ↓
@@ -118,7 +118,7 @@ V3.19         Production Hardening & Takeover Drill（计划中）
 
 | 版本 | 主题 | 核心职责与新增能力 | 明确边界 | 状态 |
 | --- | --- | --- | --- | --- |
-| V3.16 | DeepAgents Tool Loop & Artifact | 使用官方 `create_deep_agent`；适配 `search_notes`、Sandbox Backend、HITL 和 Artifact；跑通 `search -> ToolMessage -> write_file -> approval -> download` | 不做持久多轮 Memory、Skills、MCP、Sub-agent；不继续扩展自研 Planner 数据流 | 计划中 |
+| V3.16 | DeepAgents Tool Loop & Artifact | 使用官方 `create_deep_agent`；适配 `search_notes`、Sandbox Backend、HITL、SSE 和 Artifact；跑通 `search -> ToolMessage -> write_file -> approval -> download` | 不做持久多轮 Memory、Skills、MCP、Sub-agent 或 Shell；不继续扩展自研 Planner 数据流 | 已完成 · [代码](../obsidian_rag/v3_16) · [Guide](v3-16-deepagents-tool-loop-guide.md) |
 | V3.17 | DeepAgents Durable Memory & Context | PostgreSQL Checkpointer、Conversation Repository、`CompositeBackend`、`StoreBackend`、用户级长期 Memory、Offloading/Summarization 和 Memory Audit | 不把全部 Turn 写成长记忆；不做复杂 Sub-agent 和跨历史向量检索 | 计划中 |
 | V3.18 | DeepAgents Production Customization | 自定义 Middleware、Runtime Context、动态 Tool/Memory scope、Harness Profile、Sub-agent、确定性业务子图和后台 Memory consolidation | 不要求通用 Deep Agent Loop 代替严格事务/DAG；严格流程进入自定义 Sub-agent | 计划中 |
 | V3.19 | Production Hardening & Takeover Drill | LangSmith Trace/Eval、超时取消重试、幂等、SSE replay、Secrets、租户隔离、部署、备份恢复和真实业务迁移 | 不再以单一概念 Demo 为目标，以生产 PR 和故障演练作为验收 | 计划中 |
@@ -150,8 +150,8 @@ V3.19         Production Hardening & Takeover Drill（计划中）
 | Public Agent Core | V3.12.1 | V3.10、V3.11 |
 | CrossEncoder Reranking | V3.12.2 | V1、V3.11.1 |
 | Permission / Approval | V3.13 | V3.15 完整 interrupt/resume |
-| Sandbox / Artifacts | V3.14 | V3.14 |
-| Checkpoint / HITL | V3.15 | V3.10.3 |
+| Sandbox / Artifacts | V3.14 | V3.16 DeepAgents Backend Adapter |
+| Checkpoint / HITL | V3.15 | V3.10.3、V3.16 `interrupt_on` |
 | DeepAgents Harness / Middleware | V3.16 | V3.18 深度定制 |
 | Observation-driven Tool Dataflow | V3.16 | V3.5 自研 Executor 对照 |
 | DeepAgents Long-term Memory / StoreBackend | V3.17 | V3.8.1 自研 Memory 对照 |
