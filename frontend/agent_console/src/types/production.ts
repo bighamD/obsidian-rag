@@ -44,6 +44,9 @@ export interface AgentOptions {
 export interface AgentAskPayload {
   question: string;
   conversation_id: string;
+  tenant_id?: string;
+  user_id?: string;
+  assistant_id?: string;
   mcp_enabled: boolean;
   principal: PermissionPrincipal;
   skill_router_enabled: boolean;
@@ -532,6 +535,53 @@ export interface DeepAgentArtifact extends ArtifactRecord {
   download_url: string;
 }
 
+export type LongTermMemoryKind = "preference" | "fact" | "decision";
+
+export interface LongTermMemoryItem {
+  memory_id: string;
+  kind: LongTermMemoryKind;
+  content: string;
+  reason: string | null;
+  source_run_id: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ContextSummarySnapshot {
+  triggered: boolean;
+  cutoff_index: number;
+  summary_text: string;
+  history_file_path: string | null;
+}
+
+export interface DurableContextSnapshot {
+  conversation_id: string;
+  thread_id: string;
+  run_id: string;
+  thread_message_count: number;
+  estimated_message_tokens: number;
+  model_context_tokens: number;
+  summary_trigger_fraction: number;
+  summary: ContextSummarySnapshot;
+  long_term_memories: LongTermMemoryItem[];
+  memory_profile_path: string;
+  exact_wire_prompt_available: boolean;
+}
+
+export interface MemoryAuditRecord {
+  audit_id: string;
+  operation: string;
+  tenant_id: string;
+  user_id: string;
+  assistant_id: string;
+  conversation_id: string | null;
+  run_id: string | null;
+  memory_id: string | null;
+  actor: string;
+  summary: string;
+  created_at: string;
+}
+
 export interface DeepAgentNativeResponse {
   run_id: string;
   status: "waiting_for_approval" | "succeeded";
@@ -547,6 +597,8 @@ export interface DeepAgentNativeResponse {
   selected_collections: string[];
   search_results: SearchHit[];
   artifacts: DeepAgentArtifact[];
+  thread_id?: string;
+  durable_context?: DurableContextSnapshot;
 }
 
 export interface ProductionAskResponse {
@@ -598,6 +650,7 @@ export interface ConsoleConfigResponse {
     sandbox?: boolean;
     hitl?: boolean;
     deep_agents?: boolean;
+    durable_memory?: boolean;
   };
   endpoints: {
     ask: string;
@@ -613,6 +666,8 @@ export interface ConsoleConfigResponse {
     approvals?: string | null;
     approval_resume?: string | null;
     approval_resume_stream?: string | null;
+    memories?: string | null;
+    memory_audits?: string | null;
   };
   default_memory_window: number;
 }

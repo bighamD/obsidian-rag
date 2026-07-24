@@ -13,6 +13,9 @@ import type {
   RunRecord,
   SkillRuntimeResponse,
   SandboxRuntimeConfigResponse,
+  LongTermMemoryItem,
+  LongTermMemoryKind,
+  MemoryAuditRecord,
 } from "@/types/production";
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? "/api";
@@ -84,6 +87,35 @@ export async function resumeApproval(
 
 export async function fetchPendingApprovals(): Promise<ApprovalListResponse> {
   return request<ApprovalListResponse>("/approvals?status=pending&limit=100");
+}
+
+export async function fetchLongTermMemories(): Promise<LongTermMemoryItem[]> {
+  const response = await request<{ memories: LongTermMemoryItem[] }>("/memories");
+  return response.memories;
+}
+
+export async function putLongTermMemory(payload: {
+  memory_id?: string;
+  kind: LongTermMemoryKind;
+  content: string;
+  reason?: string;
+}): Promise<LongTermMemoryItem> {
+  return request<LongTermMemoryItem>("/memories", {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function deleteLongTermMemory(memoryId: string): Promise<boolean> {
+  const response = await request<{ deleted: boolean }>(`/memories/${encodeURIComponent(memoryId)}`, {
+    method: "DELETE",
+  });
+  return response.deleted;
+}
+
+export async function fetchMemoryAudits(): Promise<MemoryAuditRecord[]> {
+  const response = await request<{ audits: MemoryAuditRecord[] }>("/memory-audits?limit=100");
+  return response.audits;
 }
 
 export async function streamAgent(
