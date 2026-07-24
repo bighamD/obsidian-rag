@@ -679,6 +679,112 @@
 			"request": "launch",
 			"command": "VITE_API_TARGET=http://127.0.0.1:8025 npm run dev",
 			"cwd": "${workspaceFolder}/frontend/agent_console"
+		},
+		{
+			"name": "V3.17 API server: Durable Memory & Context",
+			"type": "debugpy",
+			"request": "launch",
+			"module": "uvicorn",
+			"console": "integratedTerminal",
+			"cwd": "${workspaceFolder}",
+			"python": "${workspaceFolder}/.venv/bin/python",
+			"envFile": "${workspaceFolder}/.env",
+			"args": ["obsidian_rag.v3_17.app:app", "--host", "127.0.0.1", "--port", "8026"],
+			"subProcess": false,
+			"justMyCode": false
+		},
+		{
+			"name": "V3.17 API server: low Context threshold",
+			"type": "debugpy",
+			"request": "launch",
+			"module": "uvicorn",
+			"console": "integratedTerminal",
+			"cwd": "${workspaceFolder}",
+			"python": "${workspaceFolder}/.venv/bin/python",
+			"envFile": "${workspaceFolder}/.env",
+			"env": { "RAG_V317_MODEL_CONTEXT_TOKENS": "4000" },
+			"args": ["obsidian_rag.v3_17.app:app", "--host", "127.0.0.1", "--port", "8026"],
+			"subProcess": false,
+			"justMyCode": false
+		},
+		{
+			"name": "V3.17 CLI: first durable turn",
+			"type": "debugpy",
+			"request": "launch",
+			"module": "obsidian_rag.cli",
+			"console": "integratedTerminal",
+			"cwd": "${workspaceFolder}",
+			"python": "${workspaceFolder}/.venv/bin/python",
+			"envFile": "${workspaceFolder}/.env",
+			"args": ["agent-v3-17", "ask", "请记住：以后回答尽量控制在100字以内。", "--conversation-id", "conv_v317_memory", "--json"],
+			"justMyCode": true
+		},
+		{
+			"name": "V3.17 CLI: same Thread follow-up",
+			"type": "debugpy",
+			"request": "launch",
+			"module": "obsidian_rag.cli",
+			"console": "integratedTerminal",
+			"cwd": "${workspaceFolder}",
+			"python": "${workspaceFolder}/.venv/bin/python",
+			"envFile": "${workspaceFolder}/.env",
+			"args": ["agent-v3-17", "ask", "我刚才要求你以后怎么回答？", "--conversation-id", "conv_v317_memory", "--json"],
+			"justMyCode": true
+		},
+		{
+			"name": "V3.17 CLI: new Thread reads long-term Memory",
+			"type": "debugpy",
+			"request": "launch",
+			"module": "obsidian_rag.cli",
+			"console": "integratedTerminal",
+			"cwd": "${workspaceFolder}",
+			"python": "${workspaceFolder}/.venv/bin/python",
+			"envFile": "${workspaceFolder}/.env",
+			"args": ["agent-v3-17", "ask", "用我的默认偏好介绍一下食品温度计。", "--conversation-id", "conv_v317_new_thread", "--json"],
+			"justMyCode": true
+		},
+		{
+			"name": "V3.17 CLI: inspect Memory Store",
+			"type": "debugpy",
+			"request": "launch",
+			"module": "obsidian_rag.cli",
+			"console": "integratedTerminal",
+			"cwd": "${workspaceFolder}",
+			"python": "${workspaceFolder}/.venv/bin/python",
+			"envFile": "${workspaceFolder}/.env",
+			"args": ["agent-v3-17", "memory", "list"],
+			"justMyCode": true
+		},
+		{
+			"name": "V3.17 CLI: resume approved artifact",
+			"type": "debugpy",
+			"request": "launch",
+			"module": "obsidian_rag.cli",
+			"console": "integratedTerminal",
+			"cwd": "${workspaceFolder}",
+			"python": "${workspaceFolder}/.venv/bin/python",
+			"envFile": "${workspaceFolder}/.env",
+			"args": ["agent-v3-17", "resume", "${input:v317RunId}", "--action", "allow"],
+			"justMyCode": true
+		},
+		{
+			"name": "V3.17 CLI: recover failed Run",
+			"type": "debugpy",
+			"request": "launch",
+			"module": "obsidian_rag.cli",
+			"console": "integratedTerminal",
+			"cwd": "${workspaceFolder}",
+			"python": "${workspaceFolder}/.venv/bin/python",
+			"envFile": "${workspaceFolder}/.env",
+			"args": ["agent-v3-17", "recover", "${input:v317RecoverRunId}"],
+			"justMyCode": true
+		},
+		{
+			"name": "Agent Console UI: console.v1 (V3.17 Durable Memory)",
+			"type": "node-terminal",
+			"request": "launch",
+			"command": "VITE_API_TARGET=http://127.0.0.1:8026 npm run dev",
+			"cwd": "${workspaceFolder}/frontend/agent_console"
 		}
 	],
 	"inputs": [
@@ -686,6 +792,16 @@
 			"id": "v316RunId",
 			"type": "promptString",
 			"description": "输入 waiting_for_approval 的 V3.16 run_id"
+		},
+		{
+			"id": "v317RunId",
+			"type": "promptString",
+			"description": "输入 waiting_for_approval 的 V3.17 run_id"
+		},
+		{
+			"id": "v317RecoverRunId",
+			"type": "promptString",
+			"description": "输入 failed 且 Checkpoint 仍有 next node 的 V3.17 run_id"
 		}
 	]
 }

@@ -27,6 +27,7 @@ class ConsoleFeatures(BaseModel):
     sandbox: bool = Field(default=False, description="是否支持 Docker Sandbox、受控命令和 Artifacts 展示。")
     hitl: bool = Field(default=False, description="是否支持 LangGraph interrupt、人工审批和持久恢复。")
     deep_agents: bool = Field(default=False, description="是否返回 DeepAgents messages、Tool Calls 和 ToolMessages 原生观察数据。")
+    durable_memory: bool = Field(default=False, description="是否支持稳定 Thread、跨会话长期 Memory 和 Context Summary 观察。")
 
 
 class ConsoleEndpoints(BaseModel):
@@ -45,6 +46,8 @@ class ConsoleEndpoints(BaseModel):
     approvals: str | None = Field(default=None, description="查询待审批请求的路径模板。")
     approval_resume: str | None = Field(default=None, description="提交审批决定并恢复 Graph 的路径模板。")
     approval_resume_stream: str | None = Field(default=None, description="提交审批决定并通过 SSE 恢复 Graph 的路径模板。")
+    memories: str | None = Field(default=None, description="长期 Memory 查询、创建、更新和删除集合路径。")
+    memory_audits: str | None = Field(default=None, description="长期 Memory 生命周期审计查询路径。")
 
 
 class ConsoleConfigResponse(BaseModel):

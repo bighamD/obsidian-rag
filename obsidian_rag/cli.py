@@ -546,6 +546,48 @@ def main() -> None:
     agent316_inspect.add_argument("run_id")
     agent316_inspect.add_argument("--api-base", default="http://127.0.0.1:8025")
 
+    agent317_parser = subparsers.add_parser(
+        "agent-v3-17",
+        help="Run V3.17 durable Thread, long-term Memory and Context flow",
+    )
+    agent317_subparsers = agent317_parser.add_subparsers(dest="agent317_command", required=True)
+    agent317_ask = agent317_subparsers.add_parser("ask", help="Start or continue a durable Conversation")
+    agent317_ask.add_argument("question")
+    agent317_ask.add_argument("--conversation-id")
+    agent317_ask.add_argument("--tenant-id", default="tenant_demo")
+    agent317_ask.add_argument("--user-id", default="user_demo")
+    agent317_ask.add_argument("--assistant-id", default="obsidian_rag")
+    agent317_ask.add_argument("--collection")
+    agent317_ask.add_argument("--top-k", type=int, default=5)
+    agent317_ask.add_argument("--mode", choices=["dense", "keyword", "hybrid"], default="hybrid")
+    agent317_ask.add_argument("--max-iterations", type=int, default=12)
+    agent317_ask.add_argument("--json", action="store_true")
+    agent317_ask.add_argument("--api-base", default="http://127.0.0.1:8026")
+    agent317_resume = agent317_subparsers.add_parser("resume", help="Resume a V3.17 Artifact approval")
+    agent317_resume.add_argument("run_id")
+    agent317_resume.add_argument("--action", choices=["allow", "deny", "edit"], required=True)
+    agent317_resume.add_argument("--step-arguments", default="{}")
+    agent317_resume.add_argument("--comment")
+    agent317_resume.add_argument("--api-base", default="http://127.0.0.1:8026")
+    agent317_recover = agent317_subparsers.add_parser(
+        "recover",
+        help="Retry a failed V3.17 Run from its stable Thread checkpoint",
+    )
+    agent317_recover.add_argument("run_id")
+    agent317_recover.add_argument("--api-base", default="http://127.0.0.1:8026")
+    agent317_inspect = agent317_subparsers.add_parser("inspect", help="Read one persisted V3.17 Run")
+    agent317_inspect.add_argument("run_id")
+    agent317_inspect.add_argument("--api-base", default="http://127.0.0.1:8026")
+    agent317_memory = agent317_subparsers.add_parser("memory", help="List, put or delete long-term Memory")
+    agent317_memory.add_argument("action", choices=["list", "put", "delete"])
+    agent317_memory.add_argument("--memory-id")
+    agent317_memory.add_argument("--kind", choices=["preference", "fact", "decision"], default="preference")
+    agent317_memory.add_argument("--content")
+    agent317_memory.add_argument("--tenant-id", default="tenant_demo")
+    agent317_memory.add_argument("--user-id", default="user_demo")
+    agent317_memory.add_argument("--assistant-id", default="obsidian_rag")
+    agent317_memory.add_argument("--api-base", default="http://127.0.0.1:8026")
+
     agent3103_parser = subparsers.add_parser("agent-v3-10-3", help="Run V3.10.3 LangGraph Advanced Patterns")
     agent3103_subparsers = agent3103_parser.add_subparsers(dest="agent3103_command", required=True)
     agent3103_ask_parser = agent3103_subparsers.add_parser("ask", help="Call the Advanced Graph JSON or SSE endpoint")
@@ -1150,6 +1192,53 @@ def main() -> None:
         run_agent316_inspect(run_id=args.run_id, api_base=args.api_base)
         return
 
+    if args.command == "agent-v3-17" and args.agent317_command == "ask":
+        run_agent317_ask(
+            question=args.question,
+            conversation_id=args.conversation_id,
+            tenant_id=args.tenant_id,
+            user_id=args.user_id,
+            assistant_id=args.assistant_id,
+            collection=args.collection,
+            top_k=args.top_k,
+            mode=args.mode,
+            max_iterations=args.max_iterations,
+            stream=not args.json,
+            api_base=args.api_base,
+        )
+        return
+
+    if args.command == "agent-v3-17" and args.agent317_command == "resume":
+        run_agent315_resume(
+            run_id=args.run_id,
+            action=args.action,
+            step_arguments_json=args.step_arguments,
+            comment=args.comment,
+            api_base=args.api_base,
+        )
+        return
+
+    if args.command == "agent-v3-17" and args.agent317_command == "recover":
+        run_agent315_recover(run_id=args.run_id, api_base=args.api_base)
+        return
+
+    if args.command == "agent-v3-17" and args.agent317_command == "inspect":
+        run_agent316_inspect(run_id=args.run_id, api_base=args.api_base)
+        return
+
+    if args.command == "agent-v3-17":
+        run_agent317_memory(
+            action=args.action,
+            memory_id=args.memory_id,
+            kind=args.kind,
+            content=args.content,
+            tenant_id=args.tenant_id,
+            user_id=args.user_id,
+            assistant_id=args.assistant_id,
+            api_base=args.api_base,
+        )
+        return
+
     if args.command == "agent-v3-10-3" and args.agent3103_command == "ask":
         run_agent3103_ask(
             question=args.question,
@@ -1595,6 +1684,100 @@ def run_agent316_inspect(*, run_id: str, api_base: str) -> None:
         f"{api_base.rstrip('/')}/agent/runs/{run_id}",
         timeout=None,
     )
+    response.raise_for_status()
+    print(json.dumps(response.json(), ensure_ascii=False, indent=2))
+
+
+def run_agent317_ask(
+    *,
+    question: str,
+    conversation_id: str | None,
+    tenant_id: str,
+    user_id: str,
+    assistant_id: str,
+    collection: str | None,
+    top_k: int,
+    mode: SearchMode,
+    max_iterations: int,
+    stream: bool,
+    api_base: str,
+) -> None:
+    payload = {
+        "question": question,
+        "conversation_id": conversation_id,
+        "tenant_id": tenant_id,
+        "user_id": user_id,
+        "assistant_id": assistant_id,
+        "collection": collection,
+        "top_k": top_k,
+        "mode": mode,
+        "max_iterations": max_iterations,
+    }
+    base = api_base.rstrip("/")
+    if not stream:
+        response = httpx.post(f"{base}/agent/ask", json=payload, timeout=None)
+        response.raise_for_status()
+        result = response.json()
+        print((result.get("agent_response") or {}).get("answer", "").strip())
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return
+
+    current_event = "message"
+    final_response = None
+    with httpx.stream(
+        "POST",
+        f"{base}/agent/ask/stream",
+        json=payload,
+        headers={"Accept": "text/event-stream"},
+        timeout=None,
+    ) as response:
+        response.raise_for_status()
+        for line in response.iter_lines():
+            if line.startswith("event:"):
+                current_event = line.split(":", 1)[1].strip()
+                continue
+            if not line.startswith("data:"):
+                continue
+            event = json.loads(line.split(":", 1)[1].strip())
+            data = event.get("data", {})
+            if current_event == "answer_delta":
+                print(data.get("delta", ""), end="", flush=True)
+            elif current_event == "context_summary":
+                print("\n[context summarized]", flush=True)
+            elif current_event in {"run_waiting_for_approval", "run_succeeded", "run_failed"}:
+                final_response = data.get("response")
+    print()
+    if final_response:
+        print(json.dumps(final_response, ensure_ascii=False, indent=2))
+
+
+def run_agent317_memory(
+    *,
+    action: str,
+    memory_id: str | None,
+    kind: str,
+    content: str | None,
+    tenant_id: str,
+    user_id: str,
+    assistant_id: str,
+    api_base: str,
+) -> None:
+    base = api_base.rstrip("/")
+    scope = {"tenant_id": tenant_id, "user_id": user_id, "assistant_id": assistant_id}
+    if action == "list":
+        response = httpx.get(f"{base}/memories", params=scope, timeout=None)
+    elif action == "put":
+        if not content:
+            raise SystemExit("memory put requires --content")
+        response = httpx.put(
+            f"{base}/memories",
+            json={**scope, "memory_id": memory_id, "kind": kind, "content": content},
+            timeout=None,
+        )
+    else:
+        if not memory_id:
+            raise SystemExit("memory delete requires --memory-id")
+        response = httpx.delete(f"{base}/memories/{memory_id}", params=scope, timeout=None)
     response.raise_for_status()
     print(json.dumps(response.json(), ensure_ascii=False, indent=2))
 
