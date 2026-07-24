@@ -521,6 +521,31 @@ def main() -> None:
     agent315_recover.add_argument("run_id")
     agent315_recover.add_argument("--api-base", default="http://127.0.0.1:8024")
 
+    agent316_parser = subparsers.add_parser(
+        "agent-v3-16",
+        help="Run V3.16 DeepAgents Tool Loop, HITL and Artifact flow",
+    )
+    agent316_subparsers = agent316_parser.add_subparsers(dest="agent316_command", required=True)
+    agent316_ask = agent316_subparsers.add_parser("ask", help="Start a Deep Agent JSON or SSE Run")
+    agent316_ask.add_argument("question")
+    agent316_ask.add_argument("--conversation-id")
+    agent316_ask.add_argument("--collection")
+    agent316_ask.add_argument("--top-k", type=int, default=5)
+    agent316_ask.add_argument("--mode", choices=["dense", "keyword", "hybrid"], default="hybrid")
+    agent316_ask.add_argument("--filter-path")
+    agent316_ask.add_argument("--max-iterations", type=int, default=12)
+    agent316_ask.add_argument("--json", action="store_true")
+    agent316_ask.add_argument("--api-base", default="http://127.0.0.1:8025")
+    agent316_resume = agent316_subparsers.add_parser("resume", help="Resume a Deep Agent write approval")
+    agent316_resume.add_argument("run_id")
+    agent316_resume.add_argument("--action", choices=["allow", "deny", "edit"], required=True)
+    agent316_resume.add_argument("--step-arguments", default="{}")
+    agent316_resume.add_argument("--comment")
+    agent316_resume.add_argument("--api-base", default="http://127.0.0.1:8025")
+    agent316_inspect = agent316_subparsers.add_parser("inspect", help="Read one persisted Deep Agent Run")
+    agent316_inspect.add_argument("run_id")
+    agent316_inspect.add_argument("--api-base", default="http://127.0.0.1:8025")
+
     agent3103_parser = subparsers.add_parser("agent-v3-10-3", help="Run V3.10.3 LangGraph Advanced Patterns")
     agent3103_subparsers = agent3103_parser.add_subparsers(dest="agent3103_command", required=True)
     agent3103_ask_parser = agent3103_subparsers.add_parser("ask", help="Call the Advanced Graph JSON or SSE endpoint")
@@ -1097,6 +1122,34 @@ def main() -> None:
         run_agent315_recover(run_id=args.run_id, api_base=args.api_base)
         return
 
+    if args.command == "agent-v3-16" and args.agent316_command == "ask":
+        run_agent316_ask(
+            question=args.question,
+            conversation_id=args.conversation_id,
+            collection=args.collection,
+            top_k=args.top_k,
+            mode=args.mode,
+            filter_path=args.filter_path,
+            max_iterations=args.max_iterations,
+            stream=not args.json,
+            api_base=args.api_base,
+        )
+        return
+
+    if args.command == "agent-v3-16" and args.agent316_command == "resume":
+        run_agent315_resume(
+            run_id=args.run_id,
+            action=args.action,
+            step_arguments_json=args.step_arguments,
+            comment=args.comment,
+            api_base=args.api_base,
+        )
+        return
+
+    if args.command == "agent-v3-16":
+        run_agent316_inspect(run_id=args.run_id, api_base=args.api_base)
+        return
+
     if args.command == "agent-v3-10-3" and args.agent3103_command == "ask":
         run_agent3103_ask(
             question=args.question,
@@ -1472,6 +1525,74 @@ def run_agent315_resume(
 def run_agent315_recover(*, run_id: str, api_base: str) -> None:
     response = httpx.post(
         f"{api_base.rstrip('/')}/recoveries/{run_id}/retry",
+        timeout=None,
+    )
+    response.raise_for_status()
+    print(json.dumps(response.json(), ensure_ascii=False, indent=2))
+
+
+def run_agent316_ask(
+    *,
+    question: str,
+    conversation_id: str | None,
+    collection: str | None,
+    top_k: int,
+    mode: SearchMode,
+    filter_path: str | None,
+    max_iterations: int,
+    stream: bool,
+    api_base: str,
+) -> None:
+    """调用 V3.16；SSE 输出最终答案，并在终态打印 DeepAgents 原生响应。"""
+
+    payload = {
+        "question": question,
+        "conversation_id": conversation_id,
+        "collection": collection,
+        "top_k": top_k,
+        "mode": mode,
+        "filters": {"path": filter_path} if filter_path else None,
+        "max_iterations": max_iterations,
+    }
+    base = api_base.rstrip("/")
+    if not stream:
+        response = httpx.post(f"{base}/agent/ask", json=payload, timeout=None)
+        response.raise_for_status()
+        result = response.json()
+        print((result.get("agent_response") or {}).get("answer", "").strip())
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return
+
+    current_event = "message"
+    final_response = None
+    with httpx.stream(
+        "POST",
+        f"{base}/agent/ask/stream",
+        json=payload,
+        headers={"Accept": "text/event-stream"},
+        timeout=None,
+    ) as response:
+        response.raise_for_status()
+        for line in response.iter_lines():
+            if line.startswith("event:"):
+                current_event = line.split(":", 1)[1].strip()
+                continue
+            if not line.startswith("data:"):
+                continue
+            event = json.loads(line.split(":", 1)[1].strip())
+            data = event.get("data", {})
+            if current_event == "answer_delta":
+                print(data.get("delta", ""), end="", flush=True)
+            elif current_event in {"run_waiting_for_approval", "run_succeeded", "run_failed"}:
+                final_response = data.get("response")
+    print()
+    if final_response:
+        print(json.dumps(final_response, ensure_ascii=False, indent=2))
+
+
+def run_agent316_inspect(*, run_id: str, api_base: str) -> None:
+    response = httpx.get(
+        f"{api_base.rstrip('/')}/agent/runs/{run_id}",
         timeout=None,
     )
     response.raise_for_status()

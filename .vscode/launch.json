@@ -606,6 +606,86 @@
 			"request": "launch",
 			"command": "VITE_API_TARGET=http://127.0.0.1:8024 npm run dev",
 			"cwd": "${workspaceFolder}/frontend/agent_console"
+		},
+		{
+			"name": "V3.16 API server: DeepAgents Tool Loop",
+			"type": "debugpy",
+			"request": "launch",
+			"module": "uvicorn",
+			"console": "integratedTerminal",
+			"cwd": "${workspaceFolder}",
+			"python": "${workspaceFolder}/.venv/bin/python",
+			"envFile": "${workspaceFolder}/.env",
+			"args": ["obsidian_rag.v3_16.app:app", "--host", "127.0.0.1", "--port", "8025"],
+			"subProcess": false,
+			"justMyCode": false
+		},
+		{
+			"name": "V3.16 CLI: minimal Deep Agent",
+			"type": "debugpy",
+			"request": "launch",
+			"module": "obsidian_rag.cli",
+			"console": "integratedTerminal",
+			"cwd": "${workspaceFolder}",
+			"python": "${workspaceFolder}/.venv/bin/python",
+			"envFile": "${workspaceFolder}/.env",
+			"args": ["agent-v3-16", "ask", "用一句话说明你能做什么", "--json"],
+			"justMyCode": true
+		},
+		{
+			"name": "V3.16 CLI: search_notes Tool Loop",
+			"type": "debugpy",
+			"request": "launch",
+			"module": "obsidian_rag.cli",
+			"console": "integratedTerminal",
+			"cwd": "${workspaceFolder}",
+			"python": "${workspaceFolder}/.venv/bin/python",
+			"envFile": "${workspaceFolder}/.env",
+			"args": ["agent-v3-16", "ask", "生鸡肉需要清洗吗？", "--collection", "food_safety", "--json"],
+			"justMyCode": true
+		},
+		{
+			"name": "V3.16 CLI: recipe Markdown + approval",
+			"type": "debugpy",
+			"request": "launch",
+			"module": "obsidian_rag.cli",
+			"console": "integratedTerminal",
+			"cwd": "${workspaceFolder}",
+			"python": "${workspaceFolder}/.venv/bin/python",
+			"envFile": "${workspaceFolder}/.env",
+			"args": [
+				"agent-v3-16", "ask",
+				"麻婆豆腐的做法总结成 .md 文档发给我",
+				"--conversation-id", "conv_v316_mapo",
+				"--collection", "recipes"
+			],
+			"justMyCode": true
+		},
+		{
+			"name": "V3.16 CLI: resume approved artifact",
+			"type": "debugpy",
+			"request": "launch",
+			"module": "obsidian_rag.cli",
+			"console": "integratedTerminal",
+			"cwd": "${workspaceFolder}",
+			"python": "${workspaceFolder}/.venv/bin/python",
+			"envFile": "${workspaceFolder}/.env",
+			"args": ["agent-v3-16", "resume", "${input:v316RunId}", "--action", "allow"],
+			"justMyCode": true
+		},
+		{
+			"name": "Agent Console UI: console.v1 (V3.16 DeepAgents)",
+			"type": "node-terminal",
+			"request": "launch",
+			"command": "VITE_API_TARGET=http://127.0.0.1:8025 npm run dev",
+			"cwd": "${workspaceFolder}/frontend/agent_console"
+		}
+	],
+	"inputs": [
+		{
+			"id": "v316RunId",
+			"type": "promptString",
+			"description": "输入 waiting_for_approval 的 V3.16 run_id"
 		}
 	]
 }

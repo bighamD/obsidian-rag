@@ -49,7 +49,7 @@ class SandboxArtifactListResponse(BaseModel):
 class SandboxRuntimeConfigResponse(BaseModel):
     """V3.14 Sandbox、Permission 与 Agent 能力摘要。"""
 
-    version: Literal["v3.14"] = Field(description="当前学习版本。")
+    version: Literal["v3.14", "v3.16"] = Field(description="提供 Sandbox Runtime 契约的学习版本。")
     json_endpoint: str = Field(description="同步 Agent JSON 路径。")
     stream_endpoint: str = Field(description="Agent SSE 路径。")
     sandbox_call_endpoint: str = Field(description="显式 Sandbox Tool 调试路径。")
